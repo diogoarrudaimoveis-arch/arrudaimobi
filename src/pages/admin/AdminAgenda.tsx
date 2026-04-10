@@ -73,8 +73,8 @@ export default function AdminAgenda() {
       <div className="flex flex-col gap-6 lg:flex-row">
         {/* Main Calendar Area */}
         <div className="flex-1 order-2 lg:order-1">
-          <Card className="bg-slate-950 border-slate-800 text-white shadow-xl overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between border-b border-slate-800 pb-4">
+          <Card className="shadow-xl overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-[#003366]/20">
                   <CalendarIcon className="h-5 w-5 text-[#003366]" />
@@ -134,7 +134,7 @@ export default function AdminAgenda() {
 
         {/* Sidebar: Busy Brokers */}
         <div className="w-full lg:w-80 order-1 lg:order-2 flex flex-col gap-6">
-          <Card className="bg-slate-950 border-slate-800 text-white shadow-xl">
+          <Card className="shadow-xl">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Users className="h-5 w-5 text-amber-500" />
@@ -154,11 +154,11 @@ export default function AdminAgenda() {
                 ))
               ) : busyBrokers?.length ? (
                 busyBrokers.map((broker) => (
-                  <div key={broker.user_id} className="group flex items-center justify-between p-2 rounded-lg hover:bg-slate-900 transition-colors">
+                  <div key={broker.user_id} className="group flex items-center justify-between p-2 rounded-lg hover:bg-accent transition-colors">
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10 border-2 border-slate-800 group-hover:border-[#003366] transition-colors">
+                      <Avatar className="h-10 w-10 border-2 group-hover:border-[#003366] transition-colors">
                         <AvatarImage src={broker.avatar_url} />
-                        <AvatarFallback className="bg-[#003366]/20 text-[#003366] font-bold">
+                        <AvatarFallback className="bg-primary/20 text-primary font-bold">
                           {broker.full_name?.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
@@ -180,7 +180,7 @@ export default function AdminAgenda() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-950 border-slate-800 text-white shadow-xl">
+          <Card className="shadow-xl">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Info className="h-5 w-5 text-sky-500" />
@@ -215,9 +215,10 @@ export default function AdminAgenda() {
 
       <style>{`
         .full-calendar-wrapper .fc {
-          --fc-border-color: #1e293b;
+          --fc-border-color: hsl(var(--border));
           --fc-daygrid-event-dot-width: 8px;
-          --fc-today-bg-color: rgba(0, 51, 102, 0.1);
+          --fc-today-bg-color: hsla(var(--primary) / 0.1);
+          --fc-list-event-hover-bg-color: hsl(var(--accent));
         }
         .full-calendar-wrapper .fc-header-toolbar {
           padding: 1rem;
@@ -226,32 +227,45 @@ export default function AdminAgenda() {
         .full-calendar-wrapper .fc-toolbar-title {
           font-size: 1.125rem !important;
           font-weight: 700 !important;
+          color: hsl(var(--foreground));
         }
         .full-calendar-wrapper .fc-button {
-          background-color: #0f172a !important;
-          border-color: #1e293b !important;
+          background-color: hsl(var(--background)) !important;
+          border-color: hsl(var(--border)) !important;
+          color: hsl(var(--foreground)) !important;
           font-size: 0.875rem !important;
           padding: 0.5rem 1rem !important;
           text-transform: capitalize !important;
+          transition: all 0.2s;
+        }
+        .full-calendar-wrapper .fc-button:hover {
+          background-color: hsl(var(--accent)) !important;
+          color: hsl(var(--accent-foreground)) !important;
         }
         .full-calendar-wrapper .fc-button-primary:not(:disabled).fc-button-active,
         .full-calendar-wrapper .fc-button-primary:not(:disabled):active {
           background-color: #003366 !important;
           border-color: #003366 !important;
+          color: white !important;
         }
         .full-calendar-wrapper .fc-col-header-cell {
           padding: 0.75rem 0 !important;
-          background-color: #020617 !important;
+          background-color: hsl(var(--muted) / 0.5) !important;
           font-weight: 600 !important;
           font-size: 0.75rem !important;
           text-transform: uppercase !important;
           letter-spacing: 0.05em !important;
-          color: #64748b !important;
+          color: hsl(var(--muted-foreground)) !important;
+          border-color: hsl(var(--border)) !important;
         }
         .full-calendar-wrapper .fc-daygrid-day-number {
           padding: 8px !important;
           font-size: 0.875rem !important;
+          color: hsl(var(--foreground));
           opacity: 0.8;
+        }
+        .full-calendar-wrapper .fc-daygrid-day.fc-day-today {
+          background-color: hsla(var(--primary) / 0.05) !important;
         }
         .full-calendar-wrapper .fc-event {
           cursor: pointer;
@@ -259,6 +273,10 @@ export default function AdminAgenda() {
           padding: 2px 4px !important;
           font-size: 0.75rem !important;
           margin: 1px 2px !important;
+        }
+        .full-calendar-wrapper .fc-theme-standard td, 
+        .full-calendar-wrapper .fc-theme-standard th {
+          border-color: hsl(var(--border)) !important;
         }
       `}</style>
     </AdminLayout>
