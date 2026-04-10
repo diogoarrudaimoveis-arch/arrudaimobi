@@ -1,0 +1,173 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap');
+
+#lovable-badge {
+  display: none !important;
+  z-index: -1000 !important;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 20% 97%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 221 83% 53%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 220 9% 46%;
+
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+
+    --accent: 221 83% 96%;
+    --accent-foreground: 221 83% 40%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 221 83% 53%;
+
+    --radius: 0.625rem;
+
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 213 31% 91%;
+    --sidebar-primary: 221 83% 53%;
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 213 31% 91%;
+    --sidebar-border: 217 33% 17%;
+    --sidebar-ring: 221 83% 53%;
+    --sidebar-muted: 220 9% 46%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 48 96% 89%;
+    --success: 160 84% 39%;
+    --success-foreground: 0 0% 100%;
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(221 83% 53%), hsl(199 89% 48%));
+    --gradient-hero: linear-gradient(135deg, hsl(221 83% 53%) 0%, hsl(260 67% 60%) 50%, hsl(199 89% 48%) 100%);
+    --card-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+    --card-shadow-hover: 0 20px 25px -5px rgb(0 0 0 / 0.06), 0 8px 10px -6px rgb(0 0 0 / 0.04);
+    --shadow-glow: 0 0 20px -5px hsl(221 83% 53% / 0.15);
+  }
+
+  .dark {
+    --background: 224 71% 4%;
+    --foreground: 213 31% 91%;
+
+    --card: 224 48% 8%;
+    --card-foreground: 213 31% 91%;
+
+    --popover: 224 48% 8%;
+    --popover-foreground: 213 31% 91%;
+
+    --primary: 221 83% 58%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 222 47% 14%;
+    --secondary-foreground: 213 31% 75%;
+
+    --muted: 222 47% 14%;
+    --muted-foreground: 215 20% 55%;
+
+    --accent: 221 50% 18%;
+    --accent-foreground: 221 83% 80%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 222 47% 14%;
+    --input: 222 47% 14%;
+    --ring: 221 83% 58%;
+
+    --sidebar-background: 224 71% 3%;
+    --sidebar-foreground: 213 31% 80%;
+    --sidebar-primary: 221 83% 58%;
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 222 47% 11%;
+    --sidebar-accent-foreground: 213 31% 91%;
+    --sidebar-border: 222 47% 11%;
+    --sidebar-ring: 221 83% 58%;
+    --sidebar-muted: 215 20% 45%;
+
+    --gradient-hero: linear-gradient(135deg, hsl(221 83% 25%) 0%, hsl(260 67% 30%) 50%, hsl(199 89% 25%) 100%);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    @apply tracking-tight;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .scrollbar-sidebar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .scrollbar-sidebar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-sidebar::-webkit-scrollbar-thumb {
+    background: hsl(var(--sidebar-accent));
+    border-radius: 9999px;
+  }
+  .scrollbar-sidebar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--sidebar-muted));
+  }
+  .scrollbar-sidebar {
+    scrollbar-color: hsl(var(--sidebar-accent)) transparent;
+    scrollbar-width: thin;
+  }
+
+  .glass {
+    @apply bg-card/80 backdrop-blur-xl border border-border/50;
+  }
+
+  .glass-dark {
+    @apply bg-background/60 backdrop-blur-xl border border-border/30;
+  }
+
+  .gradient-text {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--gradient-primary);
+  }
+
+  .hover-lift {
+    @apply transition-all duration-300;
+  }
+  .hover-lift:hover {
+    @apply -translate-y-1;
+    box-shadow: var(--card-shadow-hover);
+  }
+
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+}
