@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Trash2, Loader2, Image as ImageIcon, Pencil, Youtube, Play } from "lucide-react";
@@ -332,6 +332,7 @@ const AdminMediaLibrary = () => {
               <Youtube className="h-5 w-5 text-destructive" />
               Adicionar Vídeo do YouTube
             </DialogTitle>
+            <DialogDescription className="sr-only">Insira a URL e o título do vídeo do YouTube para adicionar à sua biblioteca.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -378,6 +379,7 @@ const AdminMediaLibrary = () => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{isYouTube(editingImage) ? "Editar Vídeo" : "Editar Imagem"}</DialogTitle>
+            <DialogDescription className="sr-only">Edite o nome e o texto alternativo da mídia selecionada.</DialogDescription>
           </DialogHeader>
           {editingImage && (
             <div className="space-y-4">
@@ -415,6 +417,7 @@ const AdminMediaLibrary = () => {
       {/* Preview dialog */}
       <Dialog open={!!previewImage} onOpenChange={(v) => !v && setPreviewImage(null)}>
         <DialogContent className="max-w-3xl p-2">
+          <DialogDescription className="sr-only">Visualização ampliada da mídia selecionada.</DialogDescription>
           {previewImage?.startsWith("youtube:") ? (
             <div className="aspect-video w-full">
               <iframe
