@@ -79,6 +79,25 @@ export default defineConfig(({ mode }) => ({
       },
     }),
   ].filter(Boolean),
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          if (id.includes("node_modules")) {
+            if (id.includes("@fullcalendar")) return "vendor-agenda";
+            if (id.includes("@tiptap")) return "vendor-editor";
+            if (id.includes("lucide-react")) return "vendor-icons";
+            if (id.includes("jspdf") || id.includes("html2canvas")) return "vendor-export";
+            if (id.includes("recharts")) return "vendor-charts";
+            if (id.includes("@radix-ui")) return "vendor-ui-core";
+            if (id.includes("@tanstack") || id.includes("zod") || id.includes("date-fns")) return "vendor-utils";
+            return "vendor"; // Outras libs
+          }
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000, // Aumenta limite para 1MB (já que estamos dividindo)
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
