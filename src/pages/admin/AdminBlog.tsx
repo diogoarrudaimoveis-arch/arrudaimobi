@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -214,6 +214,7 @@ export default function AdminBlog() {
               <FileText className="h-5 w-5 text-primary" />
               {editing ? "Editar Post" : "Novo Post"}
             </DialogTitle>
+            <DialogDescription className="sr-only">Formulário para criação e edição de artigos do blog, permitindo configurar título, conteúdo, categoria e imagem de capa.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -297,6 +298,7 @@ export default function AdminBlog() {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Excluir Post</DialogTitle>
+            <DialogDescription className="sr-only">Confirme se deseja excluir permanentemente esta postagem do blog.</DialogDescription>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">Tem certeza que deseja excluir este post? Esta ação não pode ser desfeita.</p>
           <DialogFooter className="gap-2">

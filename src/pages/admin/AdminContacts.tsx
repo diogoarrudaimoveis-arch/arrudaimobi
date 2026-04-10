@@ -411,6 +411,7 @@ const AdminContacts = () => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{editingId ? "Editar Contato" : "Adicionar Contato"}</DialogTitle>
+            <DialogDescription className="sr-only">Formulário para gerenciar informações de contatos, incluindo nome, telefone, e-mail e categoria (cliente, proprietário ou parceiro).</DialogDescription>
           </DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); saveMutation.mutate(); }} className="space-y-4">
             <div>
@@ -454,6 +455,7 @@ const AdminContacts = () => {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Excluir Contato</DialogTitle>
+            <DialogDescription className="sr-only">Confirme se deseja excluir permanentemente as informações deste contato.</DialogDescription>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">Tem certeza que deseja excluir este contato? Esta ação não pode ser desfeita.</p>
           <div className="flex justify-end gap-2 mt-4">
