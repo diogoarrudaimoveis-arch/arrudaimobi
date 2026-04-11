@@ -41,6 +41,7 @@ const AdminBlog = lazy(() => import("./pages/admin/AdminBlog"));
 const AdminPortals = lazy(() => import("./pages/admin/AdminPortals"));
 const AdminPortalMarketing = lazy(() => import("./pages/admin/AdminPortalMarketing"));
 const AdminAgenda = lazy(() => import("./pages/admin/AdminAgenda"));
+const AdminPropertyPerformance = lazy(() => import("./pages/admin/PropertyPerformance"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -111,6 +112,7 @@ const App = () => (
                         <Route path="/admin/blog" element={<ProtectedRoute><AdminBlog /></ProtectedRoute>} />
                         <Route path="/admin/portais" element={<ProtectedRoute requireAdmin><AdminPortals /></ProtectedRoute>} />
                         <Route path="/admin/marketing-portal" element={<ProtectedRoute requireAdmin><AdminPortalMarketing /></ProtectedRoute>} />
+                        <Route path="/admin/performance" element={<ProtectedRoute requireAdmin><AdminPropertyPerformance /></ProtectedRoute>} />
                         <Route path="/admin/agenda" element={<ProtectedRoute><AdminAgenda /></ProtectedRoute>} />
                         <Route path="/admin/contatos" element={<ProtectedRoute><AdminContacts /></ProtectedRoute>} />
                         <Route path="/admin/mensagens" element={<ProtectedRoute><AdminMessages /></ProtectedRoute>} />

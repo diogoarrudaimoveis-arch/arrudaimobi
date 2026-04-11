@@ -9,7 +9,7 @@ import {
   Building2, LayoutDashboard, Home, Users, Settings, Tag,
   Sparkles, MessageSquare, LogOut, X, Menu, Sun, Moon, User, Image, Send, Mail,
   PanelLeftClose, PanelLeftOpen, ChevronRight, FileText, Download, Globe,
-  Calendar as CalendarIcon, Target
+  Calendar as CalendarIcon, Target, BarChart3
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
@@ -48,6 +48,7 @@ const navGroups = [
       { label: "Configurações de IA", href: "/admin/configuracoes-ia", icon: Sparkles },
       { label: "Portais Imobiliários", href: "/admin/portais", icon: Globe },
       { label: "Rastreamento do Portal", href: "/admin/marketing-portal", icon: Target },
+      { label: "Performance de Imóveis", href: "/admin/performance", icon: BarChart3 },
     ]
   },
   {
