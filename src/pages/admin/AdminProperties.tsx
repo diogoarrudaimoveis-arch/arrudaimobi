@@ -22,7 +22,7 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useOwners, useCreateOwnerMutation } from "@/hooks/use-owners";
-import { CheckCircle2, Circle, AlertCircle, Sparkles, Wand2, Share2, Target, BarChart3, FileText, Camera, Globe } from "lucide-react";
+import { CheckCircle2, Circle, AlertCircle, Sparkles, Wand2, Share2, Target, BarChart3, FileText, Camera, Globe, RefreshCcw } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { toast as sonnerToast } from "sonner";
 import { DocumentManager } from "@/components/admin/DocumentManager";
@@ -294,6 +294,8 @@ const AdminProperties = () => {
     },
   });
 
+  const generatePropertyCode = () => `IMO${Math.floor(1000 + Math.random() * 9000)}`;
+
   const resetForm = () => {
     setForm({
       title: "", 
@@ -320,7 +322,7 @@ const AdminProperties = () => {
       number: "",
       latitude: "", 
       longitude: "",
-      property_code: "",
+      property_code: generatePropertyCode(),
       owner_id: "",
       featured: false,
       marketing_pixels: {
@@ -469,7 +471,17 @@ const AdminProperties = () => {
                         </div>
                         <div className="sm:col-span-2">
                           <Label>Código do Imóvel</Label>
-                          <Input value={form.property_code} onChange={(e) => setForm({ ...form, property_code: e.target.value })} placeholder="Ex: IMO0047" />
+                          <div className="flex gap-2">
+                            <Input value={form.property_code} onChange={(e) => setForm({ ...form, property_code: e.target.value })} placeholder="Ex: IMO0047" />
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              onClick={() => setForm({ ...form, property_code: generatePropertyCode() })}
+                              title="Gerar código automaticamente"
+                            >
+                              <RefreshCcw className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                         <div className="sm:col-span-2">
                           <Label>Tipo de Imóvel</Label>
