@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AIAssistantModal } from "@/components/properties/AIAssistantModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,7 +34,13 @@ const AdminProperties = () => {
   const { tenantId, user, isReady, isAdmin } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Estados do Modal Assistente de IA
+  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+  const [aiModalContext, setAiModalContext] = useState<any>(null);
+
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [generatingAI, setGeneratingAI] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [fetchingCep, setFetchingCep] = useState(false);
@@ -41,7 +48,7 @@ const AdminProperties = () => {
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
   const handleCepLookup = useCallback(async (cep: string) => {
-    const cleanCep = cep.replace(/\D/g, "");
+    const cleanCep = (cep || "").replace(/\D/g, "");
     if (cleanCep.length !== 8) {
       toast({ title: "CEP inválido", description: "Digite um CEP com 8 dígitos", variant: "destructive" });
       return;
@@ -54,13 +61,22 @@ const AdminProperties = () => {
         toast({ title: "CEP não encontrado", variant: "destructive" });
         return;
       }
+      // Precedência de Estado: atualizamos primeiro o UF para disparar o IBGE
       setForm((prev) => ({
         ...prev,
+        state: data.uf || prev.state,
         address: data.logradouro || prev.address,
         neighborhood: data.bairro || prev.neighborhood,
-        city: data.localidade || prev.city,
-        state: data.uf || prev.state,
       }));
+
+      // Pequeno delay para a reatividade do hook IBGE e Select de cidade se estabilizar
+      setTimeout(() => {
+        setForm((prev) => ({
+          ...prev,
+          city: data.localidade || prev.city,
+        }));
+      }, 500);
+
       toast({ title: "Endereço preenchido!" });
     } catch {
       toast({ title: "Erro ao buscar CEP", variant: "destructive" });
@@ -321,9 +337,10 @@ const AdminProperties = () => {
   };
 
   const openEdit = async (p: any) => {
+    console.log("[DEBUG] Abrindo edição para ID:", p.id);
     setEditingId(p.id);
     setForm({
-      title: p.title || "", 
+      title: p.title || "",
       description: p.description || "", 
       type_id: p.type_id || "",
       purpose: p.purpose || "sale", 
@@ -397,9 +414,21 @@ const AdminProperties = () => {
             <h1 className="font-display text-2xl font-bold">Imóveis</h1>
             <p className="text-muted-foreground">{totalProperties} imóveis cadastrados</p>
           </div>
-          <Dialog open={dialogOpen} onOpenChange={(v) => { setDialogOpen(v); if (!v) resetForm(); }}>
+          <Dialog open={dialogOpen} onOpenChange={(v) => { 
+            console.log("[DEBUG] Dialog onOpenChange:", v);
+            setDialogOpen(v); 
+            if (!v) {
+              console.log("[DEBUG] Resetando formulário ao fechar");
+              resetForm(); 
+            }
+          }}>
             <DialogTrigger asChild>
-              <Button className="gap-2"><Plus className="h-4 w-4" /> Novo Imóvel</Button>
+              <Button className="gap-2" onClick={() => {
+                console.log("[DEBUG] Clicou em Novo Imóvel");
+                resetForm();
+              }}>
+                <Plus className="h-4 w-4" /> Novo Imóvel
+              </Button>
             </DialogTrigger>
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0">
               <DialogHeader className="p-6 pb-0">
@@ -433,14 +462,36 @@ const AdminProperties = () => {
                     
                     {/* ABA BÁSICOS */}
                     <TabsContent value="basicos" className="mt-0 space-y-6">
-                      <div className="grid gap-6 sm:grid-cols-3">
+                      <div className="grid gap-6 sm:grid-cols-4">
                         <div className="sm:col-span-2">
                           <Label>Título do Imóvel</Label>
                           <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Ex: Apartamento Moderno com Vista para o Mar" />
                         </div>
-                        <div>
+                        <div className="sm:col-span-2">
                           <Label>Código do Imóvel</Label>
                           <Input value={form.property_code} onChange={(e) => setForm({ ...form, property_code: e.target.value })} placeholder="Ex: IMO0047" />
+                        </div>
+                        <div className="sm:col-span-2">
+                          <Label>Tipo de Imóvel</Label>
+                          <Select value={form.type_id} onValueChange={(v) => setForm({ ...form, type_id: v })}>
+                            <SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger>
+                            <SelectContent>
+                              {propertyTypes?.map((t) => (
+                                <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="sm:col-span-2">
+                          <Label>Finalidade</Label>
+                          <Select value={form.purpose} onValueChange={(v) => setForm({ ...form, purpose: v })}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="sale">Venda</SelectItem>
+                              <SelectItem value="rent">Aluguel</SelectItem>
+                              <SelectItem value="both">Ambos (Venda/Locação)</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
 
@@ -614,48 +665,41 @@ const AdminProperties = () => {
                             type="button" 
                             variant="ghost" 
                             size="sm" 
-                            className="text-[#003366] gap-1.5"
                             onClick={async () => {
-                              if (!form.city || !form.neighborhood) {
-                                sonnerToast.error("Preencha ao menos Cidade e Bairro para gerar a descrição.");
-                                return;
-                              }
+                              const selectedAmenitiesNames = (amenities || [])
+                                .filter(a => selectedAmenities.includes(a.id))
+                                .map(a => a.name);
                               
-                              sonnerToast.info("IA Processando...");
-                              try {
-                                const { data, error } = await supabase.functions.invoke('generate-ai-content', {
-                                  body: {
-                                    feature: 'property_description',
-                                    prompt: `Gere uma descrição atraente e persuasiva para um imóvel. Foque em benefícios e emoção.`,
-                                    context: {
-                                      city: form.city,
-                                      neighborhood: form.neighborhood,
-                                      bedrooms: form.bedrooms,
-                                      suites: form.suites,
-                                      bathrooms: form.bathrooms,
-                                      area: form.area_useful,
-                                      price: form.price,
-                                      type: propertyTypes.find(t => t.id === form.type_id)?.name || 'imóvel'
-                                    }
-                                  }
-                                });
-
-                                if (error) throw error;
-                                if (data.error) throw new Error(data.error);
-
-                                setForm({ ...form, description: data.content });
-                                sonnerToast.success(`Descrição gerada via ${data.provider}!`);
-                              } catch (err: any) {
-                                console.error(err);
-                                sonnerToast.error(`Erro na IA: ${err.message || 'Tente configurar as chaves de API primeiro.'}`);
-                              }
+                              setAiModalContext({
+                                "Título": form.title,
+                                "Tipo": propertyTypes?.find(t => t.id === form.type_id)?.name || 'imóvel',
+                                "Finalidade": form.purpose === 'sale' ? 'Venda' : form.purpose === 'rent' ? 'Aluguel' : 'Venda/Aluguel',
+                                "Código": form.property_code,
+                                "Dormitórios": form.bedrooms,
+                                "Suítes": form.suites,
+                                "Banheiros": form.bathrooms,
+                                "Vagas": form.garages,
+                                "Área Útil (m²)": form.area_useful,
+                                "Logradouro": form.address,
+                                "Bairro": form.neighborhood,
+                                "Cidade": form.city,
+                                "Preço Base (R$)": form.price,
+                                "Comodidades": selectedAmenitiesNames
+                              });
+                              setIsAIModalOpen(true);
                             }}
+                            className="h-8 gap-2 bg-[#003366] hover:bg-[#002244] text-white"
                           >
                             <Sparkles className="h-4 w-4" />
                             Gerar com IA
                           </Button>
                         </div>
-                        <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="h-32" />
+                        <Textarea 
+                          value={form.description} 
+                          onChange={(e) => setForm({ ...form, description: e.target.value })} 
+                          className="h-40" 
+                          placeholder="Clique em 'Gerar com IA' para uma descrição profissional ou digite aqui..."
+                        />
                       </div>
 
                       {amenities && (
@@ -670,6 +714,18 @@ const AdminProperties = () => {
                           ))}
                         </div>
                       )}
+
+                      <AIAssistantModal 
+                        isOpen={isAIModalOpen}
+                        onClose={() => setIsAIModalOpen(false)}
+                        propertyContext={aiModalContext}
+                        tenantId={tenantId ?? null}
+                        onAccept={(text) => {
+                          setForm(prev => ({ ...prev, description: text }));
+                          setIsAIModalOpen(false);
+                          sonnerToast.success("Descrição aplicada com sucesso!");
+                        }}
+                      />
                     </TabsContent>
 
                     {/* ABA DOCS */}
@@ -850,10 +906,10 @@ const AdminProperties = () => {
                     <Button 
                       form="property-form" 
                       type="submit" 
-                      className={`gap-2 min-w-[140px] ${isPublishable ? 'bg-[#003366]' : 'bg-muted text-muted-foreground opacity-50'}`}
-                      disabled={saveMutation.isPending || (!editingId && !isPublishable)}
+                      className={`gap-2 min-w-[140px] ${(!editingId || isPublishable) ? 'bg-[#003366]' : 'bg-amber-600'}`}
+                      disabled={saveMutation.isPending}
                     >
-                      {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : editingId ? "Salvar Alterações" : "Publicar Imóvel"}
+                      {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : editingId ? (isPublishable ? "Salvar e Publicar" : "Salvar Alterações") : "Cadastrar e Adicionar Mídia"}
                     </Button>
                   </div>
                 </DialogFooter>

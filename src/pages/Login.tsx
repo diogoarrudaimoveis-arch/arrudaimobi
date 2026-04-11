@@ -288,7 +288,7 @@ const Login = () => {
                     <label className="mb-1 block text-sm font-medium">Email</label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input type="email" placeholder="seu@email.com" className="pl-10" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required />
+                      <Input type="email" placeholder="seu@email.com" className="pl-10" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required autoComplete="email" />
                     </div>
                   </div>
                   <div>
@@ -302,6 +302,7 @@ const Login = () => {
                         value={loginPassword}
                         onChange={(e) => setLoginPassword(e.target.value)}
                         required
+                        autoComplete="current-password"
                       />
                       <button
                         type="button"
