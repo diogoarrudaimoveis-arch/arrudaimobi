@@ -7,6 +7,7 @@ import { HomeCustomization } from "@/components/admin/settings/HomeCustomization
 import { ContactSocialCard } from "@/components/admin/settings/ContactSocialCard";
 import { BrandCustomization } from "@/components/admin/BrandCustomization";
 import { PWASettingsCard } from "@/components/admin/PWASettingsCard";
+import { AdvancedSiteSettings } from "@/components/admin/settings/AdvancedSiteSettings";
 import type { TenantSettings } from "@/hooks/use-tenant-settings";
 
 const AdminSettings = () => {
@@ -47,6 +48,9 @@ const AdminSettings = () => {
             allSettings={getCurrentSettings()}
           />
         )}
+
+        {/* Configurações Avançadas do Site (Favicon, SEO, Docs, Cookies) */}
+        {tenantId && <AdvancedSiteSettings tenantId={tenantId} />}
       </div>
     </AdminLayout>
   );
