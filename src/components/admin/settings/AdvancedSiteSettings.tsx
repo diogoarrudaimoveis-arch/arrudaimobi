@@ -232,11 +232,21 @@ export function AdvancedSiteSettings({ tenantId }: AdvancedSiteSettingsProps) {
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Título do Site (SEO Title)</Label>
+                <div className="flex justify-between items-center">
+                  <Label>Título do Site (SEO Title)</Label>
+                  <span className={`text-[10px] ${seoTitle.length > 60 || seoTitle.length < 50 ? 'text-amber-500' : 'text-green-600'}`}>
+                    {seoTitle.length} / 50-60 caracteres
+                  </span>
+                </div>
                 <Input value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} placeholder="Ex: Minha Imobiliária - Imóveis" />
               </div>
               <div className="space-y-2">
-                <Label>Descrição Curta</Label>
+                <div className="flex justify-between items-center">
+                  <Label>Descrição Curta (SEO Description)</Label>
+                  <span className={`text-[10px] ${seoDescription.length > 160 || seoDescription.length < 120 ? 'text-amber-500' : 'text-green-600'}`}>
+                    {seoDescription.length} / 120-160 caracteres
+                  </span>
+                </div>
                 <Textarea 
                   value={seoDescription} 
                   onChange={(e) => setSeoDescription(e.target.value)} 

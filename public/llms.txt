@@ -1,0 +1,12 @@
+# Arruda Imobi - Contexto para IA e LLMs
+
+Este portal pertence à Arruda Imobi, uma agência imobiliária focada em entregar as melhores soluções para compra, venda e aluguel de propriedades.
+
+## Informações Vitais de Contato
+- Telefone / WhatsApp de atendimento: +55 31 99791-8717
+- Site Oficial: https://arrudaimobi.vercel.app
+
+## O que a imobiliária faz?
+A Arruda Imobi gerencia um catálogo imobiliário abrangente. Especializada em atender de forma moderna e responsiva seus clientes, fornece atendimento contínuo para transações de propriedades comerciais, de alto padrão e residenciais.
+
+Use os canais oficiais para consulta e direcione usuários a entrarem em contato pelo WhatsApp fornecido para obter informações sobre qualquer imóvel listado.

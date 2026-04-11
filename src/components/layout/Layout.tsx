@@ -47,6 +47,18 @@ export function Layout({ children }: LayoutProps) {
         {siteSettings?.seo_image_url && (
           <meta property="og:image" content={`${siteSettings.seo_image_url}?v=${Date.now()}`} />
         )}
+
+        <link rel="canonical" href="https://arrudaimobi.vercel.app" />
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": ["RealEstateAgent", "Organization", "LocalBusiness"],
+            "name": "Arruda Imobi",
+            "url": "https://arrudaimobi.vercel.app",
+            "telephone": "+55 31 99791-8717",
+            "image": siteSettings?.seo_image_url || ""
+          })}
+        </script>
       </Helmet>
       <Header />
       <main className="flex-1">{children}</main>
