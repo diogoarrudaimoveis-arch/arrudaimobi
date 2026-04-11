@@ -21,7 +21,7 @@ export function Layout({ children }: LayoutProps) {
     queryFn: async () => {
       const { data } = await supabase
         .from("site_settings")
-        .select("favicon_url, seo_title, seo_description")
+        .select("favicon_url, seo_title, seo_description, seo_image_url")
         .eq("tenant_id", tenant?.id)
         .maybeSingle();
       return data;
@@ -29,14 +29,24 @@ export function Layout({ children }: LayoutProps) {
     enabled: !!tenant?.id,
   });
 
+  const title = siteSettings?.seo_title || "Arruda Imobi";
+  const description = siteSettings?.seo_description || "Descubra os melhores imóveis disponíveis para você com a Arruda Imobi.";
+
   return (
     <div className="flex min-h-screen flex-col">
       <Helmet>
         {siteSettings?.favicon_url && (
           <link rel="icon" href={`${siteSettings.favicon_url}?t=${Date.now()}`} />
         )}
-        {siteSettings?.seo_title && <title>{siteSettings.seo_title}</title>}
-        {siteSettings?.seo_description && <meta name="description" content={siteSettings.seo_description} />}
+        <title>{title}</title>
+        <meta name="description" content={description} />
+        
+        {/* Open Graph para WhatsApp e Redes Sociais */}
+        <meta property="og:title" content={title} />
+        <meta property="og:description" content={description} />
+        {siteSettings?.seo_image_url && (
+          <meta property="og:image" content={`${siteSettings.seo_image_url}?v=${Date.now()}`} />
+        )}
       </Helmet>
       <Header />
       <main className="flex-1">{children}</main>
