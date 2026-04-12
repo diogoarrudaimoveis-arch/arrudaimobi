@@ -68,7 +68,6 @@ const AdminOwners = () => {
     bank_agency: "",
     bank_account: "",
     pix_key: "",
-    pix_key: "",
     signature_url: ""
   });
 
