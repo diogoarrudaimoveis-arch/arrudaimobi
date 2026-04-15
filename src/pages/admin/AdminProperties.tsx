@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/format";
-import { Plus, Pencil, Trash2, Loader2, Home, ImageIcon, Search, HelpCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Home, ImageIcon, Search, HelpCircle, X } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PropertyImageUpload } from "@/components/admin/PropertyImageUpload";
 import { useIBGEStates, useIBGECities } from "@/hooks/use-ibge-locations";
@@ -46,6 +46,35 @@ const AdminProperties = () => {
   const [fetchingCep, setFetchingCep] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+
+  // ─── Filtros de listagem ────────────────────────────────────────────────────
+  const [filterSearch, setFilterSearch] = useState("");     // localização / bairro
+  const [filterCity, setFilterCity]     = useState("all");  // cidade
+  const [filterMinPrice, setFilterMinPrice] = useState(""); // preço mínimo
+  const [filterMaxPrice, setFilterMaxPrice] = useState(""); // preço máximo
+  const [filterBedrooms, setFilterBedrooms]   = useState("any");
+  const [filterBathrooms, setFilterBathrooms] = useState("any");
+  const [filterGarages, setFilterGarages]     = useState("any");
+
+  const hasActiveFilters =
+    filterSearch.trim() !== "" ||
+    filterCity !== "all"       ||
+    filterMinPrice !== ""      ||
+    filterMaxPrice !== ""      ||
+    filterBedrooms !== "any"   ||
+    filterBathrooms !== "any"  ||
+    filterGarages !== "any";
+
+  const resetFilters = () => {
+    setFilterSearch("");
+    setFilterCity("all");
+    setFilterMinPrice("");
+    setFilterMaxPrice("");
+    setFilterBedrooms("any");
+    setFilterBathrooms("any");
+    setFilterGarages("any");
+    setPage(1);
+  };
 
   const handleCepLookup = useCallback(async (cep: string) => {
     const cleanCep = (cep || "").replace(/\D/g, "");
@@ -128,7 +157,13 @@ const AdminProperties = () => {
   const [activeTab, setActiveTab] = useState("basicos");
 
   const { data: propertiesData, isLoading } = useQuery({
-    queryKey: ["admin-properties", tenantId, page, pageSize],
+    queryKey: [
+      "admin-properties",
+      tenantId, page, pageSize,
+      filterSearch, filterCity,
+      filterMinPrice, filterMaxPrice,
+      filterBedrooms, filterBathrooms, filterGarages
+    ],
     queryFn: async () => {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
@@ -141,6 +176,24 @@ const AdminProperties = () => {
         .range(from, to);
 
       if (!isAdmin) q = q.eq("agent_id", user!.id);
+
+      // Filtro: localização / bairro
+      if (filterSearch.trim()) {
+        const s = `%${filterSearch.trim()}%`;
+        q = q.or(`address.ilike.${s},neighborhood.ilike.${s},city.ilike.${s}`);
+      }
+
+      // Filtro: cidade
+      if (filterCity !== "all") q = q.eq("city", filterCity);
+
+      // Filtros: preços
+      if (filterMinPrice) q = q.gte("price", Number(filterMinPrice));
+      if (filterMaxPrice) q = q.lte("price", Number(filterMaxPrice));
+
+      // Filtros numéricos opcionais
+      if (filterBedrooms !== "any")   q = q.gte("bedrooms",  Number(filterBedrooms));
+      if (filterBathrooms !== "any")  q = q.gte("bathrooms", Number(filterBathrooms));
+      if (filterGarages !== "any")    q = q.gte("garages",   Number(filterGarages));
 
       const { data, error, count } = await q;
       if (error) throw error;
@@ -195,6 +248,25 @@ const AdminProperties = () => {
 
   const { data: ibgeStates } = useIBGEStates();
   const { data: ibgeCities } = useIBGECities(form.state);
+
+  // Cidades distintas dos imóveis do tenant (para o filtro)
+  const { data: availableCities } = useQuery({
+    queryKey: ["admin-properties-cities", tenantId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("properties")
+        .select("city")
+        .eq("tenant_id", tenantId!)
+        .not("city", "is", null)
+        .neq("city", "");
+      const unique = [...new Set((data || []).map((p: any) => p.city as string))]
+        .filter(Boolean)
+        .sort();
+      return unique;
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: isReady && !!tenantId,
+  });
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -929,6 +1001,137 @@ const AdminProperties = () => {
             </DialogContent>
 
           </Dialog>
+        </div>
+
+        {/* ─── FILTROS DE LISTAGEM ────────────────────────────────────────── */}
+        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+          {/* Linha 1: busca + cidade */}
+          <div className="flex flex-wrap gap-3">
+            {/* Campo livre: localização / bairro */}
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <input
+                id="props-search"
+                type="text"
+                value={filterSearch}
+                onChange={(e) => { setFilterSearch(e.target.value); setPage(1); }}
+                placeholder="Buscar por localização, bairro..."
+                className="w-full pl-9 pr-9 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-[#003366]/30 focus:border-[#003366] transition-colors"
+              />
+              {filterSearch && (
+                <button
+                  onClick={() => { setFilterSearch(""); setPage(1); }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label="Limpar busca"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Cidade */}
+            <Select
+              value={filterCity}
+              onValueChange={(v) => { setFilterCity(v); setPage(1); }}
+            >
+              <SelectTrigger className="w-[180px]" id="filter-city">
+                <SelectValue placeholder="Todas as Cidades" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as Cidades</SelectItem>
+                {(availableCities || []).map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Linha 2: precos + quartos + banheiros + vagas */}
+          <div className="flex flex-wrap gap-3 items-center">
+            {/* Preço Mín */}
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
+              <input
+                id="filter-min-price"
+                type="number"
+                min={0}
+                value={filterMinPrice}
+                onChange={(e) => { setFilterMinPrice(e.target.value); setPage(1); }}
+                placeholder="Preço Mín"
+                className="w-[130px] pl-8 pr-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-[#003366]/30 focus:border-[#003366] transition-colors"
+              />
+            </div>
+
+            {/* Preço Máx */}
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
+              <input
+                id="filter-max-price"
+                type="number"
+                min={0}
+                value={filterMaxPrice}
+                onChange={(e) => { setFilterMaxPrice(e.target.value); setPage(1); }}
+                placeholder="Preço Máx"
+                className="w-[130px] pl-8 pr-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-[#003366]/30 focus:border-[#003366] transition-colors"
+              />
+            </div>
+
+            {/* Quartos */}
+            <Select value={filterBedrooms} onValueChange={(v) => { setFilterBedrooms(v); setPage(1); }}>
+              <SelectTrigger className="w-[120px]" id="filter-bedrooms">
+                <SelectValue placeholder="Quartos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="any">Quartos</SelectItem>
+                <SelectItem value="1">1+</SelectItem>
+                <SelectItem value="2">2+</SelectItem>
+                <SelectItem value="3">3+</SelectItem>
+                <SelectItem value="4">4+</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Banheiros */}
+            <Select value={filterBathrooms} onValueChange={(v) => { setFilterBathrooms(v); setPage(1); }}>
+              <SelectTrigger className="w-[120px]" id="filter-bathrooms">
+                <SelectValue placeholder="Banheiros" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="any">Banheiros</SelectItem>
+                <SelectItem value="1">1+</SelectItem>
+                <SelectItem value="2">2+</SelectItem>
+                <SelectItem value="3">3+</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Vagas */}
+            <Select value={filterGarages} onValueChange={(v) => { setFilterGarages(v); setPage(1); }}>
+              <SelectTrigger className="w-[120px]" id="filter-garages">
+                <SelectValue placeholder="Vagas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="any">Vagas</SelectItem>
+                <SelectItem value="1">1+</SelectItem>
+                <SelectItem value="2">2+</SelectItem>
+                <SelectItem value="3">3+</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Botão Limpar */}
+            {hasActiveFilters && (
+              <button
+                onClick={resetFilters}
+                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg px-3 py-2 transition-colors"
+              >
+                <X className="h-3.5 w-3.5" /> Limpar
+              </button>
+            )}
+
+            {hasActiveFilters && (
+              <span className="ml-auto text-sm text-muted-foreground">
+                {totalProperties} resultado{totalProperties !== 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
         </div>
 
         {isLoading ? (

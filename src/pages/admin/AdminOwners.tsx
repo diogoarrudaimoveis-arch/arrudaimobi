@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useOwners, useCreateOwnerMutation, useUpdateOwnerMutation, useDeleteOwnerMutation } from "@/hooks/use-owners";
 import { useTenantSettings } from "@/hooks/use-tenant-settings";
-import { Plus, Pencil, Trash2, Loader2, User, Landmark, Home, FileText, Download, Save, X, Signature } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, User, Landmark, Home, FileText, Download, Save, X, Signature, Search } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
 import SignatureCanvas from "react-signature-canvas";
@@ -34,11 +34,24 @@ const AdminOwners = () => {
   const [activeTab, setActiveTab] = useState("pessoais");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const sigCanvas = useRef<SignatureCanvas>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const { data: owners, isLoading } = useOwners();
+
+  const filteredOwners = (owners || []).filter((o) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      (o.name || "").toLowerCase().includes(q) ||
+      (o.email || "").toLowerCase().includes(q) ||
+      (o.phone || "").toLowerCase().includes(q) ||
+      (o.cpf_cnpj || "").replace(/\D/g, "").includes(q.replace(/\D/g, "")) ||
+      (o.cpf_cnpj || "").toLowerCase().includes(q)
+    );
+  });
   const updateMutation = useUpdateOwnerMutation();
   const deleteMutation = useDeleteOwnerMutation();
   const createMutation = useCreateOwnerMutation();
@@ -221,6 +234,35 @@ const AdminOwners = () => {
           </Button>
         </div>
 
+        {/* Search bar */}
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <input
+              id="owners-search"
+              type="text"
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+              placeholder="Buscar por nome, contato ou CPF/CNPJ..."
+              className="w-full pl-9 pr-9 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-[#003366]/30 focus:border-[#003366] transition-colors"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => { setSearchQuery(""); setPage(1); }}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Limpar busca"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          {searchQuery && (
+            <span className="text-sm text-muted-foreground whitespace-nowrap">
+              {filteredOwners.length} resultado{filteredOwners.length !== 1 ? "s" : ""}
+            </span>
+          )}
+        </div>
+
         <Card className="overflow-hidden border-border bg-card">
           {isLoading ? (
             <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-[#003366]" /></div>
@@ -235,28 +277,47 @@ const AdminOwners = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {owners?.map((o) => (
-                  <TableRow key={o.id}>
-                    <TableCell className="font-medium">{o.name}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-col text-xs">
-                        <span>{o.email}</span>
-                        <span className="text-muted-foreground">{o.phone}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{o.cpf_cnpj || "—"}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(o)} title="Editar">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeleteConfirmId(o.id)} title="Arquivar">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                {filteredOwners.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
+                      {searchQuery ? (
+                        <div className="flex flex-col items-center gap-2">
+                          <Search className="h-8 w-8 opacity-20" />
+                          <p>Nenhum proprietário encontrado para <strong>"{searchQuery}"</strong></p>
+                          <button onClick={() => setSearchQuery("")} className="text-[#003366] text-sm underline">Limpar filtro</button>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-2">
+                          <User className="h-8 w-8 opacity-20" />
+                          <p>Nenhum proprietário cadastrado</p>
+                        </div>
+                      )}
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  filteredOwners.map((o) => (
+                    <TableRow key={o.id}>
+                      <TableCell className="font-medium">{o.name}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col text-xs">
+                          <span>{o.email}</span>
+                          <span className="text-muted-foreground">{o.phone}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{o.cpf_cnpj || "—"}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(o)} title="Editar">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeleteConfirmId(o.id)} title="Arquivar">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           )}
