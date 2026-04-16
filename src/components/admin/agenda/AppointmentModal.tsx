@@ -17,6 +17,7 @@ import {
   Home, User, Calendar as CalendarIcon, Clock, AlertTriangle, 
   MapPin, CheckCircle, XCircle, Info, Hash
 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 
 const appointmentSchema = z.object({
@@ -49,6 +50,7 @@ interface AppointmentModalProps {
 
 export function AppointmentModal({ open, onOpenChange, editingAppointment }: AppointmentModalProps) {
   const queryClient = useQueryClient();
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const form = useForm<z.infer<typeof appointmentSchema>>({
     resolver: zodResolver(appointmentSchema),
     defaultValues: {
@@ -89,6 +91,12 @@ export function AppointmentModal({ open, onOpenChange, editingAppointment }: App
       });
     }
   }, [editingAppointment, form]);
+
+  useEffect(() => {
+    if (!open) {
+      setDeleteConfirmOpen(false);
+    }
+  }, [open]);
 
   const { data: brokers } = useQuery({
     queryKey: ["brokers"],
@@ -147,6 +155,23 @@ export function AppointmentModal({ open, onOpenChange, editingAppointment }: App
     },
     onError: (error: any) => {
       toast.error("Erro ao salvar: " + error.message);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (appointmentId: string) => {
+      const { error } = await supabase.from("appointments").delete().eq("id", appointmentId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["busy-brokers"] });
+      toast.success("Agendamento excluído com sucesso!");
+      setDeleteConfirmOpen(false);
+      onOpenChange(false);
+    },
+    onError: (error: any) => {
+      toast.error("Erro ao excluir: " + error.message);
     },
   });
 
@@ -405,10 +430,36 @@ export function AppointmentModal({ open, onOpenChange, editingAppointment }: App
             </div>
 
             <DialogFooter className="pt-4 border-t border-slate-800">
+              {editingAppointment && (
+                <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+                  <AlertDialogTrigger asChild>
+                    <Button type="button" variant="destructive" disabled={deleteMutation.isPending} className="mr-auto">
+                      Excluir
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Excluir Agendamento</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Tem certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => editingAppointment && deleteMutation.mutate(editingAppointment.id)}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Excluir
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
               <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={upsertMutation.isPending} className="bg-[#003366] hover:bg-[#002244] text-white">
+              <Button type="submit" disabled={upsertMutation.isPending || deleteMutation.isPending} className="bg-[#003366] hover:bg-[#002244] text-white">
                 {upsertMutation.isPending ? "Salvando..." : editingAppointment ? "Atualizar" : "Salvar"}
               </Button>
             </DialogFooter>
