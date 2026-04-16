@@ -39,6 +39,9 @@ export function Footer() {
     { url: s.social_tiktok, icon: TikTokIcon, label: "TikTok" },
   ].filter(item => item.url);
 
+  const showQuickLinks = s.footer_quick_links_visible !== false;
+  const showPropertyTypes = s.footer_property_types_visible !== false;
+
   return (
     <footer className="border-t border-border/60 bg-card">
       <div className="container py-14">
@@ -67,25 +70,29 @@ export function Footer() {
             </p>
           </div>
 
-          <div>
-            <h4 className="mb-5 font-display text-sm font-semibold text-foreground">Links Rápidos</h4>
-            <ul className="space-y-3 text-sm text-muted-foreground">
-              <li><Link to="/imoveis" className="transition-colors hover:text-foreground">Buscar Imóveis</Link></li>
-              <li><Link to="/agentes" className="transition-colors hover:text-foreground">Nossos Agentes</Link></li>
-              <li><Link to="/contato" className="transition-colors hover:text-foreground">Contato</Link></li>
-              <li><Link to="/login" className="transition-colors hover:text-foreground">Área do Agente</Link></li>
-            </ul>
-          </div>
+          {showQuickLinks && (
+            <div>
+              <h4 className="mb-5 font-display text-sm font-semibold text-foreground">Links Rápidos</h4>
+              <ul className="space-y-3 text-sm text-muted-foreground">
+                <li><Link to="/imoveis" className="transition-colors hover:text-foreground">Buscar Imóveis</Link></li>
+                <li><Link to="/agentes" className="transition-colors hover:text-foreground">Nossos Agentes</Link></li>
+                <li><Link to="/contato" className="transition-colors hover:text-foreground">Contato</Link></li>
+                <li><Link to="/login" className="transition-colors hover:text-foreground">Área do Agente</Link></li>
+              </ul>
+            </div>
+          )}
 
-          <div>
-            <h4 className="mb-5 font-display text-sm font-semibold text-foreground">Tipos de Imóvel</h4>
-            <ul className="space-y-3 text-sm text-muted-foreground">
-              <li><Link to="/imoveis?type=Apartamento" className="transition-colors hover:text-foreground">Apartamentos</Link></li>
-              <li><Link to="/imoveis?type=Casa" className="transition-colors hover:text-foreground">Casas</Link></li>
-              <li><Link to="/imoveis?type=Sala Comercial" className="transition-colors hover:text-foreground">Comercial</Link></li>
-              <li><Link to="/imoveis?type=Terreno" className="transition-colors hover:text-foreground">Terrenos</Link></li>
-            </ul>
-          </div>
+          {showPropertyTypes && (
+            <div>
+              <h4 className="mb-5 font-display text-sm font-semibold text-foreground">Tipos de Imóvel</h4>
+              <ul className="space-y-3 text-sm text-muted-foreground">
+                <li><Link to="/imoveis?type=Apartamento" className="transition-colors hover:text-foreground">Apartamentos</Link></li>
+                <li><Link to="/imoveis?type=Casa" className="transition-colors hover:text-foreground">Casas</Link></li>
+                <li><Link to="/imoveis?type=Sala Comercial" className="transition-colors hover:text-foreground">Comercial</Link></li>
+                <li><Link to="/imoveis?type=Terreno" className="transition-colors hover:text-foreground">Terrenos</Link></li>
+              </ul>
+            </div>
+          )}
 
           <div>
             <h4 className="mb-5 font-display text-sm font-semibold text-foreground">Contato</h4>

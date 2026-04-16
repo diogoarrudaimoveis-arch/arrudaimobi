@@ -18,6 +18,8 @@ export function HomeCustomization() {
   const [headlineVisible, setHeadlineVisible] = useState(true);
   const [subheadlineVisible, setSubheadlineVisible] = useState(true);
   const [searchVisible, setSearchVisible] = useState(true);
+  const [footerQuickLinksVisible, setFooterQuickLinksVisible] = useState(true);
+  const [footerPropertyTypesVisible, setFooterPropertyTypesVisible] = useState(true);
 
   useEffect(() => {
     const s = (tenant?.settings as TenantSettings) || {};
@@ -27,6 +29,8 @@ export function HomeCustomization() {
     setHeadlineVisible(s.hero_headline_visible !== false);
     setSubheadlineVisible(s.hero_subheadline_visible !== false);
     setSearchVisible(s.hero_search_visible !== false);
+    setFooterQuickLinksVisible(s.footer_quick_links_visible !== false);
+    setFooterPropertyTypesVisible(s.footer_property_types_visible !== false);
   }, [tenant]);
 
   const mutation = useMutation({
@@ -37,6 +41,8 @@ export function HomeCustomization() {
       hero_headline_visible: headlineVisible,
       hero_subheadline_visible: subheadlineVisible,
       hero_search_visible: searchVisible,
+      footer_quick_links_visible: footerQuickLinksVisible,
+      footer_property_types_visible: footerPropertyTypesVisible,
     }),
     onSuccess: () => toast({ title: "Personalização salva!" }),
     onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
@@ -83,6 +89,22 @@ export function HomeCustomization() {
             <p className="text-xs text-muted-foreground">Exibir a barra de busca na seção hero da página inicial</p>
           </div>
           <Switch id="search-visible" checked={searchVisible} onCheckedChange={setSearchVisible} />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div>
+              <Label htmlFor="footer-quick-links-visible" className="text-sm font-medium">Links Rápidos</Label>
+              <p className="text-xs text-muted-foreground">Mostrar a seção Links Rápidos no rodapé</p>
+            </div>
+            <Switch id="footer-quick-links-visible" checked={footerQuickLinksVisible} onCheckedChange={setFooterQuickLinksVisible} />
+          </div>
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div>
+              <Label htmlFor="footer-property-types-visible" className="text-sm font-medium">Tipos de Imóvel</Label>
+              <p className="text-xs text-muted-foreground">Mostrar a seção Tipos de Imóvel no rodapé</p>
+            </div>
+            <Switch id="footer-property-types-visible" checked={footerPropertyTypesVisible} onCheckedChange={setFooterPropertyTypesVisible} />
+          </div>
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium">Descrição do Rodapé</label>

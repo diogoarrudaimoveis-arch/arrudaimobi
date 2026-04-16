@@ -141,6 +141,7 @@ const AdminProperties = () => {
     longitude: "",
     property_code: "",
     owner_id: "",
+    agent_id: "",
     featured: false,
     marketing_pixels: {
       meta: "",
@@ -315,7 +316,7 @@ const AdminProperties = () => {
     mutationFn: async () => {
       const payload = {
         tenant_id: tenantId!,
-        agent_id: user!.id,
+        agent_id: form.agent_id || user!.id,
         title: form.title,
         description: form.description,
         type_id: form.type_id || null,
@@ -485,6 +486,7 @@ const AdminProperties = () => {
       longitude: p.longitude ? String(p.longitude) : "",
       property_code: p.property_code || "",
       owner_id: p.owner_id || "",
+      agent_id: p.agent_id || "",
       featured: p.featured || false,
       marketing_pixels: p.marketing_pixels || {
         meta: "",
@@ -626,6 +628,20 @@ const AdminProperties = () => {
                           </Select>
                           {fieldErrors.purpose && <p className="text-destructive text-sm mt-2">{fieldErrors.purpose}</p>}
                         </div>
+                        <div className="sm:col-span-2">
+                          <Label>Agente Responsável</Label>
+                          <Select value={form.agent_id} onValueChange={(v) => setForm({ ...form, agent_id: v })}>
+                            <SelectTrigger><SelectValue placeholder="Selecione o agente responsável" /></SelectTrigger>
+                            <SelectContent>
+                              {(tenantProfiles || []).map((profile: any) => (
+                                <SelectItem key={profile.user_id} value={profile.user_id}>
+                                  {profile.full_name || "Usuário sem nome"} {profile.role ? `(${profile.role})` : ""}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">Se não selecionar, o usuário atual será usado como agente.</p>
+                        </div>
                       </div>
 
                       <div className="space-y-4">
@@ -765,7 +781,7 @@ const AdminProperties = () => {
                                     phone: profile.phone || null,
                                   }, {
                                     onSuccess: (o) => {
-                                      setForm({ ...form, owner_id: o.id });
+                                      setForm((prev) => ({ ...prev, owner_id: o.id }));
                                       setSelectedProfileUserId("");
                                     }
                                   });
@@ -791,7 +807,7 @@ const AdminProperties = () => {
                                 if (!newOwnerName.trim()) return;
                                 createOwnerMutation.mutate({ name: newOwnerName }, {
                                   onSuccess: (o) => {
-                                    setForm({ ...form, owner_id: o.id });
+                                    setForm((prev) => ({ ...prev, owner_id: o.id }));
                                     setNewOwnerName("");
                                   }
                                 });

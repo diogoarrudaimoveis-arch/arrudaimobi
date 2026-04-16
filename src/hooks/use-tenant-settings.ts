@@ -30,6 +30,8 @@ export interface TenantSettings {
   logo_mode?: "text" | "image";
   logo_url?: string;
   footer_description?: string;
+  footer_quick_links_visible?: boolean;
+  footer_property_types_visible?: boolean;
   // Hero background
   hero_bg_mode?: "gradient" | "image";
   hero_bg_image_url?: string;
