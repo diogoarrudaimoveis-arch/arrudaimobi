@@ -155,7 +155,7 @@ const AdminAgents = () => {
     setEditingAgent(null);
   };
 
-  const openEditDialog = (agent: any) => {
+  const openEditDialog = async (agent: any) => {
     setEditingAgent(agent);
     setNewName(agent.full_name || "");
     setNewEmail(agent.email || "");
@@ -163,6 +163,27 @@ const AdminAgents = () => {
     setNewRole(agent.role || "agent");
     setShowOnPublicPage(!!agent.show_on_public_page);
     setNewAvatarUrl(agent.avatar_url || "");
+
+    if (!agent.email && agent.user_id) {
+      try {
+        const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+        const res = await fetch(`https://${PROJECT_ID}.supabase.co/functions/v1/create-agent`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({ action: "load", userId: agent.user_id }),
+        });
+        const data = await res.json();
+        if (res.ok && data?.email) {
+          setNewEmail(data.email);
+        }
+      } catch (err) {
+        console.warn("Falha ao carregar email do usuário:", err);
+      }
+    }
+
     setDialogOpen(true);
   };
 
