@@ -27,8 +27,8 @@ export default function Blog() {
 
   return (
     <Layout>
-      <section className="py-16">
-        <div className="container">
+      <section className="py-16 px-4 sm:px-6 lg:px-8">
+        <div className="container px-0">
           <div className="text-center mb-12">
             <Badge variant="secondary" className="mb-4 px-3 py-1 text-xs font-semibold uppercase tracking-wider">Blog</Badge>
             <h1 className="font-display text-3xl font-bold text-foreground md:text-4xl">Notícias e Artigos</h1>

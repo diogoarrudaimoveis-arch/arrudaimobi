@@ -84,7 +84,7 @@ export function SearchBar({ filters, onFiltersChange, compact = false }: SearchB
 
       {showAdvanced && (
         <div className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card p-4">
-          <div className="min-w-[160px]">
+          <div className="min-w-0 flex-1 sm:min-w-[160px]">
             <label className="mb-1 block text-xs font-medium text-muted-foreground">Cidade</label>
             <Select value={filters.city || "all"} onValueChange={(v) => updateFilter("city", v === "all" ? "" : v)}>
               <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
@@ -96,7 +96,7 @@ export function SearchBar({ filters, onFiltersChange, compact = false }: SearchB
               </SelectContent>
             </Select>
           </div>
-          <div className="min-w-[140px] flex-1">
+          <div className="min-w-0 flex-1">
             <label className="mb-1 block text-xs font-medium text-muted-foreground">Preço Mín</label>
             <Input
               type="number"
@@ -105,7 +105,7 @@ export function SearchBar({ filters, onFiltersChange, compact = false }: SearchB
               onChange={(e) => updateFilter("minPrice", Number(e.target.value))}
             />
           </div>
-          <div className="min-w-[140px] flex-1">
+          <div className="min-w-0 flex-1">
             <label className="mb-1 block text-xs font-medium text-muted-foreground">Preço Máx</label>
             <Input
               type="number"
@@ -114,7 +114,7 @@ export function SearchBar({ filters, onFiltersChange, compact = false }: SearchB
               onChange={(e) => updateFilter("maxPrice", Number(e.target.value))}
             />
           </div>
-          <div className="min-w-[100px]">
+          <div className="min-w-0 w-full sm:min-w-[100px] sm:w-auto">
             <label className="mb-1 block text-xs font-medium text-muted-foreground">Quartos</label>
             <Select value={String(filters.bedrooms)} onValueChange={(v) => updateFilter("bedrooms", Number(v))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -127,7 +127,7 @@ export function SearchBar({ filters, onFiltersChange, compact = false }: SearchB
               </SelectContent>
             </Select>
           </div>
-          <div className="min-w-[100px]">
+          <div className="min-w-0 w-full sm:min-w-[100px] sm:w-auto">
             <label className="mb-1 block text-xs font-medium text-muted-foreground">Banheiros</label>
             <Select value={String(filters.bathrooms)} onValueChange={(v) => updateFilter("bathrooms", Number(v))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -139,7 +139,7 @@ export function SearchBar({ filters, onFiltersChange, compact = false }: SearchB
               </SelectContent>
             </Select>
           </div>
-          <div className="min-w-[100px]">
+          <div className="min-w-0 w-full sm:min-w-[100px] sm:w-auto">
             <label className="mb-1 block text-xs font-medium text-muted-foreground">Vagas</label>
             <Select value={String(filters.garages)} onValueChange={(v) => updateFilter("garages", Number(v))}>
               <SelectTrigger><SelectValue /></SelectTrigger>

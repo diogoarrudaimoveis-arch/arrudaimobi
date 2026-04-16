@@ -66,15 +66,15 @@ const Contact = () => {
 
   return (
     <Layout>
-      <section className="bg-secondary/50 py-8">
-        <div className="container">
+      <section className="bg-secondary/50 py-8 px-4 sm:px-6 lg:px-8">
+        <div className="container px-0">
           <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Fale Conosco</h1>
           <p className="mt-1 text-muted-foreground">Estamos prontos para atender você</p>
         </div>
       </section>
 
-      <section className="py-8">
-        <div className="container">
+      <section className="py-8 px-4 sm:px-6 lg:px-8">
+        <div className="container px-0">
           <div className="grid gap-8 lg:grid-cols-3">
             <div className="lg:col-span-2">
               <Card className="p-6">

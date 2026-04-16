@@ -49,7 +49,7 @@ export function Footer() {
                 <img
                   src={s.logo_url}
                   alt={companyName}
-                  className="h-9 max-w-[180px] object-contain transition-transform group-hover:scale-105"
+                  className="h-9 max-w-full object-contain transition-transform group-hover:scale-105"
                 />
               ) : (
                 <>

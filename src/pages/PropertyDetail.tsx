@@ -163,20 +163,19 @@ const PropertyDetail = () => {
         <meta name="twitter:image" content={mainImage} />
       </Helmet>
 
-      <div className="container py-6">
-        <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
-          <Link to="/imoveis" className="flex items-center gap-1 transition-colors hover:text-primary">
+      <div className="w-full px-4 py-6 lg:max-w-7xl lg:mx-auto">
+        <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-muted-foreground min-w-0">
+          <Link to="/imoveis" className="flex items-center gap-1 whitespace-nowrap transition-colors hover:text-primary">
             <ArrowLeft className="h-4 w-4" /> Imóveis
           </Link>
-          <span>/</span>
-          <span className="text-foreground">{property.title}</span>
+          <span className="whitespace-nowrap">/</span>
+          <span className="text-foreground truncate max-w-full">{property.title}</span>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-6">
+        <div className="flex flex-col gap-8 lg:flex-row">
+          <div className="flex-1 space-y-6">
             {/* Image Gallery */}
-            <div className="relative overflow-hidden rounded-xl bg-muted">
-              <div className="aspect-[16/10] overflow-hidden">
+            <div className="relative w-full overflow-hidden rounded-xl bg-muted aspect-video">
                 {images.length > 0 ? (
                   (() => {
                     const currentImg = images[currentImage];
@@ -205,7 +204,6 @@ const PropertyDetail = () => {
                     <MapPin className="h-12 w-12" />
                   </div>
                 )}
-              </div>
               {images.length > 1 && (
                 <>
                   <button onClick={prevImage} className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-card/90 p-2 shadow-lg transition-colors hover:bg-card">
@@ -241,11 +239,11 @@ const PropertyDetail = () => {
 
             {/* Thumbnails */}
             {images.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto">
+              <div className="flex gap-2 overflow-x-auto pb-2 px-4">
                 {images.map((img, i) => {
                   const ytId = extractYouTubeId(img.url);
                   return (
-                    <button key={img.id} onClick={() => setCurrentImage(i)} className={`relative h-16 w-24 shrink-0 overflow-hidden rounded-md border-2 transition-all ${i === currentImage ? "border-primary" : "border-transparent opacity-60"}`}>
+                    <button key={img.id} onClick={() => setCurrentImage(i)} className={`relative h-16 min-w-[96px] shrink-0 overflow-hidden rounded-md border-2 transition-all ${i === currentImage ? "border-primary" : "border-transparent opacity-60"}`}>
                       {ytId ? (
                         <>
                           <img src={getYouTubeThumbnail(ytId)} alt={img.alt || ""} className="h-full w-full object-cover" />
@@ -265,25 +263,25 @@ const PropertyDetail = () => {
             )}
 
             {/* Title & Price */}
-            <div>
+            <div className="px-4 sm:px-0">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge className="bg-primary text-primary-foreground">{property.purpose === "sale" ? "Venda" : "Aluguel"}</Badge>
                 {property.propertyType?.name && <Badge variant="secondary">{property.propertyType.name}</Badge>}
                 {property.featured && <Badge className="bg-warning text-warning-foreground">Destaque</Badge>}
               </div>
-              <h1 className="mt-3 font-display text-2xl font-bold text-foreground md:text-3xl">{property.title}</h1>
+              <h1 className="mt-3 font-display text-2xl font-bold text-foreground md:text-4xl">{property.title}</h1>
               <p className="mt-1 flex items-center gap-1 text-muted-foreground">
                 <MapPin className="h-4 w-4" />
                 {[property.address, property.neighborhood, property.city, property.state].filter(Boolean).join(", ")}
               </p>
-              <p className="mt-4 font-display text-3xl font-extrabold text-primary">
+              <p className="mt-4 font-display text-3xl font-extrabold text-primary md:text-5xl">
                 {formatCurrency(property.price)}
                 {property.purpose === "rent" && <span className="text-lg font-normal text-muted-foreground">/mês</span>}
               </p>
             </div>
 
             {/* Features */}
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
               {[
                 { icon: BedDouble, label: "Quartos", value: property.bedrooms || 0 },
                 { icon: Bath, label: "Banheiros", value: property.bathrooms || 0 },
@@ -301,7 +299,7 @@ const PropertyDetail = () => {
             {/* Description */}
             {property.description && (
               <div>
-                <h2 className="font-display text-lg font-semibold text-foreground">Descrição</h2>
+                <h2 className="font-display text-xl font-semibold text-foreground md:text-2xl">Descrição</h2>
                 <p className="mt-3 leading-relaxed text-muted-foreground">{property.description}</p>
               </div>
             )}
@@ -309,7 +307,7 @@ const PropertyDetail = () => {
             {/* Amenities */}
             {amenities.length > 0 && (
               <div>
-                <h2 className="font-display text-lg font-semibold text-foreground">Comodidades</h2>
+                <h2 className="font-display text-xl font-semibold text-foreground md:text-2xl">Comodidades</h2>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {amenities.map((amenity) => (
                     <Badge key={amenity} variant="secondary" className="px-3 py-1.5 text-sm">{amenity}</Badge>

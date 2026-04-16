@@ -40,6 +40,15 @@ export default function BlogPostDetail() {
     );
   }
 
+  const decodeHtml = (html: string) => {
+    if (typeof document === "undefined") return html;
+    const parser = new DOMParser();
+    const parsed = parser.parseFromString(html, "text/html");
+    return parsed.body.innerHTML;
+  };
+
+  const decodedPostContent = decodeHtml(post.content || "");
+
   return (
     <Layout>
       <article className="py-12">
@@ -94,7 +103,7 @@ export default function BlogPostDetail() {
           {/* Rich HTML content */}
           <div
             className="mt-8 prose prose-lg dark:prose-invert max-w-none"
-            dangerouslySetInnerHTML={{ __html: post.content }}
+            dangerouslySetInnerHTML={{ __html: decodedPostContent }}
           />
 
           <div className="mt-12 border-t border-border pt-6">

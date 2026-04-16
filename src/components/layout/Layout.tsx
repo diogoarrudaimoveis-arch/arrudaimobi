@@ -33,7 +33,7 @@ export function Layout({ children }: LayoutProps) {
   const description = siteSettings?.seo_description || "Descubra os melhores imóveis disponíveis para você com a Arruda Imobi.";
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col min-w-0">
       <Helmet>
         {siteSettings?.favicon_url && (
           <link rel="icon" href={`${siteSettings.favicon_url}?t=${Date.now()}`} />
@@ -61,7 +61,7 @@ export function Layout({ children }: LayoutProps) {
         </script>
       </Helmet>
       <Header />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 min-w-0">{children}</main>
       <Footer />
       <ScrollToTop />
       <CookieConsent />

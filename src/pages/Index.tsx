@@ -179,7 +179,7 @@ const Index = () => {
             <Badge variant="secondary" className="mb-4 px-3 py-1 text-xs font-semibold uppercase tracking-wider">Vantagens</Badge>
             <h2 className="font-display text-2xl font-bold text-foreground md:text-3xl">Por que escolher a {companyName}?</h2>
           </div>
-          <div className="mt-12 grid gap-8 md:grid-cols-3">
+          <div className="mt-12 flex flex-col gap-8 md:flex-row md:items-stretch">
             {[
               { icon: Search, title: "Busca Inteligente", desc: "Filtros avançados por localização, preço, tipo e características para encontrar o imóvel perfeito." },
               { icon: Shield, title: "Segurança Total", desc: "Todas as transações e informações são protegidas com os mais altos padrões de segurança." },
@@ -187,7 +187,7 @@ const Index = () => {
             ].map((item, i) => (
               <div
                 key={item.title}
-                className="group flex flex-col items-center rounded-2xl border border-border/60 bg-card p-8 text-center transition-all duration-300 hover:border-primary/20 hover:shadow-xl hover:-translate-y-1"
+                className="group flex-1 flex flex-col items-center rounded-2xl border border-border/60 bg-card p-8 text-center transition-all duration-300 hover:border-primary/20 hover:shadow-xl hover:-translate-y-1"
               >
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 transition-all duration-300 group-hover:bg-primary group-hover:shadow-lg group-hover:shadow-primary/25">
                   <item.icon className="h-7 w-7 text-primary transition-colors group-hover:text-primary-foreground" />

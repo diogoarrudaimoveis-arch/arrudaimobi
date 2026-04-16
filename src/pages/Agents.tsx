@@ -21,8 +21,8 @@ const Agents = () => {
 
   return (
     <Layout>
-      <section className="bg-secondary/50 py-8">
-        <div className="container">
+      <section className="bg-secondary/50 py-8 px-4 sm:px-6 lg:px-8">
+        <div className="container px-0">
           <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Nossos Agentes</h1>
           <p className="mt-1 text-muted-foreground">
             {isLoading ? "Carregando..." : `${total} profissionais qualificados`}
@@ -30,8 +30,8 @@ const Agents = () => {
         </div>
       </section>
 
-      <section className="py-8">
-        <div className="container">
+      <section className="py-8 px-4 sm:px-6 lg:px-8">
+        <div className="container px-0">
           {isLoading ? (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-48 w-full rounded-lg" />)}

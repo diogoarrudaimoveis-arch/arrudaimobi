@@ -153,7 +153,7 @@ const Properties = () => {
               <p className="mt-1 text-sm text-muted-foreground">Tente ajustar os filtros de busca</p>
             </div>
           ) : viewMode === "grid" ? (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {properties.map((p) => <PropertyCardDb key={p.id} property={p} />)}
             </div>
           ) : viewMode === "list" ? (

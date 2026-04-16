@@ -6,11 +6,10 @@ import Image from "@tiptap/extension-image";
 import TextAlign from "@tiptap/extension-text-align";
 import TextStyle from "@tiptap/extension-text-style";
 import Color from "@tiptap/extension-color";
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useState } from "react";
 import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   List, ListOrdered, Quote, Code, Heading1, Heading2, Heading3,
@@ -25,14 +24,14 @@ interface BlogRichEditorProps {
 }
 
 function ToolbarButton({
-  onClick, active, children, title,
-}: { onClick: () => void; active?: boolean; children: React.ReactNode; title: string }) {
+  onClick, active, children, title, className,
+}: { onClick: () => void; active?: boolean; children: React.ReactNode; title: string; className?: string }) {
   return (
     <Button
       type="button"
       variant="ghost"
       size="sm"
-      className={cn("h-8 w-8 p-0", active && "bg-accent text-accent-foreground")}
+      className={cn("h-8 w-8 p-0", active && "bg-accent text-accent-foreground", className)}
       onClick={onClick}
       title={title}
     >
@@ -44,6 +43,8 @@ function ToolbarButton({
 export function BlogRichEditor({ content, onChange }: BlogRichEditorProps) {
   const [linkUrl, setLinkUrl] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [sourceMode, setSourceMode] = useState(false);
+  const [sourceHtml, setSourceHtml] = useState(content);
 
   const editor = useEditor({
     extensions: [
@@ -67,10 +68,15 @@ export function BlogRichEditor({ content, onChange }: BlogRichEditorProps) {
   });
 
   useEffect(() => {
+    if (sourceMode) {
+      setSourceHtml(content);
+      return;
+    }
+
     if (editor && content && editor.getHTML() !== content) {
       editor.commands.setContent(content);
     }
-  }, [content, editor]);
+  }, [content, editor, sourceMode]);
 
   const addLink = useCallback(() => {
     if (!editor || !linkUrl) return;
@@ -128,6 +134,22 @@ export function BlogRichEditor({ content, onChange }: BlogRichEditorProps) {
         </ToolbarButton>
         <ToolbarButton onClick={() => editor.chain().focus().toggleCodeBlock().run()} active={editor.isActive("codeBlock")} title="Código">
           <Code className="h-4 w-4" />
+        </ToolbarButton>
+
+        <ToolbarButton
+          onClick={() => {
+            if (!sourceMode) {
+              setSourceHtml(editor.getHTML());
+            } else if (editor) {
+              editor.commands.setContent(sourceHtml || "");
+            }
+            setSourceMode(prev => !prev);
+          }}
+          active={sourceMode}
+          title="Código Fonte"
+          className="min-w-[105px] px-2"
+        >
+          <span className="text-[11px] font-medium">&lt;/&gt;</span>
         </ToolbarButton>
 
         <div className="w-px h-6 bg-border mx-1" />
@@ -188,7 +210,21 @@ export function BlogRichEditor({ content, onChange }: BlogRichEditorProps) {
       </div>
 
       {/* Editor */}
-      <EditorContent editor={editor} />
+      {sourceMode ? (
+        <textarea
+          value={sourceHtml}
+          onChange={(e) => {
+            setSourceHtml(e.target.value);
+            onChange(e.target.value);
+          }}
+          className="min-h-[280px] w-full resize-none border-0 bg-slate-950 p-4 text-sm font-mono text-slate-100 outline-none"
+        />
+      ) : (
+        <EditorContent
+          editor={editor}
+          onBlur={() => onChange(editor.getHTML())}
+        />
+      )}
     </div>
   );
 }

@@ -27,13 +27,13 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-card/80 backdrop-blur-xl shadow-sm">
-      <div className="container flex h-16 items-center justify-between">
+      <div className="container flex h-16 min-w-0 items-center justify-between">
         <Link to="/" className="flex items-center gap-2.5 group">
           {tenant?.settings?.logo_mode === "image" && tenant?.settings?.logo_url ? (
             <img
               src={tenant.settings.logo_url}
               alt={tenant?.name || "Logo"}
-              className="h-9 max-w-[180px] object-contain transition-transform group-hover:scale-105"
+              className="h-9 max-w-full object-contain transition-transform group-hover:scale-105"
             />
           ) : (
             <>
@@ -47,7 +47,7 @@ export function Header() {
           )}
         </Link>
 
-        <nav className="hidden items-center gap-1 md:flex">
+        <nav className="hidden items-center gap-1 min-w-0 md:flex">
           {navLinks.map((link) => (
             <Link
               key={link.href}
@@ -125,7 +125,7 @@ export function Header() {
         "overflow-hidden transition-all duration-300 md:hidden",
         mobileOpen ? "max-h-[500px] border-t border-border/60" : "max-h-0"
       )}>
-        <nav className="container flex flex-col gap-1 py-4 bg-card">
+        <nav className="container min-w-0 flex flex-col gap-1 py-4 bg-card">
           {navLinks.map((link) => (
             <Link
               key={link.href}
