@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Loader2, Users, UserPlus, Trash2, Pencil, Save } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -31,6 +32,7 @@ const AdminAgents = () => {
   const [newPhone, setNewPhone] = useState("");
   const [newRole, setNewRole] = useState("agent");
   const [newAvatarUrl, setNewAvatarUrl] = useState("");
+  const [showOnPublicPage, setShowOnPublicPage] = useState(false);
   const [creating, setCreating] = useState(false);
   const [editingAgent, setEditingAgent] = useState<any>(null);
   const [isCropperOpen, setIsCropperOpen] = useState(false);
@@ -124,6 +126,7 @@ const AdminAgents = () => {
           phone: newPhone.trim(),
           role: newRole,
           avatar_url: newAvatarUrl || undefined,
+          show_on_public_page: showOnPublicPage,
         }),
       });
 
@@ -147,6 +150,7 @@ const AdminAgents = () => {
     setNewName("");
     setNewPhone("");
     setNewRole("agent");
+    setShowOnPublicPage(false);
     setNewAvatarUrl("");
     setEditingAgent(null);
   };
@@ -157,6 +161,7 @@ const AdminAgents = () => {
     setNewEmail(agent.email || "");
     setNewPhone(agent.phone || "");
     setNewRole(agent.role || "agent");
+    setShowOnPublicPage(!!agent.show_on_public_page);
     setNewAvatarUrl(agent.avatar_url || "");
     setDialogOpen(true);
   };
@@ -248,6 +253,13 @@ const AdminAgents = () => {
                     <SelectItem value="user">Usuário</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-border p-4">
+                <div>
+                  <p className="text-sm font-medium">Exibir no site público</p>
+                  <p className="text-xs text-muted-foreground">Ative para que este agente apareça na página pública de agentes.</p>
+                </div>
+                <Switch checked={showOnPublicPage} onCheckedChange={(checked) => setShowOnPublicPage(checked)} />
               </div>
               <Button onClick={handleCreateAgent} disabled={creating} className="w-full gap-2 bg-[#003366] hover:bg-[#002244] text-white">
                 {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : editingAgent ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}

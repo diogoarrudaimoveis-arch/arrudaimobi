@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
     if (callerRole?.role !== "admin") throw new Error("Apenas admins podem gerenciar usuários");
 
     const body = await req.json();
-    const { action = "create", userId, email, password, full_name, phone, role, avatar_url } = body;
+    const { action = "create", userId, email, password, full_name, phone, role, avatar_url, show_on_public_page } = body;
 
     const tenantId = callerProfile.tenant_id;
 
@@ -98,6 +98,7 @@ Deno.serve(async (req) => {
       if (full_name) profileUpdates.full_name = full_name;
       if (phone !== undefined) profileUpdates.phone = phone;
       if (avatar_url !== undefined) profileUpdates.avatar_url = avatar_url;
+      if (show_on_public_page !== undefined) profileUpdates.show_on_public_page = show_on_public_page;
 
       if (Object.keys(profileUpdates).length > 0) {
         const { error: profUpErr } = await supabase
@@ -157,6 +158,7 @@ Deno.serve(async (req) => {
     const initialProfileUpdates: any = { tenant_id: tenantId };
     if (phone) initialProfileUpdates.phone = phone;
     if (avatar_url) initialProfileUpdates.avatar_url = avatar_url;
+    if (show_on_public_page !== undefined) initialProfileUpdates.show_on_public_page = show_on_public_page;
 
     await supabase
       .from("profiles")

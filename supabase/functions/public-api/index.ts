@@ -190,14 +190,22 @@ Deno.serve(async (req) => {
         const userIds = [...new Set(roles?.map(r => r.user_id) || [])];
         if (userIds.length === 0) { result = { data: [], total: 0, page, pageSize, totalPages: 0 }; break; }
 
-        const total = userIds.length;
+        const { data: profiles, error: profErr, count } = await supabase
+          .from("profiles")
+          .select("id", { count: "exact", head: true })
+          .in("user_id", userIds)
+          .eq("show_on_public_page", true);
+        if (profErr) throw profErr;
 
-        const { data: profiles, error: profErr } = await supabase
+        const visibleCount = count || 0;
+
+        const { data: visibleProfiles, error: visibleProfErr } = await supabase
           .from("profiles")
           .select("*")
           .in("user_id", userIds)
+          .eq("show_on_public_page", true)
           .range((page - 1) * pageSize, page * pageSize - 1);
-        if (profErr) throw profErr;
+        if (visibleProfErr) throw visibleProfErr;
 
         const { data: propCounts } = await supabase
           .from("properties")
@@ -208,15 +216,15 @@ Deno.serve(async (req) => {
         propCounts?.forEach((p: any) => { counts[p.agent_id!] = (counts[p.agent_id!] || 0) + 1; });
 
         result = {
-          data: profiles?.map(p => ({
+          data: visibleProfiles?.map(p => ({
             ...p,
             role: roles?.find(r => r.user_id === p.user_id)?.role || "user",
             properties_count: counts[p.user_id] || 0,
           })) || [],
-          total,
+          total: visibleCount,
           page,
           pageSize,
-          totalPages: Math.ceil(total / pageSize),
+          totalPages: Math.ceil(visibleCount / pageSize),
         };
         break;
       }
