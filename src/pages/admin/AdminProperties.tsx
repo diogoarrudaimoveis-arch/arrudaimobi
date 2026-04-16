@@ -155,6 +155,32 @@ const AdminProperties = () => {
   const { data: owners } = useOwners();
   const createOwnerMutation = useCreateOwnerMutation();
   const [newOwnerName, setNewOwnerName] = useState("");
+  const [selectedProfileUserId, setSelectedProfileUserId] = useState("");
+  const { data: tenantProfiles } = useQuery({
+    queryKey: ["tenant-profiles", tenantId],
+    queryFn: async () => {
+      const { data: profiles, error: profilesErr } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, phone")
+        .eq("tenant_id", tenantId!);
+      if (profilesErr) throw profilesErr;
+
+      const { data: roles, error: rolesErr } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .eq("tenant_id", tenantId!);
+      if (rolesErr) throw rolesErr;
+
+      const roleMap: Record<string, string> = {};
+      (roles || []).forEach((r: any) => { roleMap[r.user_id] = r.role; });
+
+      return (profiles || []).map((profile: any) => ({
+        ...profile,
+        role: roleMap[profile.user_id] || "user",
+      }));
+    },
+    enabled: isReady && !!tenantId,
+  });
   const [activeTab, setActiveTab] = useState("basicos");
 
   const { data: propertiesData, isLoading } = useQuery({
@@ -707,6 +733,50 @@ const AdminProperties = () => {
                           <div className="flex items-end">
                             <span className="text-sm text-muted-foreground">Ou cadastre um novo abaixo</span>
                           </div>
+                        </div>
+
+                        <div className="p-4 border rounded-lg bg-muted/20 space-y-4">
+                          <h4 className="text-sm font-medium">Vincular Agente / Usuário</h4>
+                          <div className="grid gap-4 sm:grid-cols-3">
+                            <div>
+                              <Label>Selecionar Agente / Usuário</Label>
+                              <Select value={selectedProfileUserId} onValueChange={(v) => setSelectedProfileUserId(v)}>
+                                <SelectTrigger><SelectValue placeholder="Selecione um agente ou usuário" /></SelectTrigger>
+                                <SelectContent>
+                                  {(tenantProfiles || []).map((profile: any) => (
+                                    <SelectItem key={profile.user_id} value={profile.user_id}>
+                                      {profile.full_name || "Usuário sem nome"} ({profile.role})
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="sm:col-span-2 flex items-end justify-end">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="text-[#003366] border-[#003366]"
+                                disabled={!selectedProfileUserId || createOwnerMutation.isPending}
+                                onClick={() => {
+                                  const profile = (tenantProfiles || []).find((p: any) => p.user_id === selectedProfileUserId);
+                                  if (!profile) return;
+                                  createOwnerMutation.mutate({
+                                    name: profile.full_name || "Usuário sem nome",
+                                    phone: profile.phone || null,
+                                  }, {
+                                    onSuccess: (o) => {
+                                      setForm({ ...form, owner_id: o.id });
+                                      setSelectedProfileUserId("");
+                                    }
+                                  });
+                                }}
+                              >
+                                {createOwnerMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4 mr-1" />}
+                                Vincular como proprietário
+                              </Button>
+                            </div>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Converte o agente ou usuário selecionado em um proprietário e vincula ao imóvel.</p>
                         </div>
 
                         <div className="p-4 border rounded-lg bg-muted/20 space-y-4">

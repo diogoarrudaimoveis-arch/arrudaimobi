@@ -174,8 +174,8 @@ const Properties = () => {
               ) : (
                 <div className="grid gap-4 lg:grid-cols-2">
                   {properties.filter(p => p.latitude && p.longitude).map((p) => (
-                    <div key={p.id} className="overflow-hidden rounded-xl border border-border bg-card">
-                      <div className="aspect-video w-full">
+                    <div key={p.id} className="overflow-hidden rounded-xl border border-border bg-card min-h-[300px]">
+                      <div className="aspect-video w-full min-h-[220px]">
                         <iframe
                           title={`Mapa - ${p.title}`}
                           width="100%"
