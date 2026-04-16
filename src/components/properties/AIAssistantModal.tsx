@@ -74,8 +74,9 @@ export function AIAssistantModal({
     setGeneratedText("");
 
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
+      if (!tenantId) {
+        throw new Error("Tenant não definido. Recarregue a página e tente novamente.");
+      }
 
       const payload = {
         tenant_id: tenantId,
@@ -88,7 +89,6 @@ export function AIAssistantModal({
 
       const { data, error } = await supabase.functions.invoke("generate-ai-content", {
         body: payload,
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
 
       if (error) {
@@ -117,10 +117,9 @@ export function AIAssistantModal({
       }
     } catch (err: any) {
       console.log("[AIAssistant] Falha na Geração Controlada:", err.message);
-      // Limpeza da mensagem original pra ficar agradável ao olho.
       let eMsg = err.message || "Falha na geração.";
       if (eMsg.includes("Edge Function returned a non-2xx status code")) {
-        eMsg = "Erro de configuração do servidor ou rota na base do Supabase.";
+        eMsg = "Função de IA indisponível. Verifique se a função está implantada no Supabase e se o nome da rota está correto.";
       }
       setErrorText(eMsg);
     } finally {
