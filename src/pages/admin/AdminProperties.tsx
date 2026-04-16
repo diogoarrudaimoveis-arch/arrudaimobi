@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, FormEvent } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AIAssistantModal } from "@/components/properties/AIAssistantModal";
 import { useAuth } from "@/contexts/AuthContext";
@@ -149,6 +149,7 @@ const AdminProperties = () => {
       pinterest: ""
     }
   });
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [portalListings, setPortalListings] = useState<Record<string, { active: boolean, modality: string }>>({});
   const { data: owners } = useOwners();
@@ -268,6 +269,22 @@ const AdminProperties = () => {
     enabled: isReady && !!tenantId,
   });
 
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+    if (!form.title.trim()) errors.title = "Título do imóvel é obrigatório.";
+    if (!form.type_id.trim()) errors.type_id = "Tipo de imóvel é obrigatório.";
+    if (!form.purpose.trim()) errors.purpose = "Finalidade é obrigatória.";
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+    saveMutation.mutate();
+  };
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       const payload = {
@@ -276,7 +293,7 @@ const AdminProperties = () => {
         title: form.title,
         description: form.description,
         type_id: form.type_id || null,
-        purpose: form.purpose as "sale" | "rent",
+        purpose: form.purpose as "sale" | "rent" | "both",
         price: Number(form.price),
         price_condominium: Number(form.price_condominium),
         price_iptu: Number(form.price_iptu),
@@ -293,6 +310,7 @@ const AdminProperties = () => {
         state: form.state,
         neighborhood: form.neighborhood,
         zip_code: form.zip_code,
+        number: form.number.trim() ? form.number.trim() : null,
         property_code: form.property_code || undefined,
         owner_id: form.owner_id || null,
         latitude: form.latitude ? Number(form.latitude) : null,
@@ -404,6 +422,7 @@ const AdminProperties = () => {
         pinterest: ""
       }
     });
+    setFieldErrors({});
     setSelectedAmenities([]);
     setPortalListings({});
     setEditingId(null);
@@ -448,6 +467,7 @@ const AdminProperties = () => {
         pinterest: ""
       }
     });
+    setFieldErrors({});
       const { data: amenData } = await supabase.from("property_amenities").select("amenity_id").eq("property_id", p.id);
       if (amenData) setSelectedAmenities(amenData.map(a => a.amenity_id));
 
@@ -532,14 +552,15 @@ const AdminProperties = () => {
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-6">
-                  <form id="property-form" onSubmit={(e) => { e.preventDefault(); saveMutation.mutate(); }} className="space-y-6">
+                  <form id="property-form" onSubmit={handleSubmit} className="space-y-6">
                     
                     {/* ABA BÁSICOS */}
                     <TabsContent value="basicos" className="mt-0 space-y-6">
                       <div className="grid gap-6 sm:grid-cols-4">
                         <div className="sm:col-span-2">
-                          <Label>Título do Imóvel</Label>
+                          <Label>Título do Imóvel <span className="text-destructive">*</span></Label>
                           <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Ex: Apartamento Moderno com Vista para o Mar" />
+                          {fieldErrors.title && <p className="text-destructive text-sm mt-2">{fieldErrors.title}</p>}
                         </div>
                         <div className="sm:col-span-2">
                           <Label>Código do Imóvel</Label>
@@ -556,7 +577,7 @@ const AdminProperties = () => {
                           </div>
                         </div>
                         <div className="sm:col-span-2">
-                          <Label>Tipo de Imóvel</Label>
+                          <Label>Tipo de Imóvel <span className="text-destructive">*</span></Label>
                           <Select value={form.type_id} onValueChange={(v) => setForm({ ...form, type_id: v })}>
                             <SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger>
                             <SelectContent>
@@ -565,9 +586,10 @@ const AdminProperties = () => {
                               ))}
                             </SelectContent>
                           </Select>
+                          {fieldErrors.type_id && <p className="text-destructive text-sm mt-2">{fieldErrors.type_id}</p>}
                         </div>
                         <div className="sm:col-span-2">
-                          <Label>Finalidade</Label>
+                          <Label>Finalidade <span className="text-destructive">*</span></Label>
                           <Select value={form.purpose} onValueChange={(v) => setForm({ ...form, purpose: v })}>
                             <SelectTrigger><SelectValue /></SelectTrigger>
                             <SelectContent>
@@ -576,6 +598,7 @@ const AdminProperties = () => {
                               <SelectItem value="both">Ambos (Venda/Locação)</SelectItem>
                             </SelectContent>
                           </Select>
+                          {fieldErrors.purpose && <p className="text-destructive text-sm mt-2">{fieldErrors.purpose}</p>}
                         </div>
                       </div>
 

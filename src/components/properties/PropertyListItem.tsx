@@ -63,7 +63,7 @@ export function PropertyListItem({ property }: PropertyListItemProps) {
                 </span>
               )}
               <span className="flex items-center gap-1">
-                <Maximize className="h-4 w-4" /> {formatArea(property.area)}
+                <Maximize className="h-4 w-4" /> {formatArea(property.areaUseful ?? property.area ?? 0)}
               </span>
             </div>
             <p className="font-display text-lg font-bold text-primary">

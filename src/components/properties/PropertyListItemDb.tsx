@@ -51,7 +51,7 @@ export function PropertyListItemDb({ property }: Props) {
               {(property.bedrooms || 0) > 0 && <span className="flex items-center gap-1"><BedDouble className="h-4 w-4" /> {property.bedrooms}</span>}
               {(property.bathrooms || 0) > 0 && <span className="flex items-center gap-1"><Bath className="h-4 w-4" /> {property.bathrooms}</span>}
               {(property.garages || 0) > 0 && <span className="flex items-center gap-1"><Car className="h-4 w-4" /> {property.garages}</span>}
-              <span className="flex items-center gap-1"><Maximize className="h-4 w-4" /> {formatArea(property.area || 0)}</span>
+              <span className="flex items-center gap-1"><Maximize className="h-4 w-4" /> {formatArea(property.areaUseful ?? property.area ?? 0)}</span>
             </div>
             <p className="font-display text-lg font-bold text-primary">
               {formatCurrency(property.price)}

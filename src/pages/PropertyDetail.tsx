@@ -288,7 +288,7 @@ const PropertyDetail = () => {
                 { icon: BedDouble, label: "Quartos", value: property.bedrooms || 0 },
                 { icon: Bath, label: "Banheiros", value: property.bathrooms || 0 },
                 { icon: Car, label: "Vagas", value: property.garages || 0 },
-                { icon: Maximize, label: "Área", value: formatArea(property.area || 0) },
+                { icon: Maximize, label: "Área", value: formatArea(property.areaUseful ?? property.area ?? 0) },
               ].map((f) => (
                 <Card key={f.label} className="flex flex-col items-center p-4 text-center">
                   <f.icon className="h-6 w-6 text-primary" />

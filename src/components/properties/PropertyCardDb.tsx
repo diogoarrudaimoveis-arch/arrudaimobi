@@ -73,7 +73,7 @@ export function PropertyCardDb({ property }: Props) {
               <span className="flex items-center gap-1"><Car className="h-3.5 w-3.5" />{property.garages}</span>
             )}
             <span className="flex items-center gap-1 ml-auto font-medium text-foreground/70">
-              <Maximize className="h-3.5 w-3.5" />{formatArea(property.area || 0)}
+              <Maximize className="h-3.5 w-3.5" />{formatArea(property.areaUseful ?? property.area ?? 0)}
             </span>
           </div>
         </div>

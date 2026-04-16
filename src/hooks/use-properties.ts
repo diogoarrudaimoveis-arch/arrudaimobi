@@ -58,6 +58,8 @@ export interface DbProperty {
   price: number;
   currency: string | null;
   area: number | null;
+  area_total: number | null;
+  area_useful: number | null;
   bedrooms: number | null;
   bathrooms: number | null;
   garages: number | null;
@@ -119,6 +121,8 @@ export interface Property {
   price: number;
   currency: string | null;
   area: number | null;
+  areaTotal: number | null;
+  areaUseful: number | null;
   bedrooms: number | null;
   bathrooms: number | null;
   garages: number | null;
@@ -193,6 +197,8 @@ export function mapDbProperty(p: DbProperty): Property {
     price: p.price,
     currency: p.currency,
     area: p.area,
+    areaTotal: p.area_total,
+    areaUseful: p.area_useful,
     bedrooms: p.bedrooms,
     bathrooms: p.bathrooms,
     garages: p.garages,
