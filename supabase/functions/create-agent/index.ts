@@ -67,6 +67,28 @@ Deno.serve(async (req) => {
 
     const tenantId = callerProfile.tenant_id;
 
+    if (action === "load") {
+      if (!userId) throw new Error("ID do usuário é obrigatório para carregar detalhes");
+      const { data: targetProfile, error: targetProfileErr } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+      if (targetProfileErr) throw targetProfileErr;
+      if (!targetProfile) throw new Error("Perfil não encontrado");
+
+      const { data: authUser, error: authUserErr } = await supabase.auth.admin.getUserById(userId);
+      if (authUserErr) throw authUserErr;
+
+      return new Response(JSON.stringify({
+        ...targetProfile,
+        email: authUser?.user?.email || null,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "update") {
       if (!userId) throw new Error("ID do usuário é obrigatório para atualização");
 
