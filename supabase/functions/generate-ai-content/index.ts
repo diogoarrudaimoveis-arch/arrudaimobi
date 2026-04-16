@@ -59,6 +59,10 @@ serve(async (req) => {
     console.log(`[INBOUND] Request for tenant: ${tenantId}`);
     const { tone, context, forced_provider } = body;
 
+    if (!tenantId || typeof tenantId !== 'string' || tenantId.trim() === '') {
+      throw new Error("tenant_id ausente ou inválido.");
+    }
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -74,8 +78,6 @@ serve(async (req) => {
     if (settingsError) throw new Error(`Query error: ${settingsError.message}`);
     settings = settingsArray && settingsArray.length > 0 ? settingsArray[0] : null;
 
-    if (!settings) throw new Error("Configurações não encontradas para o tenant.");
-
     const parseKeys = (val: any): string[] => {
       if (Array.isArray(val)) return val.filter(k => typeof k === 'string' && k.trim() !== '');
       if (typeof val === 'string') {
@@ -89,12 +91,38 @@ serve(async (req) => {
       return [];
     };
 
-    aiSettings = {
-      openai_keys: [...parseKeys(settings.openai_keys), ...parseKeys(settings.openai_key)],
-      gemini_keys: [...parseKeys(settings.gemini_keys), ...parseKeys(settings.gemini_key)],
-      groq_keys: [...parseKeys(settings.groq_keys), ...parseKeys(settings.groq_key)],
-      primary_provider: settings.primary_provider || 'openai',
+    const envFallbackKeys = {
+      openai_keys: [...parseKeys(Deno.env.get('OPENAI_API_KEY')), ...parseKeys(Deno.env.get('OPENAI_API_KEYS'))],
+      gemini_keys: [...parseKeys(Deno.env.get('GOOGLE_GEMINI_KEY')), ...parseKeys(Deno.env.get('GEMINI_API_KEY')), ...parseKeys(Deno.env.get('GEMINI_API_KEYS'))],
+      groq_keys: [...parseKeys(Deno.env.get('GROQ_API_KEY')), ...parseKeys(Deno.env.get('GROQ_API_KEYS'))],
     };
+
+    aiSettings = {
+      openai_keys: [
+        ...parseKeys(settings?.openai_keys),
+        ...parseKeys(settings?.openai_key),
+        ...envFallbackKeys.openai_keys,
+      ],
+      gemini_keys: [
+        ...parseKeys(settings?.gemini_keys),
+        ...parseKeys(settings?.gemini_key),
+        ...envFallbackKeys.gemini_keys,
+      ],
+      groq_keys: [
+        ...parseKeys(settings?.groq_keys),
+        ...parseKeys(settings?.groq_key),
+        ...envFallbackKeys.groq_keys,
+      ],
+      primary_provider: settings?.primary_provider || 'openai',
+    };
+
+    if (
+      aiSettings.openai_keys.length === 0 &&
+      aiSettings.gemini_keys.length === 0 &&
+      aiSettings.groq_keys.length === 0
+    ) {
+      throw new Error("Nenhuma chave de IA configurada para o tenant ou na variável de ambiente.");
+    }
 
     let apiErrors: any[] = [];
 
