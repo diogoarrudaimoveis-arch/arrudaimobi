@@ -319,6 +319,7 @@ const AdminProperties = () => {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
+      console.log('[SALVAR] Enviando Agent ID:', form.agent_id || user!.id);
       const payload = {
         tenant_id: tenantId!,
         agent_id: form.agent_id || user!.id,
@@ -537,6 +538,7 @@ const AdminProperties = () => {
       longitude: "",
       property_code: generatePropertyCode(),
       owner_id: "",
+      agent_id: "",
       featured: false,
       marketing_pixels: {
         meta: "",
@@ -549,7 +551,7 @@ const AdminProperties = () => {
     setSelectedAmenities([]);
     setPortalListings({});
     setEditingId(null);
-    setActiveTab("basicos");
+    setSelectedProfileUserId("");
   };
 
   const openEdit = async (p: any) => {
@@ -557,28 +559,28 @@ const AdminProperties = () => {
     setEditingId(p.id);
     setForm({
       title: p.title || "",
-      description: p.description || "", 
+      description: p.description || "",
       type_id: p.type_id || "",
-      purpose: p.purpose || "sale", 
+      purpose: p.purpose || "sale",
       status: p.status || "available",
-      price: String(p.price || ""), 
+      price: String(p.price || ""),
       price_condominium: String(p.price_condominium || ""),
       price_iptu: String(p.price_iptu || ""),
-      area: String(p.area || ""), 
+      area: String(p.area || ""),
       area_total: String(p.area_total || ""),
       area_useful: String(p.area_useful || ""),
-      bedrooms: String(p.bedrooms || 0), 
+      bedrooms: String(p.bedrooms || 0),
       suites: String(p.suites || 0),
       living_rooms: String(p.living_rooms || 0),
       bathrooms: String(p.bathrooms || 0),
-      garages: String(p.garages || 0), 
-      address: p.address || "", 
+      garages: String(p.garages || 0),
+      address: p.address || "",
       city: p.city || "",
-      state: p.state || "", 
-      neighborhood: p.neighborhood || "", 
+      state: p.state || "",
+      neighborhood: p.neighborhood || "",
       zip_code: p.zip_code || "",
       number: p.number || "",
-      latitude: p.latitude ? String(p.latitude) : "", 
+      latitude: p.latitude ? String(p.latitude) : "",
       longitude: p.longitude ? String(p.longitude) : "",
       property_code: p.property_code || "",
       owner_id: p.owner_id || "",
@@ -592,23 +594,25 @@ const AdminProperties = () => {
       }
     });
     setFieldErrors({});
-      const { data: amenData } = await supabase.from("property_amenities").select("amenity_id").eq("property_id", p.id);
-      if (amenData) setSelectedAmenities(amenData.map(a => a.amenity_id));
+    setSelectedProfileUserId(p.agent_id || "");
 
-      const { data: portalData } = await supabase.from("property_portal_listing").select("portal_id, modality").eq("property_id", p.id);
-      if (portalData) {
-        const initialListings: Record<string, { active: boolean, modality: string }> = {};
-        portalData.forEach(pl => {
-          initialListings[pl.portal_id] = {
-            active: true,
-            modality: pl.modality || "Simples",
-          };
-        });
-        setPortalListings(initialListings);
-      }
+    const { data: amenData } = await supabase.from("property_amenities").select("amenity_id").eq("property_id", p.id);
+    if (amenData) setSelectedAmenities(amenData.map(a => a.amenity_id));
 
-      setDialogOpen(true);
-    };
+    const { data: portalData } = await supabase.from("property_portal_listing").select("portal_id, modality").eq("property_id", p.id);
+    if (portalData) {
+      const initialListings: Record<string, { active: boolean, modality: string }> = {};
+      portalData.forEach(pl => {
+        initialListings[pl.portal_id] = {
+          active: true,
+          modality: pl.modality || "Simples",
+        };
+      });
+      setPortalListings(initialListings);
+    }
+
+    setDialogOpen(true);
+  };
 
   const checklistItems = useMemo(() => {
     const currentProperty = properties.find(p => p.id === editingId);
@@ -729,7 +733,10 @@ const AdminProperties = () => {
                         </div>
                         <div className="sm:col-span-2">
                           <Label>Agente Responsável</Label>
-                          <Select value={form.agent_id || ""} onValueChange={(v) => setForm({ ...form, agent_id: v })}>
+                          <Select value={form.agent_id || ""} onValueChange={(v) => {
+                            setForm({ ...form, agent_id: v });
+                            setSelectedProfileUserId(v);
+                          }}>
                             <SelectTrigger><SelectValue placeholder="Selecione o agente responsável" /></SelectTrigger>
                             <SelectContent>
                               {(tenantProfiles || []).map((profile: any) => (
@@ -855,7 +862,10 @@ const AdminProperties = () => {
                           <div className="grid gap-4 sm:grid-cols-3">
                             <div>
                               <Label>Selecionar Agente / Usuário</Label>
-                              <Select value={selectedProfileUserId || ""} onValueChange={(v) => setSelectedProfileUserId(v)}>
+                              <Select value={selectedProfileUserId || ""} onValueChange={(v) => {
+                                setSelectedProfileUserId(v);
+                                setForm((prev) => ({ ...prev, agent_id: v }));
+                              }}>
                                 <SelectTrigger><SelectValue placeholder="Selecione um agente ou usuário" /></SelectTrigger>
                                 <SelectContent>
                                   {(tenantProfiles || []).map((profile: any) => (
@@ -880,7 +890,7 @@ const AdminProperties = () => {
                                     phone: profile.phone || null,
                                   }, {
                                     onSuccess: (o) => {
-                                      setForm((prev) => ({ ...prev, owner_id: o.id }));
+                                      setForm((prev) => ({ ...prev, owner_id: o.id, agent_id: selectedProfileUserId }));
                                       setSelectedProfileUserId("");
                                     }
                                   });
