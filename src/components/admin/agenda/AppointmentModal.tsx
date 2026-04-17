@@ -211,7 +211,7 @@ export function AppointmentModal({ open, onOpenChange, editingAppointment }: App
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Tipo *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select value={field.value ?? ""} onValueChange={field.onChange}>
                       <FormControl>
                         <SelectTrigger className="bg-slate-900 border-slate-800">
                           <SelectValue placeholder="Selecione o tipo" />
@@ -239,7 +239,7 @@ export function AppointmentModal({ open, onOpenChange, editingAppointment }: App
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Prioridade</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select value={field.value ?? ""} onValueChange={field.onChange}>
                       <FormControl>
                         <SelectTrigger className="bg-slate-900 border-slate-800">
                           <SelectValue placeholder="Selecione" />
@@ -278,7 +278,7 @@ export function AppointmentModal({ open, onOpenChange, editingAppointment }: App
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Duração (minutos)</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select value={field.value ?? ""} onValueChange={field.onChange}>
                       <FormControl>
                         <SelectTrigger className="bg-slate-900 border-slate-800">
                           <SelectValue placeholder="Duração" />
@@ -303,7 +303,7 @@ export function AppointmentModal({ open, onOpenChange, editingAppointment }: App
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Corretor Responsável *</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select value={field.value ?? ""} onValueChange={field.onChange}>
                     <FormControl>
                       <SelectTrigger className="bg-slate-900 border-slate-800">
                         <SelectValue placeholder="Selecione um corretor" />
@@ -327,7 +327,7 @@ export function AppointmentModal({ open, onOpenChange, editingAppointment }: App
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Cliente</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select value={field.value ?? ""} onValueChange={field.onChange}>
                       <FormControl>
                         <SelectTrigger className="bg-slate-900 border-slate-800">
                           <SelectValue placeholder="Selecione um cliente" />
@@ -350,7 +350,7 @@ export function AppointmentModal({ open, onOpenChange, editingAppointment }: App
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Imóvel</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select value={field.value ?? ""} onValueChange={field.onChange}>
                       <FormControl>
                         <SelectTrigger className="bg-slate-900 border-slate-800">
                           <SelectValue placeholder="Selecione um imóvel" />
@@ -393,7 +393,7 @@ export function AppointmentModal({ open, onOpenChange, editingAppointment }: App
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Status *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select value={field.value ?? ""} onValueChange={field.onChange}>
                       <FormControl>
                         <SelectTrigger className="bg-slate-900 border-slate-800">
                           <SelectValue placeholder="Status" />

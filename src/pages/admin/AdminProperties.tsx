@@ -503,7 +503,10 @@ const AdminProperties = () => {
       if (portalData) {
         const initialListings: Record<string, { active: boolean, modality: string }> = {};
         portalData.forEach(pl => {
-          initialListings[pl.portal_id] = { active: true, modality: pl.modality };
+          initialListings[pl.portal_id] = {
+            active: true,
+            modality: pl.modality || "Simples",
+          };
         });
         setPortalListings(initialListings);
       }
@@ -1022,7 +1025,7 @@ const AdminProperties = () => {
                               
                               {portalListings[portal.id]?.active && (
                                 <Select 
-                                  value={portalListings[portal.id].modality}
+                                  value={portalListings[portal.id]?.modality ?? "Simples"}
                                   onValueChange={(value) => {
                                     setPortalListings(prev => ({
                                       ...prev,

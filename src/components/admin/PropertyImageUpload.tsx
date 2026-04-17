@@ -19,6 +19,8 @@ export function PropertyImageUpload({ propertyId }: Props) {
   const queryClient = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [youtubeTitle, setYoutubeTitle] = useState("");
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
@@ -143,11 +145,37 @@ export function PropertyImageUpload({ propertyId }: Props) {
     setDragOverIndex(null);
   }, []);
 
+  const addYoutubeVideo = useCallback(async () => {
+    const videoId = extractYouTubeId(youtubeUrl);
+    if (!videoId) {
+      toast({ title: "URL de YouTube inválida", variant: "destructive" });
+      return;
+    }
+
+    const { error } = await supabase.from("property_images").insert({
+      property_id: propertyId,
+      url: youtubeUrl,
+      alt: youtubeTitle.trim() || `Vídeo YouTube ${videoId}`,
+      display_order: (images?.length || 0),
+    });
+
+    if (error) {
+      toast({ title: "Erro ao adicionar vídeo", description: error.message, variant: "destructive" });
+      return;
+    }
+
+    setYoutubeUrl("");
+    setYoutubeTitle("");
+    queryClient.invalidateQueries({ queryKey: ["property-images", propertyId] });
+    queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
+    toast({ title: "Vídeo adicionado à galeria" });
+  }, [images?.length, propertyId, queryClient, toast, youtubeTitle, youtubeUrl]);
+
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <label className="text-sm font-medium">Imagens</label>
-        <div className="flex gap-1">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <MediaLibraryPicker onSelect={async (imgs) => {
             const currentCount = images?.length || 0;
             for (let i = 0; i < imgs.length; i++) {
@@ -178,23 +206,66 @@ export function PropertyImageUpload({ propertyId }: Props) {
             Upload
           </Button>
         </div>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          multiple
-          className="hidden"
-          onChange={(e) => {
-            const files = e.target.files ? Array.from(e.target.files) : [];
-            if (files.length) uploadMutation.mutate(files);
-            e.target.value = "";
-          }}
-        />
       </div>
+
+      <div className="rounded-xl border border-border bg-card/80 p-4">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold">Adicionar vídeo do YouTube</p>
+            <p className="text-xs text-muted-foreground">Cole o link do vídeo para incluir na galeria de mídia do imóvel.</p>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            onClick={addYoutubeVideo}
+            className="gap-2"
+          >
+            <Play className="h-3 w-3" />
+            Adicionar vídeo
+          </Button>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Link do YouTube</label>
+            <input
+              type="text"
+              value={youtubeUrl}
+              onChange={(e) => setYoutubeUrl(e.target.value)}
+              placeholder="https://www.youtube.com/watch?v=..."
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none transition focus:border-primary"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Título do vídeo (opcional)</label>
+            <input
+              type="text"
+              value={youtubeTitle}
+              onChange={(e) => setYoutubeTitle(e.target.value)}
+              placeholder="Ex: Tour pelo imóvel"
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none transition focus:border-primary"
+            />
+          </div>
+        </div>
+      </div>
+
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          const files = e.target.files ? Array.from(e.target.files) : [];
+          if (files.length) uploadMutation.mutate(files);
+          e.target.value = "";
+        }}
+      />
 
       {isLoading ? (
         <div className="flex gap-2">
-          {[1, 2].map(i => <div key={i} className="h-20 w-28 animate-pulse rounded-md bg-muted" />)}
+          {[1, 2].map((i) => (
+            <div key={i} className="h-20 w-28 animate-pulse rounded-md bg-muted" />
+          ))}
         </div>
       ) : !images?.length ? (
         <div className="flex h-20 items-center justify-center rounded-lg border-2 border-dashed border-border text-xs text-muted-foreground">
@@ -222,7 +293,11 @@ export function PropertyImageUpload({ propertyId }: Props) {
               >
                 {extractYouTubeId(img.url) ? (
                   <div className="relative h-full w-full bg-black">
-                    <img src={getYouTubeThumbnail(extractYouTubeId(img.url)!)} alt={img.alt || ""} className="h-full w-full object-cover opacity-80" />
+                    <img
+                      src={getYouTubeThumbnail(extractYouTubeId(img.url)!)}
+                      alt={img.alt || ""}
+                      className="h-full w-full object-cover opacity-80"
+                    />
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="rounded-full bg-destructive/90 p-1">
                         <Play className="h-3 w-3 fill-destructive-foreground text-destructive-foreground" />

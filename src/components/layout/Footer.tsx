@@ -20,10 +20,13 @@ export function Footer() {
   const { data: tenant } = useTenantSettings();
   const s = tenant?.settings || {};
 
-  const phone = s.contact_phone || "(11) 3000-0000";
-  const email = s.contact_email || "contato@empresa.com";
-  const address = s.contact_address || "Av. Paulista, 1000 - São Paulo, SP";
-  const companyName = tenant?.name || "Sua Imobiliária";
+  const phone = s.contact_phone || "(31) 3584-0000";
+  const email = s.contact_email || "contato@email.arrudaimobi.com.br";
+  const address = s.contact_address || "R. Pernambuco, 605 - Sra. das Graças, Betim - MG, 32671-694";
+  const companyName = tenant?.name || "Arruda Imobi";
+
+  const defaultInstagram = "https://www.instagram.com/arrudaimobi";
+  const defaultFacebook = "https://www.facebook.com/arrudaimobi";
 
   const TikTokIcon = ({ className }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -32,8 +35,8 @@ export function Footer() {
   );
 
   const socials = [
-    { url: s.social_instagram, icon: Instagram, label: "Instagram" },
-    { url: s.social_facebook, icon: Facebook, label: "Facebook" },
+    { url: s.social_instagram || defaultInstagram, icon: Instagram, label: "Instagram" },
+    { url: s.social_facebook || defaultFacebook, icon: Facebook, label: "Facebook" },
     { url: s.social_linkedin, icon: Linkedin, label: "LinkedIn" },
     { url: s.social_youtube, icon: Youtube, label: "YouTube" },
     { url: s.social_tiktok, icon: TikTokIcon, label: "TikTok" },

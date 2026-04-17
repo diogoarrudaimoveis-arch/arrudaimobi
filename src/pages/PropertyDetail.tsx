@@ -8,9 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useTenantSettings } from "@/hooks/use-tenant-settings";
 import {
   MapPin, BedDouble, Bath, Car, Maximize, Phone, Mail, MessageCircle,
-  ChevronLeft, ChevronRight, Share2, Heart, ArrowLeft, Play
+  ChevronLeft, ChevronRight, Share2, Heart, ArrowLeft, Play,
+  Instagram, Facebook
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Lightbox } from "@/components/properties/Lightbox";
@@ -20,12 +22,39 @@ import { shareProperty } from "@/lib/share";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 
+function normalizeBrazilPhone(phone: string | null | undefined) {
+  const digits = (phone || "").replace(/\D/g, "");
+  if (!digits) return "";
+  return digits.startsWith("55") ? digits : `55${digits}`;
+}
+
+function normalizeBrazilTel(phone: string | null | undefined) {
+  const digits = (phone || "").replace(/\D/g, "");
+  if (!digits) return "";
+  return digits.startsWith("55") ? `+${digits}` : `+55${digits}`;
+}
+
+function buildWhatsAppUrl(phone: string, message: string) {
+  const normalized = normalizeBrazilPhone(phone);
+  return normalized ? `https://wa.me/${normalized}?text=${encodeURIComponent(message)}` : null;
+}
+
+function buildTelUrl(phone: string) {
+  const normalized = normalizeBrazilTel(phone);
+  return normalized ? `tel:${normalized}` : null;
+}
+
+function buildMailtoUrl(email: string, subject: string, body: string) {
+  return `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
 const PropertyDetail = () => {
   const { id } = useParams();
   const { data: property, isLoading } = usePublicProperty(id);
   const [currentImage, setCurrentImage] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { data: tenantSettings } = useTenantSettings();
 
   useEffect(() => {
     if (!property?.marketing_pixels) return;
@@ -133,11 +162,31 @@ const PropertyDetail = () => {
     );
   }
 
+  const globalAddress = tenantSettings?.settings?.contact_address || "R. Pernambuco, 605 - Sra. das Graças, Betim - MG, 32671-694";
+  const globalEmail = tenantSettings?.settings?.contact_email || "contato@email.arrudaimobi.com.br";
+  const globalInstagram = tenantSettings?.settings?.social_instagram || "https://www.instagram.com/arrudaimobi";
+  const globalFacebook = tenantSettings?.settings?.social_facebook || "https://www.facebook.com/arrudaimobi";
+
   const images = (property.images || []).slice().sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
   const amenities = property.amenities?.map(pa => pa.amenity?.name).filter(Boolean) || [];
   const agent = property.agent;
+  const agentPhone = agent?.phone || tenantSettings?.settings?.contact_whatsapp || tenantSettings?.settings?.contact_phone || null;
+  const whatsappMessage = `Olá! Tenho interesse no imóvel ${property.title}. Poderia me passar mais informações, por favor?`;
+  const whatsappUrl = agentPhone ? buildWhatsAppUrl(agentPhone, whatsappMessage) : null;
+  const phoneUrl = agentPhone ? buildTelUrl(agentPhone) : null;
+  const email = agent?.email || globalEmail;
+  const emailSubject = `Interesse no imóvel ${property.id} - ${property.title}`;
+  const emailBody = `Olá, vi o imóvel ${property.id} no site Arruda Imobi e gostaria de receber mais informações.`;
+  const emailUrl = email ? buildMailtoUrl(email, emailSubject, emailBody) : null;
   const mainImage = images[0]?.url || "/logo-placeholder.png";
   const seoDescription = property.description || `${property.neighborhood}, ${property.city} - Confira este imóvel exclusivo na Arruda Imobi.`;
+
+  const mapQueryText = property.latitude && property.longitude
+    ? `${property.latitude},${property.longitude}`
+    : [property.address, property.number, property.neighborhood, property.city, property.state]
+        .filter(Boolean)
+        .join(", ");
+  const mapSrc = `https://maps.google.com/maps?q=${encodeURIComponent(mapQueryText)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
 
   const nextImage = () => setCurrentImage((prev) => (prev + 1) % Math.max(images.length, 1));
   const prevImage = () => setCurrentImage((prev) => (prev - 1 + images.length) % Math.max(images.length, 1));
@@ -319,16 +368,15 @@ const PropertyDetail = () => {
             {/* Map */}
             <div>
               <h2 className="font-display text-lg font-semibold text-foreground">Localização</h2>
-              {property.latitude && property.longitude ? (
-                <div className="mt-3 overflow-hidden rounded-xl border border-border">
+              {mapQueryText ? (
+                <div className="mt-3 overflow-hidden rounded-xl border border-border w-full min-h-[300px] md:min-h-[450px]">
                   <iframe
                     title={`Mapa - ${property.title}`}
-                    width="100%"
-                    height="300"
-                    style={{ border: 0 }}
+                    className="w-full h-full"
+                    style={{ border: 0, minHeight: 300 }}
                     loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
-                    src={`https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d1500!2d${property.longitude}!3d${property.latitude}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1spt-BR!2sbr!4v1`}
+                    src={mapSrc}
                     allowFullScreen
                   />
                 </div>
@@ -361,12 +409,58 @@ const PropertyDetail = () => {
                 </div>
                 {agent.bio && <p className="mt-3 text-sm text-muted-foreground">{agent.bio}</p>}
                 <div className="mt-4 space-y-2">
-                  <Button className="w-full gap-2" size="lg"><MessageCircle className="h-4 w-4" />WhatsApp</Button>
-                  <Button variant="outline" className="w-full gap-2"><Phone className="h-4 w-4" />Ligar</Button>
-                  <Button variant="outline" className="w-full gap-2"><Mail className="h-4 w-4" />Enviar Email</Button>
+                  {whatsappUrl ? (
+                    <Button className="w-full gap-2" size="lg" asChild>
+                      <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+                        <MessageCircle className="h-4 w-4" />WhatsApp
+                      </a>
+                    </Button>
+                  ) : (
+                    <Button className="w-full gap-2" size="lg" disabled><MessageCircle className="h-4 w-4" />WhatsApp</Button>
+                  )}
+                  {phoneUrl ? (
+                    <Button variant="outline" className="w-full gap-2" asChild>
+                      <a href={phoneUrl} target="_blank" rel="noopener noreferrer">
+                        <Phone className="h-4 w-4" />Ligar
+                      </a>
+                    </Button>
+                  ) : (
+                    <Button variant="outline" className="w-full gap-2" disabled><Phone className="h-4 w-4" />Ligar</Button>
+                  )}
+                  {emailUrl ? (
+                    <Button variant="outline" className="w-full gap-2" asChild>
+                      <a href={emailUrl} target="_blank" rel="noopener noreferrer">
+                        <Mail className="h-4 w-4" />Enviar Email
+                      </a>
+                    </Button>
+                  ) : (
+                    <Button variant="outline" className="w-full gap-2" disabled><Mail className="h-4 w-4" />Enviar Email</Button>
+                  )}
                 </div>
               </Card>
             )}
+
+            <Card className="p-6">
+              <h3 className="font-display text-sm font-semibold text-foreground">Contato da Imobiliária</h3>
+              <div className="mt-4 space-y-3 text-sm text-muted-foreground">
+                <div className="flex items-start gap-3">
+                  <MapPin className="mt-1 h-4 w-4 text-primary" />
+                  <div>{globalAddress}</div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Mail className="mt-1 h-4 w-4 text-primary" />
+                  <div>{globalEmail}</div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <a href={globalInstagram} target="_blank" rel="noopener noreferrer" className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-muted transition hover:bg-primary/10">
+                    <Instagram className="h-4 w-4 text-foreground" />
+                  </a>
+                  <a href={globalFacebook} target="_blank" rel="noopener noreferrer" className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-muted transition hover:bg-primary/10">
+                    <Facebook className="h-4 w-4 text-foreground" />
+                  </a>
+                </div>
+              </div>
+            </Card>
 
             <PropertyContactForm
               propertyId={property.id}
