@@ -14,10 +14,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/format";
+import { fetchImageAsFile, getStoragePathFromUrl, processImageWithWatermark } from "@/lib/image-compression";
 import { Plus, Pencil, Trash2, Loader2, Home, ImageIcon, Search, HelpCircle, X } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PropertyImageUpload } from "@/components/admin/PropertyImageUpload";
 import { useIBGEStates, useIBGECities } from "@/hooks/use-ibge-locations";
+import { useTenantSettings } from "@/hooks/use-tenant-settings";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -44,6 +46,7 @@ const AdminProperties = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [fetchingCep, setFetchingCep] = useState(false);
+  const [isImageProcessing, setIsImageProcessing] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
@@ -182,6 +185,7 @@ const AdminProperties = () => {
     },
     enabled: isReady && !!tenantId,
   });
+  const { data: tenantSettings } = useTenantSettings();
   const [activeTab, setActiveTab] = useState("basicos");
 
   const { data: propertiesData, isLoading } = useQuery({
@@ -309,6 +313,7 @@ const AdminProperties = () => {
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!validateForm()) return;
+    if (isImageProcessing) return;
     saveMutation.mutate();
   };
 
@@ -366,7 +371,7 @@ const AdminProperties = () => {
         if (amErr) throw amErr;
       }
 
-      // Save portal listngs
+      // Save portal listings
       await supabase.from("property_portal_listing").delete().eq("property_id", propertyId);
       const listingsToInsert = Object.entries(portalListings)
         .filter(([_, data]) => data.active)
@@ -374,12 +379,100 @@ const AdminProperties = () => {
           property_id: propertyId,
           portal_id,
           status: "ativo",
-          modality: data.modality as any
+          modality: data.modality as any,
         }));
 
       if (listingsToInsert.length > 0) {
         const { error: plErr } = await supabase.from("property_portal_listing").insert(listingsToInsert);
         if (plErr) throw plErr;
+      }
+
+      if (editingId) {
+        setIsImageProcessing(true);
+        const { data: propertyImages, error: imagesErr } = await supabase
+          .from("property_images")
+          .select("id, url")
+          .eq("property_id", propertyId);
+
+        if (imagesErr) throw imagesErr;
+
+        const images = (propertyImages || []) as Array<{ id: string; url: string }>;
+        console.log('[PROCESSO] Tenant settings carregadas:', tenantSettings);
+        console.log('[PROCESSO] URL da Logo recuperada:', tenantSettings?.settings?.logo_url);
+        const watermarkUrl = tenantSettings?.settings?.logo_mode === "image"
+          ? tenantSettings.settings.logo_url
+          : undefined;
+
+        await Promise.all(
+          images.map(async (image) => {
+            if (!image.url) return;
+            const filePath = getStoragePathFromUrl(image.url);
+            if (!filePath) {
+              console.warn(`Não foi possível extrair caminho do storage da imagem ${image.id}, pulando.`);
+              return;
+            }
+
+            try {
+              console.log('[PROCESSO] Download para processamento:', { imageId: image.id, imageUrl: image.url, storagePath: filePath });
+              const originalFile = await fetchImageAsFile(image.url, `${image.id}.webp`);
+              console.log('[PROCESSO] Arquivo baixado, iniciando watermark:', originalFile.name, originalFile.type, originalFile.size);
+              const processedFile = await processImageWithWatermark(originalFile, watermarkUrl, {
+                maxWidth: 1920,
+                quality: 0.8,
+                watermarkOpacity: 0.5,
+                watermarkMaxWidthRatio: 0.15,
+              });
+
+              const sourcePath = filePath.replace(/^\/+/, "");
+              const newPath = `${sourcePath.replace(/\.[^/.]+$/, '')}_${Date.now()}.webp`;
+
+              console.log('Tentando subir imagem carimbada para o caminho:', newPath);
+              const { error: uploadErr } = await supabase.storage
+                .from("property-images")
+                .upload(newPath, processedFile, {
+                  contentType: "image/webp",
+                  cacheControl: "0",
+                  upsert: true,
+                });
+              if (uploadErr) {
+                throw uploadErr;
+              }
+
+              const { error: removeErr } = await supabase.storage
+                .from("property-images")
+                .remove([sourcePath]);
+              if (removeErr) {
+                console.warn(`Não foi possível remover arquivo antigo ${sourcePath}:`, removeErr.message || removeErr);
+              }
+
+              const { data: urlData, error: urlErr } = await supabase.storage
+                .from("property-images")
+                .getPublicUrl(newPath);
+              if (urlErr || !urlData?.publicUrl) {
+                console.warn(`Não foi possível obter publicUrl para ${newPath}:`, urlErr?.message || urlErr);
+              } else {
+                const newPublicUrl = urlData.publicUrl;
+                console.log(`[SISTEMA] Trocando URL antiga: ${image.url} por nova URL: ${newPublicUrl}`);
+                const { error: updateErr } = await supabase
+                  .from("property_images")
+                  .update({ url: newPublicUrl })
+                  .eq("id", image.id);
+                if (updateErr) {
+                  console.warn(`Falha ao atualizar property_images.url para ${image.id}:`, updateErr.message || updateErr);
+                } else {
+                  console.log(`[SUCESSO] Imagem ${image.id} convertida para WebP e carimbada. Nova URL: ${newPublicUrl}`);
+                }
+              }
+            } catch (error: any) {
+              const message = error?.message || String(error);
+              if (message.includes("row-level security") || message.includes("RLS") || message.includes("400") || message.toLowerCase().includes("cors") || message.toLowerCase().includes("failed to fetch")) {
+                console.log(`[Aviso] Foto ${image.id} não pôde ser carimbada por restrição do servidor ou erro de download (${message}), mantendo URL original.`);
+                return;
+              }
+              console.warn(`Erro ao processar imagem retroativa ${image.id}: ${message}. Mantendo URL original.`);
+            }
+          })
+        );
       }
 
       return propertyId;
@@ -397,6 +490,9 @@ const AdminProperties = () => {
     },
     onError: (err: any) => {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
+    },
+    onSettled: () => {
+      setIsImageProcessing(false);
     },
   });
 
@@ -609,7 +705,7 @@ const AdminProperties = () => {
                         </div>
                         <div className="sm:col-span-2">
                           <Label>Tipo de Imóvel <span className="text-destructive">*</span></Label>
-                          <Select value={form.type_id} onValueChange={(v) => setForm({ ...form, type_id: v })}>
+                          <Select value={form.type_id || ""} onValueChange={(v) => setForm({ ...form, type_id: v })}>
                             <SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger>
                             <SelectContent>
                               {propertyTypes?.map((t) => (
@@ -621,7 +717,7 @@ const AdminProperties = () => {
                         </div>
                         <div className="sm:col-span-2">
                           <Label>Finalidade <span className="text-destructive">*</span></Label>
-                          <Select value={form.purpose} onValueChange={(v) => setForm({ ...form, purpose: v })}>
+                          <Select value={form.purpose || ""} onValueChange={(v) => setForm({ ...form, purpose: v })}>
                             <SelectTrigger><SelectValue /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="sale">Venda</SelectItem>
@@ -633,7 +729,7 @@ const AdminProperties = () => {
                         </div>
                         <div className="sm:col-span-2">
                           <Label>Agente Responsável</Label>
-                          <Select value={form.agent_id} onValueChange={(v) => setForm({ ...form, agent_id: v })}>
+                          <Select value={form.agent_id || ""} onValueChange={(v) => setForm({ ...form, agent_id: v })}>
                             <SelectTrigger><SelectValue placeholder="Selecione o agente responsável" /></SelectTrigger>
                             <SelectContent>
                               {(tenantProfiles || []).map((profile: any) => (
@@ -677,7 +773,7 @@ const AdminProperties = () => {
                           </div>
                           <div>
                             <Label>Estado</Label>
-                            <Select value={form.state} onValueChange={(v) => setForm({ ...form, state: v, city: "" })}>
+                            <Select value={form.state || ""} onValueChange={(v) => setForm({ ...form, state: v, city: "" })}>
                               <SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger>
                               <SelectContent>
                                 {ibgeStates?.map((s) => (
@@ -688,7 +784,7 @@ const AdminProperties = () => {
                           </div>
                           <div>
                             <Label>Cidade</Label>
-                            <Select value={form.city} onValueChange={(v) => setForm({ ...form, city: v })} disabled={!form.state}>
+                            <Select value={form.city || ""} onValueChange={(v) => setForm({ ...form, city: v })} disabled={!form.state}>
                               <SelectTrigger><SelectValue placeholder="Cidade" /></SelectTrigger>
                               <SelectContent>
                                 {ibgeCities?.map((c) => (
@@ -719,7 +815,7 @@ const AdminProperties = () => {
                           </div>
                           <div>
                             <Label>Status</Label>
-                            <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                            <Select value={form.status || ""} onValueChange={(v) => setForm({ ...form, status: v })}>
                               <SelectTrigger><SelectValue /></SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="available">Disponível</SelectItem>
@@ -740,7 +836,7 @@ const AdminProperties = () => {
                         <div className="grid gap-4 sm:grid-cols-2">
                           <div>
                             <Label>Selecionar Existente</Label>
-                            <Select value={form.owner_id} onValueChange={(v) => setForm({ ...form, owner_id: v })}>
+                            <Select value={form.owner_id || ""} onValueChange={(v) => setForm({ ...form, owner_id: v })}>
                               <SelectTrigger><SelectValue placeholder="Procure por nome ou CPF" /></SelectTrigger>
                               <SelectContent>
                                 {owners?.map(o => (
@@ -759,7 +855,7 @@ const AdminProperties = () => {
                           <div className="grid gap-4 sm:grid-cols-3">
                             <div>
                               <Label>Selecionar Agente / Usuário</Label>
-                              <Select value={selectedProfileUserId} onValueChange={(v) => setSelectedProfileUserId(v)}>
+                              <Select value={selectedProfileUserId || ""} onValueChange={(v) => setSelectedProfileUserId(v)}>
                                 <SelectTrigger><SelectValue placeholder="Selecione um agente ou usuário" /></SelectTrigger>
                                 <SelectContent>
                                   {(tenantProfiles || []).map((profile: any) => (
@@ -944,7 +1040,7 @@ const AdminProperties = () => {
                         </div>
                       </div>
                       {editingId ? (
-                        <PropertyImageUpload propertyId={editingId} />
+                        <PropertyImageUpload propertyId={editingId} onProcessingChange={setIsImageProcessing} />
                       ) : (
                         <div className="flex flex-col items-center justify-center py-12 text-center bg-muted/10 rounded-xl border border-dashed">
                           <AlertCircle className="h-8 w-8 text-amber-500 mb-2" />
@@ -1103,12 +1199,26 @@ const AdminProperties = () => {
                       form="property-form" 
                       type="submit" 
                       className={`gap-2 min-w-[140px] ${(!editingId || isPublishable) ? 'bg-[#003366]' : 'bg-amber-600'}`}
-                      disabled={saveMutation.isPending}
+                      disabled={saveMutation.isPending || isImageProcessing}
                     >
-                      {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : editingId ? (isPublishable ? "Salvar e Publicar" : "Salvar Alterações") : "Cadastrar e Adicionar Mídia"}
+                      {isImageProcessing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Otimizando e Protegendo fotos antigas...
+                        </>
+                      ) : saveMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : editingId ? (
+                        isPublishable ? "Salvar e Publicar" : "Salvar Alterações"
+                      ) : (
+                        "Cadastrar e Adicionar Mídia"
+                      )}
                     </Button>
                   </div>
                 </DialogFooter>
+                {isImageProcessing && (
+                  <div className="px-6 pb-4 text-xs text-amber-600">Processamento de imagens em andamento. Aguarde até que a otimização e marca d'água sejam concluídas.</div>
+                )}
               </Tabs>
             </DialogContent>
 

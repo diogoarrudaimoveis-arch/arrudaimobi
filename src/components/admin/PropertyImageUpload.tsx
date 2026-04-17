@@ -12,15 +12,21 @@ import { useTenantSettings } from "@/hooks/use-tenant-settings";
 
 interface Props {
   propertyId: string;
+  onProcessingChange?: (processing: boolean) => void;
 }
 
-export function PropertyImageUpload({ propertyId }: Props) {
+export function PropertyImageUpload({ propertyId, onProcessingChange }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [processing, setProcessing] = useState(false);
+
+  const setProcessingState = (value: boolean) => {
+    setProcessing(value);
+    onProcessingChange?.(value);
+  };
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [youtubeTitle, setYoutubeTitle] = useState("");
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -44,7 +50,7 @@ export function PropertyImageUpload({ propertyId }: Props) {
   const uploadMutation = useMutation({
     mutationFn: async (rawFiles: File[]) => {
       setUploading(true);
-      setProcessing(true);
+      setProcessingState(true);
 
       const watermarkUrl = tenantSettings?.settings?.logo_mode === "image"
         ? tenantSettings.settings.logo_url
@@ -89,14 +95,14 @@ export function PropertyImageUpload({ propertyId }: Props) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["property-images", propertyId] });
       queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
-      toast({ title: "Imagens enviadas!" });
+      toast({ title: "Imagens otimizadas e protegidas com sucesso!" });
       setUploading(false);
-      setProcessing(false);
+      setProcessingState(false);
     },
     onError: (err: any) => {
       toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
       setUploading(false);
-      setProcessing(false);
+      setProcessingState(false);
     },
   });
 
@@ -276,9 +282,11 @@ export function PropertyImageUpload({ propertyId }: Props) {
         accept="image/*"
         multiple
         className="hidden"
-        onChange={(e) => {
+        onChange={async (e) => {
           const files = e.target.files ? Array.from(e.target.files) : [];
-          if (files.length) uploadMutation.mutate(files);
+          if (files.length) {
+            await uploadMutation.mutateAsync(files);
+          }
           e.target.value = "";
         }}
       />
