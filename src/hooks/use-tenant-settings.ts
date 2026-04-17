@@ -32,6 +32,13 @@ export interface TenantSettings {
   footer_description?: string;
   footer_quick_links_visible?: boolean;
   footer_property_types_visible?: boolean;
+  stats_counters?: {
+    show_stats?: boolean;
+    properties_count?: string;
+    clients_served?: string;
+    active_agents?: string;
+    cities_served?: string;
+  };
   // Hero background
   hero_bg_mode?: "gradient" | "image";
   hero_bg_image_url?: string;

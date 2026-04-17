@@ -48,6 +48,8 @@ const Index = () => {
   const heroBgOverlayOpacity = settings.hero_bg_overlay_opacity ?? 50;
   const heroBgPosition = settings.hero_bg_position || "center";
   const useHeroImage = heroBgMode === "image" && heroBgImageUrl;
+  const statsCounters = settings.stats_counters || {};
+  const showStatsSection = statsCounters.show_stats !== false;
 
   const heroSectionStyle = useHeroImage
     ? { backgroundImage: `url(${heroBgImageUrl})`, backgroundSize: "cover", backgroundPosition: heroBgPosition }
@@ -62,10 +64,26 @@ const Index = () => {
       : "relative overflow-hidden bg-gradient-to-br from-primary via-primary to-info py-24 md:py-32";
 
   const statItems = [
-    { label: "Imóveis Cadastrados", value: stats ? `${stats.properties_count}+` : "—", icon: Building2 },
-    { label: "Clientes Atendidos", value: "1.200+", icon: Users },
-    { label: "Agentes Ativos", value: stats ? String(stats.agents_count) : "—", icon: UserCheck },
-    { label: "Cidades Atendidas", value: stats ? String(stats.cities_count) : "—", icon: MapPin },
+    {
+      label: "Imóveis Cadastrados",
+      value: statsCounters.properties_count?.trim() || (stats ? `${stats.properties_count}+` : "—"),
+      icon: Building2,
+    },
+    {
+      label: "Clientes Atendidos",
+      value: statsCounters.clients_served?.trim() || "1.200+",
+      icon: Users,
+    },
+    {
+      label: "Agentes Ativos",
+      value: statsCounters.active_agents?.trim() || (stats ? String(stats.agents_count) : "—"),
+      icon: UserCheck,
+    },
+    {
+      label: "Cidades Atendidas",
+      value: statsCounters.cities_served?.trim() || (stats ? String(stats.cities_count) : "—"),
+      icon: MapPin,
+    },
   ];
 
   return (
@@ -101,21 +119,23 @@ const Index = () => {
       </section>
 
       {/* Stats */}
-      <section className="relative -mt-1 border-b border-border bg-card py-10">
-        <div className="container">
-          <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
-            {statItems.map((stat, i) => (
-              <div key={stat.label} className="flex flex-col items-center text-center animate-fade-in" style={{ animationDelay: `${i * 0.1}s` }}>
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                  <stat.icon className="h-6 w-6 text-primary" />
+      {showStatsSection && (
+        <section className="relative -mt-1 border-b border-border bg-card py-10">
+          <div className="container">
+            <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
+              {statItems.map((stat, i) => (
+                <div key={stat.label} className="flex flex-col items-center text-center animate-fade-in" style={{ animationDelay: `${i * 0.1}s` }}>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                    <stat.icon className="h-6 w-6 text-primary" />
+                  </div>
+                  <p className="mt-3 font-display text-3xl font-bold text-foreground">{stat.value}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{stat.label}</p>
                 </div>
-                <p className="mt-3 font-display text-3xl font-bold text-foreground">{stat.value}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{stat.label}</p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Property Types */}
       <section className="py-20">

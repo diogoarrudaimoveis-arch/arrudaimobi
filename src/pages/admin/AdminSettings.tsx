@@ -5,6 +5,7 @@ import { RegistrationToggle } from "@/components/admin/settings/RegistrationTogg
 import { TenantInfoCard } from "@/components/admin/settings/TenantInfoCard";
 import { HomeCustomization } from "@/components/admin/settings/HomeCustomization";
 import { ContactSocialCard } from "@/components/admin/settings/ContactSocialCard";
+import { StatsCountersCard } from "@/components/admin/settings/StatsCountersCard";
 import { BrandCustomization } from "@/components/admin/BrandCustomization";
 import { PWASettingsCard } from "@/components/admin/PWASettingsCard";
 import { AdvancedSiteSettings } from "@/components/admin/settings/AdvancedSiteSettings";
@@ -29,6 +30,7 @@ const AdminSettings = () => {
         <RegistrationToggle />
         <TenantInfoCard />
         <HomeCustomization />
+        <StatsCountersCard />
         <ContactSocialCard />
 
         {/* Brand Customization */}
