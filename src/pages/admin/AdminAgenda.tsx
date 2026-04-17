@@ -3,6 +3,7 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Plus, Calendar as CalendarIcon, Users, Clock, Loader2, UserCheck, Info } from "lucide-react";
 import { AppointmentModal } from "@/components/admin/agenda/AppointmentModal";
@@ -15,19 +16,33 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
+type AppointmentWithRelations = Database["public"]["Tables"]["appointments"]["Row"] & {
+  profiles?: {
+    full_name: string | null;
+    avatar_url: string | null;
+  };
+  contacts?: {
+    name: string | null;
+  };
+  properties?: {
+    title: string | null;
+    property_code: string | null;
+  };
+};
+
 export default function AdminAgenda() {
   const { user } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
-  const [editingAppointment, setEditingAppointment] = useState<any>(null);
+  const [editingAppointment, setEditingAppointment] = useState<AppointmentWithRelations | null>(null);
 
-  const { data: appointments, isLoading } = useQuery({
+  const { data: appointments, isLoading } = useQuery<AppointmentWithRelations[]>({
     queryKey: ["appointments"],
     queryFn: async () => {
       const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", user?.id).single();
       
       const { data, error } = await supabase
         .from("appointments")
-        .select(`
+        .select<AppointmentWithRelations>(`
           *,
           profiles!assigned_to(full_name, avatar_url),
           contacts!client_id(name),
@@ -35,7 +50,7 @@ export default function AdminAgenda() {
         `)
         .eq("tenant_id", profile?.tenant_id);
       if (error) throw error;
-      return data;
+      return data ?? [];
     },
   });
 

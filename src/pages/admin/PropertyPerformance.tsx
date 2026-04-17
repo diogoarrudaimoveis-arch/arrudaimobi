@@ -3,7 +3,9 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { useQuery } from "@tanstack/react-query";
 import { useTenantSettings } from "@/hooks/use-tenant-settings";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +19,12 @@ import {
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
+
+type PropertyAnalyticsEvent = Database["public"]["Tables"]["property_analytics"]["Row"] & {
+  properties?: {
+    title: string | null;
+  };
+};
 
 interface PropertyRow {
   property_id: string;
@@ -90,9 +98,10 @@ const renderDonutLabel = ({ name, percent }: { name: string; percent: number }) 
 export default function PropertyPerformance() {
   const { data: tenant } = useTenantSettings();
   const [period, setPeriod] = useState("30");
+  const [testLoading, setTestLoading] = useState(false);
 
   // ── Data fetching ──────────────────────────────────────────────────────────
-  const { data: rawEvents, isLoading } = useQuery({
+  const { data: rawEvents, isLoading, refetch } = useQuery<PropertyAnalyticsEvent[]>({
     queryKey: ["property-performance", tenant?.id, period],
     queryFn: async () => {
       const dateFrom = new Date();
@@ -101,16 +110,52 @@ export default function PropertyPerformance() {
 
       const { data, error } = await supabase
         .from("property_analytics")
-        .select("event_type, property_id, properties ( title )")
+        .select<PropertyAnalyticsEvent>("event_type, property_id, properties(title)")
         .eq("tenant_id", tenant?.id)
         .gte("created_at", dateFrom.toISOString())
         .limit(5000);
 
       if (error) throw error;
-      return data;
+      return data ?? [];
     },
     enabled: !!tenant?.id,
   });
+
+  const insertFakeViews = async () => {
+    if (!tenant?.id) return;
+    setTestLoading(true);
+
+    try {
+      const { data: propertyData, error: propertyError } = await supabase
+        .from("properties")
+        .select("id")
+        .eq("tenant_id", tenant.id)
+        .limit(1)
+        .single();
+
+      if (propertyError || !propertyData) {
+        console.warn("Não foi possível encontrar imóvel para gerar visualizações de teste", propertyError);
+        return;
+      }
+
+      const now = new Date();
+      const fakeRows = Array.from({ length: 5 }).map((_, index) => ({
+        tenant_id: tenant.id,
+        property_id: propertyData.id,
+        event_type: "view",
+        created_at: new Date(now.getTime() - index * 60 * 60 * 1000).toISOString(),
+      }));
+
+      const { error: insertError } = await supabase.from("property_analytics").insert(fakeRows);
+      if (insertError) {
+        console.warn("Erro ao inserir visualizações de teste:", insertError.message);
+      } else {
+        await refetch();
+      }
+    } finally {
+      setTestLoading(false);
+    }
+  };
 
   // ── Aggregation ────────────────────────────────────────────────────────────
   const rows: PropertyRow[] = useMemo(() => {
@@ -220,6 +265,9 @@ export default function PropertyPerformance() {
                 ))}
               </SelectContent>
             </Select>
+            <Button size="sm" variant="outline" onClick={insertFakeViews} disabled={!tenant?.id || testLoading}>
+              {testLoading ? "Gerando dados…" : "Inserir 5 views de teste"}
+            </Button>
           </div>
         </div>
 

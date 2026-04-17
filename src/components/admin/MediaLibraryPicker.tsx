@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Library, Check, Play } from "lucide-react";
@@ -23,9 +23,9 @@ export function MediaLibraryPicker({ onSelect }: Props) {
     queryKey: ["media-library", tenantId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("media_library")
-        .select("*")
-        .eq("tenant_id", tenantId!)
+        .from("property_images")
+        .select("*, properties!inner(id,tenant_id)")
+        .eq("properties.tenant_id", tenantId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
@@ -33,9 +33,13 @@ export function MediaLibraryPicker({ onSelect }: Props) {
     enabled: isReady && !!tenantId && open,
   });
 
-  const filtered = media?.filter((m) =>
-    !search || m.filename?.toLowerCase().includes(search.toLowerCase()) || m.alt?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = media?.filter((m) => {
+    if (!search) return true;
+    const query = search.toLowerCase();
+    const alt = m.alt?.toLowerCase() || "";
+    const filename = m.url?.split("/").pop()?.split("?")[0]?.toLowerCase() || "";
+    return alt.includes(query) || filename.includes(query);
+  });
 
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
@@ -50,7 +54,10 @@ export function MediaLibraryPicker({ onSelect }: Props) {
     if (!media) return;
     const imgs = media
       .filter((m) => selected.has(m.id))
-      .map((m) => ({ url: m.url, alt: m.alt || m.filename || "" }));
+      .map((m) => ({
+        url: m.url,
+        alt: m.alt || m.url?.split("/").pop()?.split("?")[0] || "",
+      }));
     onSelect(imgs);
     setSelected(new Set());
     setOpen(false);
@@ -67,6 +74,7 @@ export function MediaLibraryPicker({ onSelect }: Props) {
       <DialogContent className="max-h-[80vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Importar da Biblioteca</DialogTitle>
+          <DialogDescription className="sr-only">Selecione uma imagem da sua biblioteca para este imóvel.</DialogDescription>
         </DialogHeader>
         <Input
           placeholder="Buscar por nome..."

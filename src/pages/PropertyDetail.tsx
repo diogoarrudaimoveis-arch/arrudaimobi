@@ -131,6 +131,24 @@ const PropertyDetail = () => {
     };
   }, [property]);
 
+  useEffect(() => {
+    if (!property?.id || !property?.tenantId) return;
+
+    const insertViewEvent = async () => {
+      const { error } = await supabase.from("property_analytics").insert({
+        tenant_id: property.tenantId,
+        property_id: property.id,
+        event_type: "view",
+      });
+
+      if (error) {
+        console.warn("Falha ao registrar view de imóvel:", error.message);
+      }
+    };
+
+    void insertViewEvent();
+  }, [property?.id, property?.tenantId]);
+
   if (isLoading) {
     return (
       <Layout>
@@ -183,10 +201,32 @@ const PropertyDetail = () => {
 
   const mapQueryText = property.latitude && property.longitude
     ? `${property.latitude},${property.longitude}`
-    : [property.address, property.number, property.neighborhood, property.city, property.state]
+    : [property.address, property.neighborhood, property.city, property.state]
         .filter(Boolean)
         .join(", ");
   const mapSrc = `https://maps.google.com/maps?q=${encodeURIComponent(mapQueryText)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+
+  const logPropertyAnalyticsEvent = async (eventType: "view" | "contact_click" | "whatsapp_click") => {
+    if (!property?.id || !property?.tenantId) return;
+
+    const { error } = await supabase.from("property_analytics").insert({
+      tenant_id: property.tenantId,
+      property_id: property.id,
+      event_type: eventType,
+    });
+
+    if (error) {
+      console.warn("Falha ao registrar evento de analytics:", error.message);
+    }
+  };
+
+  const handleWhatsAppClick = () => {
+    void logPropertyAnalyticsEvent("whatsapp_click");
+  };
+
+  const handleContactClick = () => {
+    void logPropertyAnalyticsEvent("contact_click");
+  };
 
   const nextImage = () => setCurrentImage((prev) => (prev + 1) % Math.max(images.length, 1));
   const prevImage = () => setCurrentImage((prev) => (prev - 1 + images.length) % Math.max(images.length, 1));
@@ -369,11 +409,12 @@ const PropertyDetail = () => {
             <div>
               <h2 className="font-display text-lg font-semibold text-foreground">Localização</h2>
               {mapQueryText ? (
-                <div className="mt-3 overflow-hidden rounded-xl border border-border w-full min-h-[300px] md:min-h-[450px]">
+                <div className="mt-3 w-full overflow-hidden rounded-lg bg-muted aspect-video h-[300px] md:h-[450px]">
                   <iframe
                     title={`Mapa - ${property.title}`}
-                    className="w-full h-full"
-                    style={{ border: 0, minHeight: 300 }}
+                    className="w-full h-full border-0"
+                    width="100%"
+                    height="100%"
                     loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
                     src={mapSrc}
@@ -381,7 +422,7 @@ const PropertyDetail = () => {
                   />
                 </div>
               ) : (
-                <div className="mt-3 flex h-64 items-center justify-center rounded-xl border border-border bg-muted">
+                <div className="mt-3 flex h-64 items-center justify-center rounded-lg border border-border bg-muted">
                   <div className="text-center">
                     <MapPin className="mx-auto h-8 w-8 text-muted-foreground/50" />
                     <p className="mt-2 text-sm text-muted-foreground">Localização não disponível para este imóvel</p>
@@ -411,7 +452,7 @@ const PropertyDetail = () => {
                 <div className="mt-4 space-y-2">
                   {whatsappUrl ? (
                     <Button className="w-full gap-2" size="lg" asChild>
-                      <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+                      <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" onClick={handleWhatsAppClick}>
                         <MessageCircle className="h-4 w-4" />WhatsApp
                       </a>
                     </Button>
@@ -420,7 +461,7 @@ const PropertyDetail = () => {
                   )}
                   {phoneUrl ? (
                     <Button variant="outline" className="w-full gap-2" asChild>
-                      <a href={phoneUrl} target="_blank" rel="noopener noreferrer">
+                      <a href={phoneUrl} target="_blank" rel="noopener noreferrer" onClick={handleContactClick}>
                         <Phone className="h-4 w-4" />Ligar
                       </a>
                     </Button>
@@ -429,7 +470,7 @@ const PropertyDetail = () => {
                   )}
                   {emailUrl ? (
                     <Button variant="outline" className="w-full gap-2" asChild>
-                      <a href={emailUrl} target="_blank" rel="noopener noreferrer">
+                      <a href={emailUrl} target="_blank" rel="noopener noreferrer" onClick={handleContactClick}>
                         <Mail className="h-4 w-4" />Enviar Email
                       </a>
                     </Button>

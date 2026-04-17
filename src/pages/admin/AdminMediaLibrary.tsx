@@ -26,8 +26,13 @@ function extractYouTubeId(url: string): string | null {
   return null;
 }
 
-function isYouTubeUrl(url: string): boolean {
+function isYouTubeUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
   return !!extractYouTubeId(url);
+}
+
+function isYouTube(url: unknown): boolean {
+  return typeof url === "string" && (url.includes("youtube.com") || url.includes("youtu.be"));
 }
 
 function getYouTubeThumbnail(videoId: string): string {
@@ -57,9 +62,9 @@ const AdminMediaLibrary = () => {
       const from = (mediaPage - 1) * mediaPageSize;
       const to = from + mediaPageSize - 1;
       const { data, error, count } = await supabase
-        .from("media_library")
-        .select("*", { count: "exact" })
-        .eq("tenant_id", tenantId!)
+        .from("property_images")
+        .select("*, properties!inner(id,title,tenant_id)", { count: "exact" })
+        .eq("properties.tenant_id", tenantId!)
         .order("created_at", { ascending: false })
         .range(from, to);
       if (error) throw error;
@@ -142,14 +147,12 @@ const AdminMediaLibrary = () => {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (image: { id: string; url: string; mime_type?: string | null }) => {
-      if (image.mime_type !== "video/youtube") {
-        const urlParts = image.url.split("/property-images/");
-        if (urlParts[1]) {
-          await supabase.storage.from("property-images").remove([decodeURIComponent(urlParts[1])]);
-        }
+    mutationFn: async (image: { id: string; url: string }) => {
+      const urlParts = image.url.split("/property-images/");
+      if (urlParts[1]) {
+        await supabase.storage.from("property-images").remove([decodeURIComponent(urlParts[1])]);
       }
-      const { error } = await supabase.from("media_library").delete().eq("id", image.id);
+      const { error } = await supabase.from("property_images").delete().eq("id", image.id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -162,10 +165,10 @@ const AdminMediaLibrary = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, alt, filename }: { id: string; alt: string; filename: string }) => {
+    mutationFn: async ({ id, alt }: { id: string; alt: string }) => {
       const { error } = await supabase
-        .from("media_library")
-        .update({ alt, filename, updated_at: new Date().toISOString() })
+        .from("property_images")
+        .update({ alt })
         .eq("id", id);
       if (error) throw error;
     },
@@ -192,16 +195,14 @@ const AdminMediaLibrary = () => {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  const isYouTube = (img: any) => img?.mime_type === "video/youtube";
-
   const renderThumbnail = (img: any) => {
-    if (isYouTube(img)) {
+    if (isYouTube(img.url)) {
       const videoId = extractYouTubeId(img.url);
       return (
         <div className="relative h-full w-full bg-black">
           <img
             src={videoId ? getYouTubeThumbnail(videoId) : ""}
-            alt={img.alt || ""}
+            alt={img.alt || "Vídeo do YouTube"}
             className="h-full w-full object-cover opacity-80"
           />
           <div className="absolute inset-0 flex items-center justify-center">
@@ -212,11 +213,12 @@ const AdminMediaLibrary = () => {
         </div>
       );
     }
+
     return <img src={img.url} alt={img.alt || ""} className="h-full w-full object-cover" />;
   };
 
   const handlePreview = (img: any) => {
-    if (isYouTube(img)) {
+    if (isYouTube(img.url)) {
       const videoId = extractYouTubeId(img.url);
       if (videoId) {
         setPreviewImage(`youtube:${videoId}`);
@@ -287,9 +289,9 @@ const AdminMediaLibrary = () => {
                   {renderThumbnail(img)}
                 </div>
                 <div className="p-2">
-                  <p className="truncate text-xs font-medium">{img.filename}</p>
+                  <p className="truncate text-xs font-medium">{img.alt || img.url?.split("/").pop()?.split("?")[0] || "Imagem do imóvel"}</p>
                   <p className="text-xs text-muted-foreground">
-                    {isYouTube(img) ? "YouTube" : formatSize(img.size_bytes)}
+                    {img.properties?.title ? `Imóvel: ${img.properties.title}` : formatSize(img.size_bytes)}
                   </p>
                 </div>
                 <div className="absolute right-1 top-1 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
@@ -378,25 +380,17 @@ const AdminMediaLibrary = () => {
       <Dialog open={!!editingImage} onOpenChange={(v) => !v && setEditingImage(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{isYouTube(editingImage) ? "Editar Vídeo" : "Editar Imagem"}</DialogTitle>
+            <DialogTitle>{isYouTube(editingImage?.url) ? "Editar Vídeo" : "Editar Imagem"}</DialogTitle>
             <DialogDescription className="sr-only">Edite o nome e o texto alternativo da mídia selecionada.</DialogDescription>
           </DialogHeader>
           {editingImage && (
             <div className="space-y-4">
-              {isYouTube(editingImage) ? (
-                <div className="mx-auto overflow-hidden rounded-lg">
-                  <img
-                    src={getYouTubeThumbnail(extractYouTubeId(editingImage.url) || "")}
-                    alt=""
-                    className="w-full"
-                  />
-                </div>
-              ) : (
                 <img src={editingImage.url} alt="" className="mx-auto max-h-48 rounded-lg object-contain" />
-              )}
               <div>
-                <label className="mb-1 block text-sm font-medium">Nome</label>
-                <Input value={editFilename} onChange={(e) => setEditFilename(e.target.value)} />
+                <label className="mb-1 block text-sm font-medium">Arquivo</label>
+                <p className="rounded-md border border-border bg-background px-3 py-2 text-sm text-muted-foreground">
+                  {editingImage.url?.split("/").pop()?.split("?")[0] || "Imagem do imóvel"}
+                </p>
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium">Texto alternativo (alt)</label>
@@ -405,7 +399,7 @@ const AdminMediaLibrary = () => {
               <Button
                 className="w-full"
                 disabled={updateMutation.isPending}
-                onClick={() => updateMutation.mutate({ id: editingImage.id, alt: editAlt, filename: editFilename })}
+                onClick={() => updateMutation.mutate({ id: editingImage.id, alt: editAlt })}
               >
                 {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
               </Button>

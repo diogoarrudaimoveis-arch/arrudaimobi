@@ -6,8 +6,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Upload, X, Loader2, Image as ImageIcon, GripVertical, Play } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MediaLibraryPicker } from "./MediaLibraryPicker";
-import { compressImages } from "@/lib/image-compression";
+import { processImageWithWatermark } from "@/lib/image-compression";
 import { isYouTubeMime, extractYouTubeId, getYouTubeThumbnail } from "@/lib/youtube";
+import { useTenantSettings } from "@/hooks/use-tenant-settings";
 
 interface Props {
   propertyId: string;
@@ -19,6 +20,7 @@ export function PropertyImageUpload({ propertyId }: Props) {
   const queryClient = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [youtubeTitle, setYoutubeTitle] = useState("");
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -37,20 +39,38 @@ export function PropertyImageUpload({ propertyId }: Props) {
     },
   });
 
+  const { data: tenantSettings } = useTenantSettings();
+
   const uploadMutation = useMutation({
     mutationFn: async (rawFiles: File[]) => {
       setUploading(true);
-      const files = await compressImages(rawFiles);
+      setProcessing(true);
+
+      const watermarkUrl = tenantSettings?.settings?.logo_mode === "image"
+        ? tenantSettings.settings.logo_url
+        : undefined;
+
+      const files = await Promise.all(
+        rawFiles.map((file) =>
+          processImageWithWatermark(file, watermarkUrl, {
+            maxWidth: 1920,
+            quality: 0.8,
+            watermarkOpacity: 0.5,
+            watermarkMaxWidthRatio: 0.15,
+          })
+        )
+      );
+
+      setProcessing(false);
       const currentCount = images?.length || 0;
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const ext = file.name.split(".").pop();
-        const path = `${propertyId}/${Date.now()}_${i}.${ext}`;
+        const path = `${propertyId}/${Date.now()}_${i}.webp`;
 
         const { error: uploadErr } = await supabase.storage
           .from("property-images")
-          .upload(path, file, { contentType: file.type });
+          .upload(path, file, { contentType: "image/webp" });
         if (uploadErr) throw uploadErr;
 
         const { data: urlData } = supabase.storage
@@ -71,10 +91,12 @@ export function PropertyImageUpload({ propertyId }: Props) {
       queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
       toast({ title: "Imagens enviadas!" });
       setUploading(false);
+      setProcessing(false);
     },
     onError: (err: any) => {
       toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
       setUploading(false);
+      setProcessing(false);
     },
   });
 
@@ -260,6 +282,12 @@ export function PropertyImageUpload({ propertyId }: Props) {
           e.target.value = "";
         }}
       />
+
+      {uploading && (
+        <p className="mt-2 text-sm text-muted-foreground">
+          {processing ? "Processando e carimbando imagens..." : "Enviando imagens..."}
+        </p>
+      )}
 
       {isLoading ? (
         <div className="flex gap-2">
