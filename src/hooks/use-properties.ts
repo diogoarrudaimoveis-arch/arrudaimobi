@@ -143,6 +143,16 @@ export interface Property {
   images: PropertyImage[];
   amenities: PropertyAmenity[];
   agent: PropertyAgent | null;
+  marketingPixels?: {
+    meta?: string | null;
+    google?: string | null;
+    tiktok?: string | null;
+    pinterest?: string | null;
+  } | null;
+  facebookPixel?: string | null;
+  googleAdsId?: string | null;
+  tiktokPixel?: string | null;
+  pinterestTag?: string | null;
 }
 
 export interface Agent {
@@ -227,6 +237,11 @@ export function mapDbProperty(p: DbProperty): Property {
         bio: p.agent.bio,
       }
       : null,
+    marketingPixels: p.marketing_pixels || null,
+    facebookPixel: p.marketing_pixels?.meta || null,
+    googleAdsId: p.marketing_pixels?.google || null,
+    tiktokPixel: p.marketing_pixels?.tiktok || null,
+    pinterestTag: p.marketing_pixels?.pinterest || null,
   };
 }
 

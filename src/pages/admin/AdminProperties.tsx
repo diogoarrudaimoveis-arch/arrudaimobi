@@ -320,6 +320,14 @@ const AdminProperties = () => {
   const saveMutation = useMutation({
     mutationFn: async () => {
       console.log('[SALVAR] Enviando Agent ID:', form.agent_id || user!.id);
+      const marketingPixelsPayload = {
+        meta: "",
+        google: "",
+        tiktok: "",
+        pinterest: "",
+        ...form.marketing_pixels,
+      };
+
       const payload = {
         tenant_id: tenantId!,
         agent_id: form.agent_id || user!.id,
@@ -350,7 +358,7 @@ const AdminProperties = () => {
         longitude: form.longitude ? Number(form.longitude) : null,
         featured: form.featured,
         status: form.status,
-        marketing_pixels: form.marketing_pixels,
+        marketing_pixels: marketingPixelsPayload,
       };
 
       let propertyId: string;

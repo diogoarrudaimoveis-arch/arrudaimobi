@@ -48,6 +48,10 @@ function buildMailtoUrl(email: string, subject: string, body: string) {
   return `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
+function getUniqueIds(ids: Array<string | null | undefined>) {
+  return Array.from(new Set(ids.filter(Boolean))) as string[];
+}
+
 const PropertyDetail = () => {
   const { id } = useParams();
   const { data: property, isLoading } = usePublicProperty(id);
@@ -56,14 +60,73 @@ const PropertyDetail = () => {
   const { isFavorite, toggleFavorite } = useFavorites();
   const { data: tenantSettings } = useTenantSettings();
 
+  const globalMetaPixel = tenantSettings?.settings?.meta_pixel_id || null;
+  const globalGoogleAdsId = tenantSettings?.settings?.ga4_id || null;
+  const globalTiktokPixel = tenantSettings?.settings?.tiktok_pixel_id || null;
+  const globalPinterestTag = tenantSettings?.settings?.pinterest_tag_id || null;
+
+  const propertyPixels = property?.marketing_pixels || {};
+  const propertyFacebookPixel = property?.facebookPixel || propertyPixels.meta || null;
+  const propertyGoogleAdsId = property?.googleAdsId || propertyPixels.google || null;
+  const propertyTiktokPixel = property?.tiktokPixel || propertyPixels.tiktok || null;
+  const propertyPinterestTag = property?.pinterestTag || propertyPixels.pinterest || null;
+
+  const trackMarketingEvent = (eventName: string, eventData: Record<string, unknown> = {}) => {
+    if (typeof window === "undefined") return;
+
+    const fbq = (window as any).fbq as ((...args: any[]) => void) | undefined;
+    const gtag = (window as any).gtag as ((...args: any[]) => void) | undefined;
+    const ttq = (window as any).ttq as any;
+    const pintrk = (window as any).pintrk as any;
+
+    const googleIds = getUniqueIds([globalGoogleAdsId, propertyGoogleAdsId]);
+    const tiktokIds = getUniqueIds([globalTiktokPixel, propertyTiktokPixel]);
+    const pinterestIds = getUniqueIds([globalPinterestTag, propertyPinterestTag]);
+
+    if (fbq) {
+      fbq("track", eventName, eventData);
+    }
+
+    if (gtag) {
+      googleIds.forEach((id) => {
+        gtag("event", eventName, { send_to: id, event_category: "engagement", event_label: property?.id, ...eventData });
+      });
+    }
+
+    if (ttq) {
+      if (typeof ttq.instance === "function") {
+        tiktokIds.forEach((id) => {
+          if (id === globalTiktokPixel) {
+            ttq.track(eventName);
+          } else {
+            ttq.instance(id)?.track?.(eventName);
+          }
+        });
+      } else {
+        ttq.track?.(eventName);
+      }
+    }
+
+    if (pintrk) {
+      pintrk("track", eventName);
+    }
+  };
+
   useEffect(() => {
-    if (!property?.marketing_pixels) return;
+    if (!property) return;
 
-    const pixels = property.marketing_pixels as any;
     const scripts: HTMLScriptElement[] = [];
+    const shouldInitMeta = propertyFacebookPixel && propertyFacebookPixel !== globalMetaPixel;
+    const shouldInitGoogle = propertyGoogleAdsId && propertyGoogleAdsId !== globalGoogleAdsId;
+    const shouldInitTikTok = propertyTiktokPixel && propertyTiktokPixel !== globalTiktokPixel;
+    const shouldInitPinterest = propertyPinterestTag && propertyPinterestTag !== globalPinterestTag;
 
-    // 1. Meta Pixel
-    if (pixels.meta) {
+    if (!shouldInitMeta && !shouldInitGoogle && !shouldInitTikTok && !shouldInitPinterest) {
+      return;
+    }
+
+    if (shouldInitMeta) {
+      console.log("[MARKETING] Inicializando Pixel específico do imóvel:", propertyFacebookPixel);
       const script = document.createElement("script");
       script.innerHTML = `
         !function(f,b,e,v,n,t,s)
@@ -74,17 +137,17 @@ const PropertyDetail = () => {
         t.src=v;s=b.getElementsByTagName(e)[0];
         s.parentNode.insertBefore(t,s)}(window, document,'script',
         'https://connect.facebook.net/en_US/fbevents.js');
-        fbq('init', '${pixels.meta}');
+        fbq('init', '${propertyFacebookPixel}');
         fbq('track', 'PageView');
       `;
       document.head.appendChild(script);
       scripts.push(script);
     }
 
-    // 2. Google Ads / Analytics
-    if (pixels.google) {
+    if (shouldInitGoogle) {
+      console.log("[MARKETING] Inicializando Google Ads específico do imóvel:", propertyGoogleAdsId);
       const scriptOuter = document.createElement("script");
-      scriptOuter.src = `https://www.googletagmanager.com/gtag/js?id=${pixels.google}`;
+      scriptOuter.src = `https://www.googletagmanager.com/gtag/js?id=${propertyGoogleAdsId}`;
       scriptOuter.async = true;
       document.head.appendChild(scriptOuter);
       scripts.push(scriptOuter);
@@ -94,19 +157,19 @@ const PropertyDetail = () => {
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());
-        gtag('config', '${pixels.google}');
+        gtag('config', '${propertyGoogleAdsId}');
       `;
       document.head.appendChild(scriptInner);
       scripts.push(scriptInner);
     }
 
-    // 3. TikTok
-    if (pixels.tiktok) {
+    if (shouldInitTikTok) {
+      console.log("[MARKETING] Inicializando TikTok Pixel específico do imóvel:", propertyTiktokPixel);
       const script = document.createElement("script");
       script.innerHTML = `
         !function (w, d, t) {
           w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","setCookie"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var i="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=i,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};var o=document.createElement("script");o.type="text/javascript",o.async=!0,o.src=i+"?sdkid="+e+"&lib="+t;var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(o,a)};
-          ttq.load('${pixels.tiktok}');
+          ttq.load('${propertyTiktokPixel}');
           ttq.page();
         }(window, document, 'ttq');
       `;
@@ -114,12 +177,12 @@ const PropertyDetail = () => {
       scripts.push(script);
     }
 
-    // 4. Pinterest
-    if (pixels.pinterest) {
+    if (shouldInitPinterest) {
+      console.log("[MARKETING] Inicializando Pinterest Tag específico do imóvel:", propertyPinterestTag);
       const script = document.createElement("script");
       script.innerHTML = `
         !function(e){if(!window.pintrk){window.pintrk=function(){window.pintrk.queue.push(Array.prototype.slice.call(arguments))};var n=window.pintrk;n.queue=[],n.version="3.0";var t=document.createElement("script");t.async=!0,t.src=e;var r=document.getElementsByTagName("script")[0];r.parentNode.insertBefore(t,r)}}("https://s.pinimg.com/ct/core.js");
-        pintrk('load', '${pixels.pinterest}');
+        pintrk('load', '${propertyPinterestTag}');
         pintrk('page');
       `;
       document.head.appendChild(script);
@@ -127,9 +190,9 @@ const PropertyDetail = () => {
     }
 
     return () => {
-      scripts.forEach(s => s.remove());
+      scripts.forEach((s) => s.remove());
     };
-  }, [property]);
+  }, [property, globalMetaPixel, globalGoogleAdsId, globalTiktokPixel, globalPinterestTag, propertyFacebookPixel, propertyGoogleAdsId, propertyTiktokPixel, propertyPinterestTag]);
 
   useEffect(() => {
     if (!property?.id || !property?.tenantId) return;
@@ -221,10 +284,12 @@ const PropertyDetail = () => {
   };
 
   const handleWhatsAppClick = () => {
+    trackMarketingEvent("Lead", { property_id: property?.id });
     void logPropertyAnalyticsEvent("whatsapp_click");
   };
 
   const handleContactClick = () => {
+    trackMarketingEvent("Contact", { property_id: property?.id });
     void logPropertyAnalyticsEvent("contact_click");
   };
 
@@ -508,6 +573,7 @@ const PropertyDetail = () => {
               propertyTitle={property.title}
               agentId={property.agentId}
               tenantId={property.tenantId}
+              onTrackMarketingEvent={trackMarketingEvent}
             />
           </div>
         </div>

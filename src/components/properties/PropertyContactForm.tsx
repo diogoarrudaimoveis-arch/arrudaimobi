@@ -13,9 +13,10 @@ interface Props {
   propertyTitle: string;
   agentId?: string | null;
   tenantId: string;
+  onTrackMarketingEvent?: (eventName: string, eventData?: Record<string, unknown>) => void;
 }
 
-export function PropertyContactForm({ propertyId, propertyTitle, agentId, tenantId }: Props) {
+export function PropertyContactForm({ propertyId, propertyTitle, agentId, tenantId, onTrackMarketingEvent }: Props) {
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -64,6 +65,7 @@ export function PropertyContactForm({ propertyId, propertyTitle, agentId, tenant
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erro ao enviar");
 
+      onTrackMarketingEvent?.("Lead", { property_id: propertyId });
       setSubmitted(true);
       toast({ title: "Mensagem enviada!", description: "O agente entrará em contato." });
     } catch (err: any) {
