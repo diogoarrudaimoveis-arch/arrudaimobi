@@ -19,34 +19,9 @@ import { Lightbox } from "@/components/properties/Lightbox";
 import { extractYouTubeId, getYouTubeThumbnail } from "@/lib/youtube";
 import { useFavorites } from "@/contexts/FavoritesContext";
 import { shareProperty } from "@/lib/share";
+import { whatsappProvider, buildTelUrl, buildMailtoUrl } from "@/lib/messaging";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
-
-function normalizeBrazilPhone(phone: string | null | undefined) {
-  const digits = (phone || "").replace(/\D/g, "");
-  if (!digits) return "";
-  return digits.startsWith("55") ? digits : `55${digits}`;
-}
-
-function normalizeBrazilTel(phone: string | null | undefined) {
-  const digits = (phone || "").replace(/\D/g, "");
-  if (!digits) return "";
-  return digits.startsWith("55") ? `+${digits}` : `+55${digits}`;
-}
-
-function buildWhatsAppUrl(phone: string, message: string) {
-  const normalized = normalizeBrazilPhone(phone);
-  return normalized ? `https://wa.me/${normalized}?text=${encodeURIComponent(message)}` : null;
-}
-
-function buildTelUrl(phone: string) {
-  const normalized = normalizeBrazilTel(phone);
-  return normalized ? `tel:${normalized}` : null;
-}
-
-function buildMailtoUrl(email: string, subject: string, body: string) {
-  return `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-}
 
 function getUniqueIds(ids: Array<string | null | undefined>) {
   return Array.from(new Set(ids.filter(Boolean))) as string[];
@@ -253,7 +228,7 @@ const PropertyDetail = () => {
   const agent = property.agent;
   const agentPhone = agent?.phone || tenantSettings?.settings?.contact_whatsapp || tenantSettings?.settings?.contact_phone || null;
   const whatsappMessage = `Olá! Tenho interesse no imóvel ${property.title}. Poderia me passar mais informações, por favor?`;
-  const whatsappUrl = agentPhone ? buildWhatsAppUrl(agentPhone, whatsappMessage) : null;
+  const whatsappUrl = agentPhone ? whatsappProvider.buildUrl({ phone: agentPhone, message: whatsappMessage }) : null;
   const phoneUrl = agentPhone ? buildTelUrl(agentPhone) : null;
   const email = agent?.email || globalEmail;
   const emailSubject = `Interesse no imóvel ${property.id} - ${property.title}`;
