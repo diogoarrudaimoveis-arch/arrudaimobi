@@ -429,7 +429,7 @@ Deno.serve(async (req) => {
 
         // Enrich with author names
         const authorIds = [...new Set((data || []).map(p => p.author_id).filter(Boolean))];
-        let authorMap: Record<string, any> = {};
+        const authorMap: Record<string, any> = {};
         if (authorIds.length > 0) {
           const { data: profiles } = await supabase
             .from("profiles")
@@ -440,7 +440,7 @@ Deno.serve(async (req) => {
 
         // Enrich with tags
         const postIds = (data || []).map(p => p.id);
-        let tagMap: Record<string, any[]> = {};
+        const tagMap: Record<string, any[]> = {};
         if (postIds.length > 0) {
           const { data: ptData } = await supabase
             .from("blog_post_tags")

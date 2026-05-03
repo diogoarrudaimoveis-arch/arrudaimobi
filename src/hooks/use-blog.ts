@@ -86,7 +86,7 @@ export function useAdminBlogPosts() {
 
       // Fetch tags for each post
       const postIds = (data || []).map(p => p.id);
-      let tagMap: Record<string, BlogTag[]> = {};
+      const tagMap: Record<string, BlogTag[]> = {};
       if (postIds.length > 0) {
         const { data: ptData } = await supabase
           .from("blog_post_tags")
