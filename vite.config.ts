@@ -84,6 +84,9 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks: (id) => {
           if (id.includes("node_modules")) {
+            if (id.includes("react-dom")) return "vendor-react-dom";
+            if (id.includes("react") && id.includes("jsx")) return "vendor-react-jsx-runtime";
+            if (id.includes("react")) return "vendor-react";
             if (id.includes("@fullcalendar")) return "vendor-agenda";
             if (id.includes("@tiptap")) return "vendor-editor";
             if (id.includes("lucide-react")) return "vendor-icons";
