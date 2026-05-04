@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { checkAllIntegrations } from "@/lib/integrations";
+import { getZproChannels, getZproTicketStats } from "@/lib/zpro-service";
 import { useLeadMetrics } from "@/hooks/use-contacts";
 import { Activity, AlertTriangle, Building2, CheckCircle2, Clock, Home, Send, Users, MessageSquare, TrendingUp, Eye } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from "recharts";
@@ -37,6 +38,18 @@ const operationalMetrics = [
 const AdminDashboard = () => {
   const { tenantId, isReady, profile } = useAuth();
   const { data: leadMetrics } = useLeadMetrics();
+
+  // ZPRO real data queries
+  const { data: zproChannels } = useQuery({
+    queryKey: ["zpro-channels"],
+    queryFn: getZproChannels,
+    staleTime: 60_000,
+  });
+  const { data: zproTicketStats } = useQuery({
+    queryKey: ["zpro-ticket-stats"],
+    queryFn: getZproTicketStats,
+    staleTime: 30_000,
+  });
 
   const { data: health } = useQuery({
     queryKey: ["integration-health"],
