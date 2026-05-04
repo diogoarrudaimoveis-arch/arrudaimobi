@@ -19,6 +19,20 @@ import { PasswordInput } from "@/components/auth/PasswordInput";
 import { DialogDescription } from "@/components/ui/dialog";
 import { LogoCropper } from "@/components/admin/LogoCropper";
 
+interface AgentProfile {
+  id: string;
+  user_id: string;
+  tenant_id?: string;
+  email?: string;
+  full_name: string | null;
+  phone: string | null;
+  role: string;
+  avatar_url: string | null;
+  show_on_public_page: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 const AdminAgents = () => {
   const { tenantId, isReady, session, user } = useAuth();
   const { toast } = useToast();
@@ -34,7 +48,7 @@ const AdminAgents = () => {
   const [newAvatarUrl, setNewAvatarUrl] = useState("");
   const [showOnPublicPage, setShowOnPublicPage] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [editingAgent, setEditingAgent] = useState<any>(null);
+  const [editingAgent, setEditingAgent] = useState<AgentProfile | null>(null);
   const [isCropperOpen, setIsCropperOpen] = useState(false);
   const [deleteConfirmAgent, setDeleteConfirmAgent] = useState<{ userId: string; name: string } | null>(null);
 
@@ -70,7 +84,7 @@ const AdminAgents = () => {
       const { error } = await supabase.from("user_roles").insert({
         user_id: userId,
         tenant_id: tenantId!,
-        role: role as any,
+        role,
       });
       if (error) throw error;
     },
@@ -155,7 +169,7 @@ const AdminAgents = () => {
     setEditingAgent(null);
   };
 
-  const openEditDialog = async (agent: any) => {
+  const openEditDialog = async (agent: AgentProfile) => {
     setEditingAgent(agent);
     setNewName(agent.full_name || "");
     setNewEmail(agent.email || "");
@@ -208,7 +222,7 @@ const AdminAgents = () => {
     }
   };
 
-  const getRoleLabel = (agent: any) => agent.role || "user";
+  const getRoleLabel = (agent: AgentProfile) => agent.role || "user";
 
   return (
     <AdminLayout>
@@ -316,7 +330,7 @@ const AdminAgents = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {agents.map((agent: any) => {
+                {agents.map((agent: AgentProfile) => {
                   const role = getRoleLabel(agent);
                   return (
                     <TableRow key={agent.id}>
