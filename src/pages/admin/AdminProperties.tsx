@@ -39,7 +39,7 @@ const AdminProperties = () => {
   
   // Estados do Modal Assistente de IA
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
-  const [aiModalContext, setAiModalContext] = useState<any>(null);
+  const [aiModalContext, setAiModalContext] = useState<Record<string, unknown> | null>(null);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [generatingAI, setGeneratingAI] = useState(false);
