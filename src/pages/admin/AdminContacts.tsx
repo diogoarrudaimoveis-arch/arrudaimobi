@@ -78,7 +78,7 @@ const AdminContacts = () => {
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await supabase.from("contacts").update({ status: status as any }).eq("id", id);
+      const { error } = await supabase.from("contacts").update({ status }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -97,7 +97,7 @@ const AdminContacts = () => {
           email: form.email.trim() || null,
           phone: form.phone.trim() || null,
           message: form.message.trim() || null,
-          status: form.status as any,
+          status: form.status,
         }).eq("id", editingId);
         if (error) throw error;
       } else {
@@ -106,7 +106,7 @@ const AdminContacts = () => {
           email: form.email.trim() || null,
           phone: form.phone.trim() || null,
           message: form.message.trim() || null,
-          status: form.status as any,
+          status: form.status,
           tenant_id: tenantId!,
         });
         if (error) throw error;
@@ -119,7 +119,7 @@ const AdminContacts = () => {
       setEditingId(null);
       setForm(emptyForm);
     },
-    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    onError: (err) => toast({ title: "Erro", description: err instanceof Error ? err.message : String(err), variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -132,7 +132,7 @@ const AdminContacts = () => {
       toast({ title: "Contato excluído" });
       setDeleteConfirmId(null);
     },
-    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    onError: (err) => toast({ title: "Erro", description: err instanceof Error ? err.message : String(err), variant: "destructive" }),
   });
 
   const openAdd = () => {
@@ -142,20 +142,13 @@ const AdminContacts = () => {
   };
 
 
-  const openEdit = (c: any) => {
+  const openEdit = (c: { id: string; name?: string; email?: string; phone?: string; message?: string; status?: string }) => {
     setEditingId(c.id);
-    setForm({
-      name: c.name || "",
-      email: c.email || "",
-      phone: c.phone || "",
-      message: c.message || "",
-      status: c.status || "new",
-    });
+    setForm({ name: c.name || "", email: c.email || "", phone: c.phone || "", message: c.message || "", status: c.status || "new" });
     setDialogOpen(true);
   };
 
-
-  const openQuickMessage = (c: any) => {
+  const openQuickMessage = (c: { id: string; phone?: string | null; name?: string; status?: string }) => {
     setQuickMessageTarget(c);
     setMessageText("");
     setIsQuickMessageOpen(true);
@@ -191,7 +184,7 @@ const AdminContacts = () => {
       if (quickMessageTarget.status === "new" || quickMessageTarget.status === "read") {
         updateStatusMutation.mutate({ id: quickMessageTarget.id, status: "replied" });
       }
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Erro no envio", description: err.message, variant: "destructive" });
     } finally {
       setSendingMessage(false);
@@ -218,7 +211,7 @@ const AdminContacts = () => {
   };
 
   const contactsByStatus = (status: string) =>
-    contacts?.filter((c: any) => c.status === status) || [];
+    (contacts || []).filter((c) => c.status === status) || [];
 
   const paginatedContacts = useMemo(() => {
     if (!contacts) return [];
@@ -293,7 +286,7 @@ const AdminContacts = () => {
 
                     {/* Column cards */}
                     <div className="flex-1 p-2 space-y-2 min-h-[120px]">
-                      {items.map((c: any) => (
+                      {items.map((c) => (
                         <div
                           key={c.id}
                           draggable
@@ -361,7 +354,7 @@ const AdminContacts = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedContacts.map((c: any) => (
+                {paginatedContacts.map((c) => (
                   <TableRow key={c.id}>
                     <TableCell className="font-medium">{c.name}</TableCell>
                     <TableCell>{c.email || "—"}</TableCell>

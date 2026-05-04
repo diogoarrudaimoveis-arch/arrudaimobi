@@ -291,7 +291,7 @@ const AdminProperties = () => {
         .eq("tenant_id", tenantId!)
         .not("city", "is", null)
         .neq("city", "");
-      const unique = [...new Set((data || []).map((p: any) => p.city as string))]
+      const unique = [...new Set((data || []).map((p) => p.city as string))]
         .filter(Boolean)
         .sort();
       return unique;
@@ -497,8 +497,8 @@ const AdminProperties = () => {
         setEditingId(id);
       }
     },
-    onError: (err: any) => {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    onError: (err) => {
+      toast({ title: "Erro", description: (err instanceof Error ? err.message : String(err)), variant: "destructive" });
     },
     onSettled: () => {
       setIsImageProcessing(false);
@@ -1398,7 +1398,7 @@ const AdminProperties = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {properties.map((p: any) => (
+                  {properties.map((p) => (
                     <TableRow key={p.id}>
                       <TableCell className="font-mono text-xs text-muted-foreground">{p.property_code || "—"}</TableCell>
                       <TableCell className="font-medium">{p.title}</TableCell>

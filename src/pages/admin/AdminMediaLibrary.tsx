@@ -112,7 +112,7 @@ const AdminMediaLibrary = () => {
       toast({ title: "Imagens enviadas com sucesso!" });
       setUploading(false);
     },
-    onError: (err: any) => {
+    onError: (err) => {
       toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
       setUploading(false);
     },
@@ -141,7 +141,7 @@ const AdminMediaLibrary = () => {
       setYoutubeUrl("");
       setYoutubeTitle("");
     },
-    onError: (err: any) => {
+    onError: (err) => {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     },
   });
@@ -159,7 +159,7 @@ const AdminMediaLibrary = () => {
       queryClient.invalidateQueries({ queryKey: ["media-library"] });
       toast({ title: "Mídia removida" });
     },
-    onError: (err: any) => {
+    onError: (err) => {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     },
   });
@@ -177,7 +177,7 @@ const AdminMediaLibrary = () => {
       toast({ title: "Mídia atualizada!" });
       setEditingImage(null);
     },
-    onError: (err: any) => {
+    onError: (err) => {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     },
   });

@@ -150,7 +150,7 @@ Deno.serve(async (req) => {
         ...corsHeaders,
       },
     });
-  } catch (err: any) {
+  } catch (err) {
     return new Response(err.message, { 
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "text/plain" }

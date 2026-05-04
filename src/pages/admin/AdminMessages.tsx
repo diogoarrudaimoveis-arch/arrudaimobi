@@ -134,7 +134,7 @@ const AdminMessages = () => {
       queryClient.invalidateQueries({ queryKey: ["tenant-settings"] });
       toast({ title: "Template salvo!" });
     },
-    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    onError: (err) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
   });
 
   // Save config
@@ -165,7 +165,7 @@ const AdminMessages = () => {
       toast({ title: "Configuração salva!" });
       setConfigDialogOpen(false);
     },
-    onError: (err: any) => {
+    onError: (err) => {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     },
   });
@@ -202,7 +202,7 @@ const AdminMessages = () => {
       const result = await res.json();
       setInstances(Array.isArray(result) ? result : []);
       toast({ title: `${Array.isArray(result) ? result.length : 0} instância(s) encontrada(s)` });
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
       setLoadingInstances(false);
@@ -247,7 +247,7 @@ const AdminMessages = () => {
         toast({ title: "Falha no envio", description: data.error, variant: "destructive" });
       }
     },
-    onError: (err: any) => {
+    onError: (err) => {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     },
   });
@@ -276,7 +276,7 @@ const AdminMessages = () => {
       if (!res.ok) throw new Error(data.error || "Erro ao limpar histórico");
       queryClient.invalidateQueries({ queryKey: ["messages-log"] });
       toast({ title: "Histórico limpo com sucesso!" });
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: err.message || "Erro ao limpar histórico", variant: "destructive" });
     } finally {
       setClearingHistory(false);

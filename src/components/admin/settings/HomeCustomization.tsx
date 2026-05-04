@@ -45,7 +45,7 @@ export function HomeCustomization() {
       footer_property_types_visible: footerPropertyTypesVisible,
     }),
     onSuccess: () => toast({ title: "Personalização salva!" }),
-    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    onError: (err) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
   });
 
   return (

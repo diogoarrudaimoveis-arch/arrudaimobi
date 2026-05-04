@@ -51,7 +51,7 @@ export function ContactSocialCard() {
       business_hours_secondary: hours2.trim(),
     }),
     onSuccess: () => toast({ title: "Personalização salva!" }),
-    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    onError: (err) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
   });
 
   return (

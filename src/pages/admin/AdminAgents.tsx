@@ -78,7 +78,7 @@ const AdminAgents = () => {
       queryClient.invalidateQueries({ queryKey: ["admin-agents"] });
       toast({ title: "Papel atualizado!" });
     },
-    onError: (err: any) => {
+    onError: (err) => {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     },
   });
@@ -95,7 +95,7 @@ const AdminAgents = () => {
       toast({ title: "Usuário removido!" });
       setDeleteConfirmAgent(null);
     },
-    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    onError: (err) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
   });
 
   const handleCreateAgent = async () => {
@@ -137,7 +137,7 @@ const AdminAgents = () => {
       resetForm();
       setDialogOpen(false);
       queryClient.invalidateQueries({ queryKey: ["admin-agents"] });
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
       setCreating(false);
@@ -203,7 +203,7 @@ const AdminAgents = () => {
       setNewAvatarUrl(publicUrl);
       setIsCropperOpen(false);
       toast({ title: "Foto enviada!" });
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
     }
   };

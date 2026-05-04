@@ -178,7 +178,7 @@ serve(async (req) => {
           return { content: json.choices?.[0]?.message?.content };
         }
         return null;
-      } catch (err: any) {
+      } catch (err) {
         console.error(`[ERROR] Provider ${provider} failed:`, err.message);
         apiErrors.push({ provider, message: err.message });
         return null; 

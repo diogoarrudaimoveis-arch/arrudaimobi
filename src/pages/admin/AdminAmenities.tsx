@@ -47,7 +47,7 @@ const AdminAmenities = () => {
       toast({ title: editingId ? "Comodidade atualizada!" : "Comodidade criada!" });
       setForm({ name: "", icon: "Check" }); setEditingId(null); setDialogOpen(false);
     },
-    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    onError: (err) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -113,7 +113,7 @@ const AdminAmenities = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {amenities.map((a: any) => (
+                {amenities.map((a) => (
                   <TableRow key={a.id}>
                     <TableCell className="font-medium">{a.name}</TableCell>
                     <TableCell>{a.icon}</TableCell>

@@ -128,8 +128,8 @@ export function AIAssistantModal({
       } else {
         throw new Error("A resposta da IA veio vazia.");
       }
-    } catch (err: any) {
-      console.log("[AIAssistant] Falha na Geração Controlada:", err.message);
+    } catch (err) {
+      console.log("[AIAssistant] Falha na Geração Controlada:", (err instanceof Error ? err.message : String(err)));
       let eMsg = err.message || "Falha na geração.";
       if (eMsg.includes("Edge Function returned a non-2xx status code")) {
         eMsg = "Função de IA indisponível. Verifique se a função está implantada no Supabase e se o nome da rota está correto.";

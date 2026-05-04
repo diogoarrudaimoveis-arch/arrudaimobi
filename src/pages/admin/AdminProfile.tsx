@@ -66,7 +66,7 @@ const AdminProfile = () => {
 
       await refreshProfile();
       toast({ title: "Foto atualizada!" });
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Erro ao enviar foto", description: err.message, variant: "destructive" });
     } finally {
       setUploadingAvatar(false);

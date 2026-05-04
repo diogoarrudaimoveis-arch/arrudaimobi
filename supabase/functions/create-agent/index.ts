@@ -190,7 +190,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ success: true, user_id: newUserId }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error("create-agent error:", err);
     return new Response(JSON.stringify({ error: err.message }), {
       status: 400,

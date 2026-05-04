@@ -25,7 +25,7 @@ export function TenantInfoCard() {
       queryClient.invalidateQueries({ queryKey: ["tenant-settings"] });
       toast({ title: "Configurações salvas!" });
     },
-    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    onError: (err) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
   });
 
   return (

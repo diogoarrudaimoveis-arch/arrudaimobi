@@ -102,7 +102,7 @@ export function BrandCustomization({ tenantId, settings, allSettings }: BrandCus
       setLogoUrl(urlData.publicUrl);
       setCropperOpen(false);
       toast({ title: "Logo enviada com sucesso!" });
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Erro ao enviar logo", description: err.message, variant: "destructive" });
     } finally {
       setUploading(false);
@@ -121,7 +121,7 @@ export function BrandCustomization({ tenantId, settings, allSettings }: BrandCus
       setHeroBgImageUrl(urlData.publicUrl);
       setHeroCropperOpen(false);
       toast({ title: "Imagem do hero enviada!" });
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Erro ao enviar imagem", description: err.message, variant: "destructive" });
     } finally {
       setUploadingHero(false);
@@ -165,7 +165,7 @@ export function BrandCustomization({ tenantId, settings, allSettings }: BrandCus
       queryClient.invalidateQueries({ queryKey: ["admin-tenant"] });
       queryClient.invalidateQueries({ queryKey: ["tenant-settings"] });
       toast({ title: "Personalização visual salva!" });
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
       setSaving(false);

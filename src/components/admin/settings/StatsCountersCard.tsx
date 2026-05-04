@@ -40,7 +40,7 @@ export function StatsCountersCard() {
         },
       }),
     onSuccess: () => toast({ title: "Configurações salvas!" }),
-    onError: (err: any) => toast({ title: "Erro ao salvar", description: err?.message || "Tente novamente", variant: "destructive" }),
+    onError: (err) => toast({ title: "Erro ao salvar", description: err?.message || "Tente novamente", variant: "destructive" }),
   });
 
   return (
