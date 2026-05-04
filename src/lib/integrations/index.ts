@@ -95,8 +95,25 @@ export async function probeSupabase(client: SupabaseClient): Promise<{ latencyMs
 }
 
 export async function probeZpro(): Promise<{ latencyMs: number; ok: boolean }> {
-  // placeholder — depender do healthcheck real quando o Diogo conectar
-  return { latencyMs: -1, ok: false }
+  try {
+    const baseUrl = import.meta.env.VITE_ZPRO_API_BASE_URL
+    if (!baseUrl) return { latencyMs: -1, ok: false }
+    const start = performance.now()
+    // Probe the API base — any HTTP response (incl. 4xx) means API is up
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 8000)
+    const res = await fetch(baseUrl, {
+      method: 'HEAD',
+      signal: controller.signal,
+      // credentials: 'omit' — no cookies sent, no auth header leaked
+    })
+    clearTimeout(timeoutId)
+    const latencyMs = Math.round(performance.now() - start)
+    // 2xx/3xx/4xx/5xx all mean the API is reachable
+    return { latencyMs, ok: res.ok || (res.status >= 400 && res.status < 600) }
+  } catch {
+    return { latencyMs: -1, ok: false }
+  }
 }
 
 export async function probeN8n(): Promise<{ latencyMs: number; ok: boolean }> {
