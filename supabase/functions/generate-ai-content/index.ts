@@ -179,7 +179,7 @@ serve(async (req) => {
         }
         return null;
       } catch (err) {
-        console.error(`[ERROR] Provider ${provider} failed:`, err.message);
+        console.error(`[ERROR] Provider ${provider} failed:`, (err instanceof Error ? err.message : String(err)));
         apiErrors.push({ provider, message: err.message });
         return null; 
       }

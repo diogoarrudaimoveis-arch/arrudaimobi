@@ -138,7 +138,7 @@ const AdminAgents = () => {
       setDialogOpen(false);
       queryClient.invalidateQueries({ queryKey: ["admin-agents"] });
     } catch (err) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      toast({ title: "Erro", description: (err instanceof Error ? err.message : String(err)), variant: "destructive" });
     } finally {
       setCreating(false);
     }
@@ -204,7 +204,7 @@ const AdminAgents = () => {
       setIsCropperOpen(false);
       toast({ title: "Foto enviada!" });
     } catch (err) {
-      toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+      toast({ title: "Erro no upload", description: (err instanceof Error ? err.message : String(err)), variant: "destructive" });
     }
   };
 

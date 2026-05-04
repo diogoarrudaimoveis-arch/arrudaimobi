@@ -203,7 +203,7 @@ const AdminMessages = () => {
       setInstances(Array.isArray(result) ? result : []);
       toast({ title: `${Array.isArray(result) ? result.length : 0} instância(s) encontrada(s)` });
     } catch (err) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      toast({ title: "Erro", description: (err instanceof Error ? err.message : String(err)), variant: "destructive" });
     } finally {
       setLoadingInstances(false);
     }
@@ -277,7 +277,7 @@ const AdminMessages = () => {
       queryClient.invalidateQueries({ queryKey: ["messages-log"] });
       toast({ title: "Histórico limpo com sucesso!" });
     } catch (err) {
-      toast({ title: err.message || "Erro ao limpar histórico", variant: "destructive" });
+      toast({ title: (err instanceof Error ? err.message : String(err)) || "Erro ao limpar histórico", variant: "destructive" });
     } finally {
       setClearingHistory(false);
     }
