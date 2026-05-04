@@ -98,8 +98,18 @@ async function getUserTenantAndRole(authHeader: string) {
   return { userId: user.id, tenantId: profile.tenant_id };
 }
 
+interface SmtpSettings {
+  host: string;
+  port: number;
+  username: string;
+  password_encrypted?: string;
+  encryption: string;
+  sender_name: string;
+  sender_email: string;
+}
+
 async function sendEmailViaSMTP(
-  settings: any,
+  settings: SmtpSettings,
   password: string,
   to: string,
   subject: string,
@@ -196,7 +206,7 @@ Deno.serve(async (req) => {
         return successResponse();
       }
 
-      const user = users?.find((u: any) => u.email?.toLowerCase() === cleanEmail);
+      const user = users?.find((u: { email?: string }) => u.email?.toLowerCase() === cleanEmail);
       if (!user) return successResponse();
 
       const { data: profile } = await supabase
@@ -222,7 +232,7 @@ Deno.serve(async (req) => {
 
       await supabase
         .from("password_reset_tokens")
-        .update({ used: true } as any)
+        .update({ used: true })
         .eq("email", cleanEmail)
         .eq("used", false);
 
@@ -237,7 +247,7 @@ Deno.serve(async (req) => {
           email: cleanEmail,
           token,
           expires_at: expiresAt.toISOString(),
-        } as any);
+        });
 
       if (tokenErr) {
         console.error("Error creating token:", tokenErr);
@@ -258,7 +268,7 @@ Deno.serve(async (req) => {
         .single();
 
       const tenantName = tenant?.name || "Sua Imobiliária";
-      const tenantSettings = (tenant?.settings as any) || {};
+      const tenantSettings = (tenant?.settings as Record<string, unknown>) || {};
       const primaryColor = tenantSettings.primary_color || "#2563EB";
 
       const emailHtml = `
@@ -409,15 +419,16 @@ Deno.serve(async (req) => {
       // Mark token as used
       await supabase
         .from("password_reset_tokens")
-        .update({ used: true } as any)
+        .update({ used: true })
         .eq("id", tokenData.id);
 
       // Invalidate all other tokens for this email
       await supabase
         .from("password_reset_tokens")
-        .update({ used: true } as any)
+        .update({ used: true })
         .eq("email", tokenData.email)
-        .eq("used", false);
+        .eq("used", false)
+        .neq("id", tokenData.id);
 
       return new Response(JSON.stringify({ success: true, message: "Senha redefinida com sucesso!" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

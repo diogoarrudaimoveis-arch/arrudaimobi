@@ -31,10 +31,23 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
+interface PropertyContext {
+  title?: string;
+  description?: string;
+  price?: number;
+  address?: string;
+  propertyType?: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  garages?: number;
+  area?: number;
+  [key: string]: string | number | undefined;
+}
+
 interface AIAssistantModalProps {
   isOpen: boolean;
   onClose: () => void;
-  propertyContext: any; // Context formatado já no pattern requerido
+  propertyContext: PropertyContext;
   onAccept: (text: string) => void;
   tenantId: string | null;
 }

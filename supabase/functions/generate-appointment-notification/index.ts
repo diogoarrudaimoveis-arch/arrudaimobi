@@ -132,9 +132,10 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
-  } catch (error) {
-    console.error("Error processing appointment notification:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("Error processing appointment notification:", message);
+    return new Response(JSON.stringify({ error: message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
