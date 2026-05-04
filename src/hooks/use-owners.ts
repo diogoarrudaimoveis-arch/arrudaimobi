@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { PostgrestError } from "@supabase/supabase-js";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -59,7 +60,7 @@ export function useCreateOwnerMutation() {
       queryClient.invalidateQueries({ queryKey: OWNERS_QUERY_KEY });
       toast.success("Proprietário cadastrado com sucesso!");
     },
-    onError: (error: any) => {
+    onError: (error: PostgrestError) => {
       toast.error("Erro ao cadastrar proprietário: " + error.message);
     },
   });
@@ -84,7 +85,7 @@ export function useUpdateOwnerMutation() {
       queryClient.invalidateQueries({ queryKey: OWNERS_QUERY_KEY });
       toast.success("Dados atualizados com sucesso!");
     },
-    onError: (error: any) => {
+    onError: (error: PostgrestError) => {
       toast.error("Erro ao atualizar dados: " + error.message);
     },
   });
@@ -106,7 +107,7 @@ export function useDeleteOwnerMutation() {
       queryClient.invalidateQueries({ queryKey: OWNERS_QUERY_KEY });
       toast.success("Proprietário arquivado com sucesso!");
     },
-    onError: (error: any) => {
+    onError: (error: PostgrestError) => {
       toast.error("Erro ao arquivar: " + error.message);
     },
   });
