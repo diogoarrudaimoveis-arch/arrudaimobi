@@ -89,8 +89,8 @@ export default function AdminPortalMarketing() {
       queryClient.invalidateQueries({ queryKey: ["portal-marketing-settings"] });
       toast.success("Configurações de rastreamento atualizadas com sucesso!");
     },
-    onError: (error: any) => {
-      toast.error("Erro ao salvar configurações: " + error.message);
+    onError: (error: unknown) => {
+      toast.error("Erro ao salvar configurações: " + (error instanceof Error ? error.message : String(error)));
     },
   });
 
