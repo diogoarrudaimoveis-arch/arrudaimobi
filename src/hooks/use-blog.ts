@@ -143,15 +143,20 @@ export function useUpdateBlogPost() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, tag_ids, ...updates }: Partial<BlogPost> & { id: string; tag_ids?: string[] }) => {
+      const clean: Record<string, unknown> = { ...updates };
       if (updates.published) {
         const { data: existing } = await supabase.from("blog_posts").select("published_at").eq("id", id).single();
         if (!existing?.published_at) {
-          (updates as any).published_at = new Date().toISOString();
+          clean.published_at = new Date().toISOString();
         }
       }
+      delete clean.id;
+      delete clean.tag_ids;
+      delete clean.author;
+      delete clean.tags;
       const { data, error } = await supabase
         .from("blog_posts")
-        .update(updates as any)
+        .update(clean as Record<string, unknown>)
         .eq("id", id)
         .select()
         .single();
