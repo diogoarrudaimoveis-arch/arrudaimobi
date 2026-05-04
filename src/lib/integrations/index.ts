@@ -117,13 +117,43 @@ export async function probeZpro(): Promise<{ latencyMs: number; ok: boolean }> {
 }
 
 export async function probeN8n(): Promise<{ latencyMs: number; ok: boolean }> {
-  // placeholder — depender do webhook de health do n8n
-  return { latencyMs: -1, ok: false }
+  try {
+    const baseUrl = import.meta.env.VITE_N8N_API_URL
+    if (!baseUrl) return { latencyMs: -1, ok: false }
+    const start = performance.now()
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 8000)
+    const res = await fetch(baseUrl, {
+      method: 'HEAD',
+      signal: controller.signal,
+      // credentials: 'omit' — no cookies sent, no auth header leaked
+    })
+    clearTimeout(timeoutId)
+    const latencyMs = Math.round(performance.now() - start)
+    // any HTTP response (incl. 4xx) means the service is reachable
+    return { latencyMs, ok: res.ok || (res.status >= 400 && res.status < 600) }
+  } catch {
+    return { latencyMs: -1, ok: false }
+  }
 }
 
 export async function probeMiniMax(): Promise<{ latencyMs: number; ok: boolean }> {
-  // placeholder — a ser substituído pelo endpoint /health do OpenClaw
-  return { latencyMs: -1, ok: false }
+  try {
+    const baseUrl = import.meta.env.VITE_MINIMAX_API_BASE_URL
+    if (!baseUrl) return { latencyMs: -1, ok: false }
+    const start = performance.now()
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 8000)
+    const res = await fetch(baseUrl, {
+      method: 'HEAD',
+      signal: controller.signal,
+    })
+    clearTimeout(timeoutId)
+    const latencyMs = Math.round(performance.now() - start)
+    return { latencyMs, ok: res.ok || (res.status >= 400 && res.status < 600) }
+  } catch {
+    return { latencyMs: -1, ok: false }
+  }
 }
 
 // ───聚合 ───────────────────────────────────────────────────────────────────
