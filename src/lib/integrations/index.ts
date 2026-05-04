@@ -94,25 +94,17 @@ export async function probeSupabase(client: SupabaseClient): Promise<{ latencyMs
   }
 }
 
-export async function probeZpro(): Promise<{ latencyMs: number; ok: boolean }> {
+export async function probeZpro(client?: SupabaseClient): Promise<{ latencyMs: number; ok: boolean }> {
+  const start = performance.now()
+  if (!client) return { latencyMs: -1, ok: false }
+
   try {
-    const baseUrl = import.meta.env.VITE_ZPRO_API_BASE_URL
-    if (!baseUrl) return { latencyMs: -1, ok: false }
-    const start = performance.now()
-    // Probe the API base — any HTTP response (incl. 4xx) means API is up
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 8000)
-    const res = await fetch(baseUrl, {
-      method: 'HEAD',
-      signal: controller.signal,
-      // credentials: 'omit' — no cookies sent, no auth header leaked
+    const { error } = await client.functions.invoke('zpro-proxy', {
+      body: { action: 'probe' },
     })
-    clearTimeout(timeoutId)
-    const latencyMs = Math.round(performance.now() - start)
-    // 2xx/3xx/4xx/5xx all mean the API is reachable
-    return { latencyMs, ok: res.ok || (res.status >= 400 && res.status < 600) }
+    return { latencyMs: Math.round(performance.now() - start), ok: !error }
   } catch {
-    return { latencyMs: -1, ok: false }
+    return { latencyMs: Math.round(performance.now() - start), ok: false }
   }
 }
 
@@ -161,7 +153,7 @@ export async function probeMiniMax(): Promise<{ latencyMs: number; ok: boolean }
 export async function checkAllIntegrations(supabase?: SupabaseClient): Promise<IntegrationHealth> {
   const [supabaseResult, zproResult, n8nResult, minimaxResult] = await Promise.all([
     supabase ? probeSupabase(supabase) : Promise.resolve({ latencyMs: -1, ok: false }),
-    probeZpro(),
+    probeZpro(supabase),
     probeN8n(),
     probeMiniMax(),
   ])

@@ -1,13 +1,10 @@
 /**
  * ZPRO Service — Arruda Imobi
- * Camada de acesso à API do ZPRO CRM (tenant 40)
- * Não mexe no tenant — só conecta via APIs documentadas.
+ * Frontend seguro: nunca chama ZPRO diretamente e nunca lê token VITE_ZPRO_*.
+ * Todas as chamadas passam pela Supabase Edge Function `zpro-proxy`, onde o token fica no server.
  */
 
-import type { IntegrationId } from './integrations'
-
-const ZPRO_BASE = import.meta.env.VITE_ZPRO_API_BASE_URL ?? 'https://conv.techatende.com.br/v2/api/external/8de34e32-1154-4479-8cc6-678456e1d741'
-const ZPRO_TOKEN = import.meta.env.VITE_ZPRO_API_TOKEN ?? ''
+import { supabase } from '@/integrations/supabase/client'
 
 // ─── tipos ──────────────────────────────────────────────────────────────────
 
@@ -61,31 +58,52 @@ export interface ZproUser {
   status: 'online' | 'offline'
 }
 
-// ─── helper ───────────────────────────────────────────────────────────────────
+export interface ZproContactInput {
+  name: string
+  phone: string
+  email?: string
+  propertyTitle?: string
+  message?: string
+  source?: string
+}
 
-async function zproFetch<T>(path: string, opts?: RequestInit): Promise<T> {
-  const url = `${ZPRO_BASE}${path}`
-  const res = await fetch(url, {
-    ...opts,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${ZPRO_TOKEN}`,
-      ...opts?.headers,
-    },
-  } as RequestInit)
+type ZproAction =
+  | 'listChannels'
+  | 'ticketStats'
+  | 'listTickets'
+  | 'listKanban'
+  | 'contactsSearch'
+  | 'listUsers'
+  | 'createContact'
+  | 'probe'
 
-  if (!res.ok) {
-    const text = await res.text().catch(() => res.statusText)
-    throw new Error(`ZPRO ${res.status}: ${text}`)
+type IntegrationStatus = 'unknown' | 'ok' | 'degraded' | 'down'
+
+async function zproProxy<T>(action: ZproAction, params?: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.functions.invoke<T>('zpro-proxy', {
+    body: { action, params },
+  })
+
+  if (error) {
+    throw new Error(error.message)
   }
 
-  return res.json() as Promise<T>
+  if (data && typeof data === 'object' && 'error' in data) {
+    const message = typeof data.error === 'string' ? data.error : 'ZPRO proxy error'
+    throw new Error(message)
+  }
+
+  if (!data) {
+    throw new Error('ZPRO proxy returned empty response')
+  }
+
+  return data
 }
 
 // ─── canais ───────────────────────────────────────────────────────────────────
 
 export async function getZproChannels(): Promise<ZproChannel[]> {
-  const data = await zproFetch<{ success: boolean; data: { id: number; name: string; type: string; status?: string; number?: string }[] }>('/listChannels')
+  const data = await zproProxy<{ success: boolean; data: { id: number; name: string; type: string; status?: string; number?: string }[] }>('listChannels')
   return (data.data ?? []).map(c => ({
     id: c.id,
     name: c.name,
@@ -101,15 +119,11 @@ export async function getZproTickets(params?: {
   status?: 'open' | 'pending' | 'closed'
   pageNumber?: number
 }): Promise<{ tickets: ZproTicket[]; total: number }> {
-  const query = new URLSearchParams()
-  if (params?.status) query.set('status', params.status)
-  if (params?.pageNumber) query.set('pageNumber', String(params.pageNumber))
-
-  const data = await zproFetch<{
+  const data = await zproProxy<{
     success: boolean
     data: { id: number; contactId: number; contactName?: string; channelId: number; channelName?: string; status: string; createdAt: string; updatedAt?: string }[]
     total?: number
-  }>(`/listTickets?${query}`)
+  }>('listTickets', params)
 
   return {
     tickets: (data.data ?? []).map(t => ({
@@ -127,7 +141,7 @@ export async function getZproTickets(params?: {
 }
 
 export async function getZproTicketStats(): Promise<ZproTicketStats> {
-  const data = await zproFetch<{ success: boolean; open?: number; pending?: number; closed?: number }>('/dash/ticketsStatus')
+  const data = await zproProxy<{ success: boolean; open?: number; pending?: number; closed?: number }>('ticketStats')
   return {
     open: data.open ?? 0,
     pending: data.pending ?? 0,
@@ -139,7 +153,7 @@ export async function getZproTicketStats(): Promise<ZproTicketStats> {
 // ─── pipeline / kanban ─────────────────────────────────────────────────────────
 
 export async function getZproKanbanColumns(): Promise<ZproKanbanColumn[]> {
-  const data = await zproFetch<{ success: boolean; data: { id: number; name: string; pipelineOrder?: number }[] }>('/listKanban')
+  const data = await zproProxy<{ success: boolean; data: { id: number; name: string; pipelineOrder?: number }[] }>('listKanban')
   return (data.data ?? []).map((col, i) => ({
     id: col.id,
     name: col.name,
@@ -150,17 +164,24 @@ export async function getZproKanbanColumns(): Promise<ZproKanbanColumn[]> {
 // ─── contatos ─────────────────────────────────────────────────────────────────
 
 export async function searchZproContacts(query: string, limit = 20): Promise<ZproContact[]> {
-  const data = await zproFetch<{ success: boolean; data: ZproContact[] }>('/contacts/search', {
-    method: 'POST',
-    body: JSON.stringify({ query, limit }),
-  })
+  const data = await zproProxy<{ success: boolean; data: ZproContact[] }>('contactsSearch', { query, limit })
   return data.data ?? []
+}
+
+export async function createZproContact(input: ZproContactInput): Promise<{ id: number } | null> {
+  try {
+    const data = await zproProxy<{ success: boolean; data?: { id: number } }>('createContact', input as unknown as Record<string, unknown>)
+    return data.data ?? null
+  } catch (err) {
+    console.warn('[ZPRO] createContact via proxy failed:', err)
+    return null
+  }
 }
 
 // ─── equipe ───────────────────────────────────────────────────────────────────
 
 export async function getZproUsers(): Promise<ZproUser[]> {
-  const data = await zproFetch<{ success: boolean; data: { id: number; name: string; role?: string; status?: string }[] }>('/listUsers')
+  const data = await zproProxy<{ success: boolean; data: { id: number; name: string; role?: string; status?: string }[] }>('listUsers')
   return (data.data ?? []).map(u => ({
     id: u.id,
     name: u.name,
@@ -171,7 +192,7 @@ export async function getZproUsers(): Promise<ZproUser[]> {
 
 // ─── health probe ──────────────────────────────────────────────────────────────
 
-export async function probeZproApi(): Promise<{ latencyMs: number; ok: boolean; channels: number; status: IntegrationId['status'] }> {
+export async function probeZproApi(): Promise<{ latencyMs: number; ok: boolean; channels: number; status: IntegrationStatus }> {
   const start = performance.now()
   try {
     const channels = await getZproChannels()
@@ -179,46 +200,5 @@ export async function probeZproApi(): Promise<{ latencyMs: number; ok: boolean; 
     return { latencyMs, ok: true, channels: channels.length, status: 'ok' }
   } catch {
     return { latencyMs: Math.round(performance.now() - start), ok: false, channels: 0, status: 'down' }
-  }
-}
-// ─── criar contato ────────────────────────────────────────────────────────────
-
-export interface ZproContactInput {
-  name: string
-  phone: string
-  email?: string
-  propertyTitle?: string
-  message?: string
-  source?: string
-}
-
-export async function createZproContact(input: ZproContactInput): Promise<{ id: number } | null> {
-  try {
-    // Busca primeiro para evitar duplicado
-    const existing = await zproFetch<{ success: boolean; data?: { id: number }[] }>('/contacts/search', {
-      method: 'POST',
-      body: JSON.stringify({ query: input.phone, limit: 1 }),
-    })
-    if (existing.data && existing.data.length > 0) {
-      return { id: existing.data[0].id }
-    }
-
-    const data = await zproFetch<{ success: boolean; data?: { id: number } }>('/createContact', {
-      method: 'POST',
-      body: JSON.stringify({
-        name: input.name,
-        number: input.phone.replace(/\D/g, ''),
-        email: input.email || '',
-        extraInfo: {
-          fonte: input.source ?? 'site_arruda',
-          imovel: input.propertyTitle ?? '',
-          mensagem: input.message ?? '',
-        },
-      }),
-    })
-    return data.data ?? null
-  } catch (err) {
-    console.warn('[ZPRO] createContact failed:', err)
-    return null
   }
 }

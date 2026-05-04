@@ -80,26 +80,10 @@ export default defineConfig(({ mode }) => ({
     }),
   ].filter(Boolean),
   build: {
-    rollupOptions: {
-      output: {
-        manualChunks: (id) => {
-          if (id.includes("node_modules")) {
-            if (id.includes("react-dom")) return "vendor-react-dom";
-            if (id.includes("react") && id.includes("jsx")) return "vendor-react-jsx-runtime";
-            if (id.includes("react")) return "vendor-react";
-            if (id.includes("@fullcalendar")) return "vendor-agenda";
-            if (id.includes("@tiptap")) return "vendor-editor";
-            if (id.includes("lucide-react")) return "vendor-icons";
-            if (id.includes("jspdf") || id.includes("html2canvas")) return "vendor-export";
-            if (id.includes("recharts")) return "vendor-charts";
-            if (id.includes("@radix-ui")) return "vendor-ui-core";
-            if (id.includes("@tanstack") || id.includes("zod") || id.includes("date-fns")) return "vendor-utils";
-            return "vendor"; // Outras libs
-          }
-        },
-      },
-    },
-    chunkSizeWarningLimit: 1000, // Aumenta limite para 1MB (já que estamos dividindo)
+    // Segurança operacional: remover manualChunks custom para evitar conflito React/ReactDOM
+    // observado em produção (`__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED`).
+    // Deixar o Rollup/Vite fazer o chunking padrão é mais seguro antes de novo deploy.
+    chunkSizeWarningLimit: 1000,
   },
   resolve: {
     alias: {
