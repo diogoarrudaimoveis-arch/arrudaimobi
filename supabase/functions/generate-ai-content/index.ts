@@ -12,6 +12,23 @@ const ALLOWED_ORIGINS = [
   "https://www.arrudaimobi.com.br"
 ];
 
+type TenantAiSettings = {
+  openai_keys?: string[];
+  openai_key?: string;
+  gemini_keys?: string[];
+  gemini_key?: string;
+  groq_keys?: string[];
+  groq_key?: string;
+  primary_provider?: string;
+};
+
+type AiSettingsContext = {
+  openai_keys: string[];
+  gemini_keys: string[];
+  groq_keys: string[];
+  primary_provider: string;
+};
+
 const getCorsHeaders = (origin: string | null) => {
   const headers = {
     "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
@@ -40,10 +57,11 @@ serve(async (req) => {
   }
 
   let tenantId: string | null = null;
-  let settings: any = null;
-  let aiSettings: any = null;
+  let settings: TenantAiSettings | null = null;
+  let aiSettings: AiSettingsContext | null = null;
 
-  const mask = (s: any): any => {
+  type ApiErrorEntry = { provider: string; message: string };
+  const mask = (s: unknown): unknown => {
     if (s === null || s === undefined) return "null";
     if (Array.isArray(s)) return s.map(mask);
     if (typeof s === 'string') {
@@ -78,8 +96,8 @@ serve(async (req) => {
     if (settingsError) throw new Error(`Query error: ${settingsError.message}`);
     settings = settingsArray && settingsArray.length > 0 ? settingsArray[0] : null;
 
-    const parseKeys = (val: any): string[] => {
-      if (Array.isArray(val)) return val.filter(k => typeof k === 'string' && k.trim() !== '');
+    const parseKeys = (val: unknown): string[] => {
+      if (Array.isArray(val)) return (val as unknown[]).filter(k => typeof k === 'string' && k.trim() !== '') as string[];
       if (typeof val === 'string') {
         try {
           const parsed = JSON.parse(val);
@@ -124,7 +142,7 @@ serve(async (req) => {
       throw new Error("Nenhuma chave de IA configurada para o tenant ou na variável de ambiente.");
     }
 
-    const apiErrors: any[] = [];
+    const apiErrors: ApiErrorEntry[] = [];
 
     const tryProvider = async (provider: string) => {
       const keys = aiSettings[`${provider}_keys` as keyof typeof aiSettings] as string[];
@@ -179,8 +197,9 @@ serve(async (req) => {
         }
         return null;
       } catch (err) {
-        console.error(`[ERROR] Provider ${provider} failed:`, (err instanceof Error ? err.message : String(err)));
-        apiErrors.push({ provider, message: err.message });
+        const errMsg = err instanceof Error ? err.message : String(err);
+        console.error(`[ERROR] Provider ${provider} failed:`, errMsg);
+        apiErrors.push({ provider, message: errMsg });
         return null; 
       }
     };
@@ -217,11 +236,12 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
-  } catch (error: any) {
-    console.error(`[CRITICAL] ${error.message}`);
-    const maskStr = (s: any) => (typeof s === 'string' && s.length > 5) ? `${s.slice(0,3)}...` : '***';
+  } catch (error: unknown) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.error(`[CRITICAL] ${errMsg}`);
+    const maskStr = (s: unknown): string => (typeof s === 'string' && s.length > 5) ? `${s.slice(0,3)}...` : '***';
     return new Response(JSON.stringify({ 
-      error: error.message,
+      error: errMsg,
       debug: {
         tenant: tenantId,
         settings: settings ? Object.fromEntries(Object.entries(settings).map(([k, v]) => [k, k.includes('key') ? maskStr(v) : v])) : null,
