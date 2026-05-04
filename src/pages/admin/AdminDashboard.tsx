@@ -98,7 +98,7 @@ const AdminDashboard = () => {
         .select("type_id, property_types(name)")
         .eq("tenant_id", tenantId!);
       const counts: Record<string, number> = {};
-      data?.forEach((p: any) => {
+      data?.forEach((p: { property_types?: { name?: string }; purpose?: string; status?: string }) => {
         const name = p.property_types?.name || "Sem tipo";
         counts[name] = (counts[name] || 0) + 1;
       });
@@ -115,7 +115,7 @@ const AdminDashboard = () => {
         .select("purpose")
         .eq("tenant_id", tenantId!);
       const counts: Record<string, number> = {};
-      data?.forEach((p: any) => {
+      data?.forEach((p: { property_types?: { name?: string }; purpose?: string; status?: string }) => {
         const label = p.purpose === "sale" ? "Venda" : "Aluguel";
         counts[label] = (counts[label] || 0) + 1;
       });
@@ -135,7 +135,7 @@ const AdminDashboard = () => {
         available: "Disponível", sold: "Vendido", rented: "Alugado", pending: "Pendente",
       };
       const counts: Record<string, number> = {};
-      data?.forEach((p: any) => {
+      data?.forEach((p: { property_types?: { name?: string }; purpose?: string; status?: string }) => {
         const label = statusLabels[p.status] || p.status;
         counts[label] = (counts[label] || 0) + 1;
       });
@@ -164,7 +164,7 @@ const AdminDashboard = () => {
         months[key] = 0;
       }
 
-      data?.forEach((c: any) => {
+      data?.forEach((c: { created_at: string }) => {
         const d = new Date(c.created_at);
         const key = `${monthNames[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`;
         if (key in months) months[key]++;
