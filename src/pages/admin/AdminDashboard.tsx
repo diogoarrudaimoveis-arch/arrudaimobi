@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { checkAllIntegrations } from "@/lib/integrations";
 import { useLeadMetrics } from "@/hooks/use-contacts";
 import { Activity, AlertTriangle, Building2, CheckCircle2, Clock, Home, Send, Users, MessageSquare, TrendingUp, Eye } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from "recharts";
@@ -31,16 +32,42 @@ const operationalMetrics = [
   { title: "Alertas ativos", value: "2", detail: "1 P1, 1 P2", icon: AlertTriangle, tone: "text-warning", bg: "from-warning/10 to-warning/5" },
 ];
 
-const integrationStatus = [
-  { name: "Supabase", status: "ok", detail: "service_role validado" },
-  { name: "ZPRO", status: "ok", detail: "modo leitura/sem envio" },
-  { name: "n8n", status: "ok", detail: "orchestrator planejado" },
-  { name: "MiniMax", status: "warning", detail: "monitorar timeout/custo" },
-];
+
 
 const AdminDashboard = () => {
   const { tenantId, isReady, profile } = useAuth();
   const { data: leadMetrics } = useLeadMetrics();
+
+  const { data: health } = useQuery({
+    queryKey: ["integration-health"],
+    queryFn: () => checkAllIntegrations(supabase),
+    refetchInterval: 60_000,
+  });
+
+  const integrationStatus = health
+    ? [
+        {
+          name: "Supabase",
+          status: health.supabase.status === "ok" || health.supabase.status === "degraded" ? "ok" : health.supabase.status === "down" ? "error" : "unknown",
+          detail: health.supabase.latencyMs >= 0 ? `${health.supabase.latencyMs}ms` : "sem dados",
+        },
+        {
+          name: "ZPRO",
+          status: health.zpro.status === "ok" || health.zpro.status === "degraded" ? "ok" : health.zpro.status === "down" ? "error" : "unknown",
+          detail: health.zpro.latencyMs >= 0 ? `🔗 ${health.zpro.latencyMs}ms` : health.zpro.status === "unknown" ? "não configurado" : "erro",
+        },
+        {
+          name: "n8n",
+          status: "unknown",
+          detail: "em planejamento",
+        },
+        {
+          name: "MiniMax",
+          status: "unknown",
+          detail: "em planejamento",
+        },
+      ]
+    : [];
 
   const { data: stats } = useQuery({
     queryKey: ["admin-dashboard-stats", tenantId],
