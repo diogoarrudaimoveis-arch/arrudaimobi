@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    let result: any;
+    let result: unknown;
 
     switch (action) {
       case "list-properties": {
@@ -345,7 +345,7 @@ Deno.serve(async (req) => {
         if (error) throw error;
         
         const tenantName = data?.name || "Arruda Imobi";
-        const settings = (data?.settings as any) || {};
+        const settings = (data?.settings ?? {}) as Record<string, unknown>;
         
         const manifest = {
           name: tenantName,
@@ -492,24 +492,27 @@ Deno.serve(async (req) => {
           });
         }
 
+        // Build result with enrichment
+        const enrichedPost = { ...data };
+
         // Get author
-        if (data.author_id) {
+        if (enrichedPost.author_id) {
           const { data: profile } = await supabase
             .from("profiles")
             .select("user_id, full_name, avatar_url")
-            .eq("user_id", data.author_id)
+            .eq("user_id", enrichedPost.author_id)
             .maybeSingle();
-          (data as any).author = profile || null;
+          enrichedPost.author = profile || null;
         }
 
         // Get tags
         const { data: ptData } = await supabase
           .from("blog_post_tags")
           .select("blog_tags(id, name, slug)")
-          .eq("post_id", data.id);
-        (data as any).tags = (ptData || []).map((pt: any) => pt.blog_tags).filter(Boolean);
+          .eq("post_id", enrichedPost.id);
+        enrichedPost.tags = (ptData || []).map((pt: { blog_tags: unknown }) => pt.blog_tags).filter(Boolean);
 
-        result = data;
+        result = enrichedPost;
         break;
       }
 

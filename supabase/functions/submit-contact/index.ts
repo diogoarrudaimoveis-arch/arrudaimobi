@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    let result: any;
+    let result: unknown;
 
     switch (action) {
       case "check-auth-rate-limit": {
@@ -206,7 +206,7 @@ Deno.serve(async (req) => {
                 .eq("id", tenant_id)
                 .single();
               const companyName = tenantData?.name || "nossa imobiliária";
-              const tenantSettings = (tenantData?.settings as any) || {};
+              const tenantSettings = (tenantData?.settings ?? {}) as Record<string, unknown>;
 
               // Get property title if available
               let propertyTitle = "";
@@ -368,9 +368,10 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (err: any) {
-    console.error("submit-contact error:", err);
-    return new Response(JSON.stringify({ error: err.message }), {
+  } catch (err: unknown) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    console.error("submit-contact error:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
