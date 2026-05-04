@@ -181,3 +181,44 @@ export async function probeZproApi(): Promise<{ latencyMs: number; ok: boolean; 
     return { latencyMs: Math.round(performance.now() - start), ok: false, channels: 0, status: 'down' }
   }
 }
+// ─── criar contato ────────────────────────────────────────────────────────────
+
+export interface ZproContactInput {
+  name: string
+  phone: string
+  email?: string
+  propertyTitle?: string
+  message?: string
+  source?: string
+}
+
+export async function createZproContact(input: ZproContactInput): Promise<{ id: number } | null> {
+  try {
+    // Busca primeiro para evitar duplicado
+    const existing = await zproFetch<{ success: boolean; data?: { id: number }[] }>('/contacts/search', {
+      method: 'POST',
+      body: JSON.stringify({ query: input.phone, limit: 1 }),
+    })
+    if (existing.data && existing.data.length > 0) {
+      return { id: existing.data[0].id }
+    }
+
+    const data = await zproFetch<{ success: boolean; data?: { id: number } }>('/createContact', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: input.name,
+        number: input.phone.replace(/\D/g, ''),
+        email: input.email || '',
+        extraInfo: {
+          fonte: input.source ?? 'site_arruda',
+          imovel: input.propertyTitle ?? '',
+          mensagem: input.message ?? '',
+        },
+      }),
+    })
+    return data.data ?? null
+  } catch (err) {
+    console.warn('[ZPRO] createContact failed:', err)
+    return null
+  }
+}
