@@ -30,9 +30,9 @@ const COLOR_PRESETS = [
 ];
 
 function hexToHsl(hex: string): string {
-  let r = parseInt(hex.slice(1, 3), 16) / 255;
-  let g = parseInt(hex.slice(3, 5), 16) / 255;
-  let b = parseInt(hex.slice(5, 7), 16) / 255;
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
   const max = Math.max(r, g, b), min = Math.min(r, g, b);
   let h = 0, s = 0, l = (max + min) / 2;
   if (max !== min) {
@@ -102,7 +102,7 @@ export function BrandCustomization({ tenantId, settings, allSettings }: BrandCus
       setLogoUrl(urlData.publicUrl);
       setCropperOpen(false);
       toast({ title: "Logo enviada com sucesso!" });
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Erro ao enviar logo", description: err.message, variant: "destructive" });
     } finally {
       setUploading(false);
@@ -121,7 +121,7 @@ export function BrandCustomization({ tenantId, settings, allSettings }: BrandCus
       setHeroBgImageUrl(urlData.publicUrl);
       setHeroCropperOpen(false);
       toast({ title: "Imagem do hero enviada!" });
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Erro ao enviar imagem", description: err.message, variant: "destructive" });
     } finally {
       setUploadingHero(false);
@@ -165,7 +165,7 @@ export function BrandCustomization({ tenantId, settings, allSettings }: BrandCus
       queryClient.invalidateQueries({ queryKey: ["admin-tenant"] });
       queryClient.invalidateQueries({ queryKey: ["tenant-settings"] });
       toast({ title: "Personalização visual salva!" });
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
       setSaving(false);

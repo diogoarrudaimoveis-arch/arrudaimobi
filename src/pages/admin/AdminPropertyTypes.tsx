@@ -54,7 +54,7 @@ const AdminPropertyTypes = () => {
       resetForm();
       setDialogOpen(false);
     },
-    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    onError: (err) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -70,7 +70,7 @@ const AdminPropertyTypes = () => {
 
   const resetForm = () => { setForm({ name: "", icon: "Building2", active: true }); setEditingId(null); };
 
-  const openEdit = (t: any) => {
+  const openEdit = (t: { id: string; name: string; icon?: string; active?: boolean }) => {
     setEditingId(t.id);
     setForm({ name: t.name, icon: t.icon || "Building2", active: t.active });
     setDialogOpen(true);
@@ -133,7 +133,7 @@ const AdminPropertyTypes = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {types.map((t: any) => (
+                {types.map((t: { id: string; name: string; icon?: string; active?: boolean }) => (
                   <TableRow key={t.id}>
                     <TableCell className="font-medium">{t.name}</TableCell>
                     <TableCell>{t.icon}</TableCell>

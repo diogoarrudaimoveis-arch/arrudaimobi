@@ -59,7 +59,7 @@ export function BlogTagInput({ tenantId, selectedTagIds, onChange }: BlogTagInpu
       setAllTags(prev => [...prev, data as BlogTag].sort((a, b) => a.name.localeCompare(b.name)));
       onChange([...selectedTagIds, (data as BlogTag).id]);
       setNewTag("");
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Erro ao criar tag", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);

@@ -18,9 +18,9 @@ export function RegistrationToggle() {
     try {
       await saveSettings({ allow_registration: checked });
       toast({ title: checked ? "Cadastro habilitado" : "Cadastro desabilitado" });
-    } catch (err: any) {
+    } catch (err) {
       setAllowed(!checked);
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      toast({ title: "Erro", description: (err instanceof Error ? err.message : String(err)), variant: "destructive" });
     }
   };
 

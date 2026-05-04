@@ -253,9 +253,9 @@ const Login = () => {
         console.log("Signup success:", data);
         toast({ title: "Conta criada!", description: "Verifique seu email para confirmar." });
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Unexpected signup error:", err);
-      toast({ title: "Erro inesperado", description: err.message || "Tente novamente.", variant: "destructive" });
+      const msg = err instanceof Error ? err.message : "Tente novamente."; toast({ title: "Erro inesperado", description: msg, variant: "destructive" });
     } finally {
       setLoading(false);
     }

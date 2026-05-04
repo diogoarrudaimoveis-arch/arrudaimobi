@@ -77,7 +77,7 @@ export default function AdminBlog() {
       if (error) throw error;
       const { data } = supabase.storage.from("property-images").getPublicUrl(`blog/${filename}`);
       setCoverUrl(data.publicUrl);
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Erro ao enviar imagem", description: err.message, variant: "destructive" });
     } finally {
       setUploading(false);
@@ -113,7 +113,7 @@ export default function AdminBlog() {
         toast({ title: "Post criado!" });
       }
       setDialogOpen(false);
-    } catch (err: any) {
+    } catch (err) {
       const msg = err.message?.includes("duplicate") ? "Já existe um post com este slug" : err.message;
       toast({ title: "Erro", description: msg, variant: "destructive" });
     } finally {
@@ -126,7 +126,7 @@ export default function AdminBlog() {
       await deletePost.mutateAsync(id);
       toast({ title: "Post excluído" });
       setDeleteConfirm(null);
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
     }
   };

@@ -162,7 +162,7 @@ export default function PropertyPerformance() {
     if (!rawEvents?.length) return [];
     const map: Record<string, PropertyRow> = {};
 
-    rawEvents.forEach((row: any) => {
+    rawEvents.forEach((row: Record<string, unknown>) => {
       const pid = row.property_id;
       if (!map[pid]) {
         map[pid] = {
@@ -200,7 +200,7 @@ export default function PropertyPerformance() {
   const eventCounts = useMemo(() => {
     if (!rawEvents?.length) return [];
     const counts: Record<string, number> = {};
-    rawEvents.forEach((r: any) => {
+    rawEvents.forEach((r: Record<string, unknown>) => {
       counts[r.event_type] = (counts[r.event_type] ?? 0) + 1;
     });
     const labels: Record<string, string> = {

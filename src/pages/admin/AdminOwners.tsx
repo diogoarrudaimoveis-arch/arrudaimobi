@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { useOwners, useCreateOwnerMutation, useUpdateOwnerMutation, useDeleteOwnerMutation } from "@/hooks/use-owners";
+import { useOwners, useCreateOwnerMutation, useUpdateOwnerMutation, useDeleteOwnerMutation, type Owner } from "@/hooks/use-owners";
 import { useTenantSettings } from "@/hooks/use-tenant-settings";
 import { Plus, Pencil, Trash2, Loader2, User, Landmark, Home, FileText, Download, Save, X, Signature, Search } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -29,7 +29,7 @@ const AdminOwners = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingOwner, setEditingOwner] = useState<any>(null);
+  const [editingOwner, setEditingOwner] = useState<Owner | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("pessoais");
   const [page, setPage] = useState(1);
@@ -88,7 +88,7 @@ const AdminOwners = () => {
   const [authDate, setAuthDate] = useState(new Date().toISOString().split("T")[0]);
   const [authExclusive, setAuthExclusive] = useState(false);
 
-  const previewAuthText = `TERMO DE AUTORIZAÇÃO DE VENDA IMOBILIÁRIA\n\nEu, ${form.name ? form.name.toUpperCase() : "[NOME DO PROPRIETÁRIO]"}, portador do CPF/CNPJ ${form.cpf_cnpj || "[DOCUMENTO]"},\nAUTORIZO a ${tenant?.name || "nossa imobiliária"} a comercializar o(s) imóvel(is) de minha propriedade.\n\nTIPO DE AUTORIZAÇÃO: ${authExclusive ? 'COM EXCLUSIVIDADE' : 'SEM EXCLUSIVIDADE'}\nComissão Autorizada: ${authCommission}% sobre o preço efetivo da transação\nData da Autorização: ${authDate.split("-").reverse().join("/")}\n\nDECLARO estar ciente dos termos e condições estabelecidos para a intermediação imobiliária.\n\nIMÓVEIS VINCULADOS:\n${ownerProperties && ownerProperties.length > 0 ? ownerProperties.map((p: any) => `- ${p.property_code}: ${p.title}`).join("\n") : "Nenhum imóvel vinculado no momento."}`;
+  const previewAuthText = `TERMO DE AUTORIZAÇÃO DE VENDA IMOBILIÁRIA\n\nEu, ${form.name ? form.name.toUpperCase() : "[NOME DO PROPRIETÁRIO]"}, portador do CPF/CNPJ ${form.cpf_cnpj || "[DOCUMENTO]"},\nAUTORIZO a ${tenant?.name || "nossa imobiliária"} a comercializar o(s) imóvel(is) de minha propriedade.\n\nTIPO DE AUTORIZAÇÃO: ${authExclusive ? 'COM EXCLUSIVIDADE' : 'SEM EXCLUSIVIDADE'}\nComissão Autorizada: ${authCommission}% sobre o preço efetivo da transação\nData da Autorização: ${authDate.split("-").reverse().join("/")}\n\nDECLARO estar ciente dos termos e condições estabelecidos para a intermediação imobiliária.\n\nIMÓVEIS VINCULADOS:\n${ownerProperties && ownerProperties.length > 0 ? ownerProperties.map((p) => `- ${p.property_code}: ${p.title}`).join("\n") : "Nenhum imóvel vinculado no momento."}`;
 
   const resetForm = () => {
     setForm({
@@ -103,7 +103,7 @@ const AdminOwners = () => {
     setActiveTab("pessoais");
   };
 
-  const handleOpenEdit = (owner: any) => {
+  const handleOpenEdit = (owner: Owner) => {
     setEditingOwner(owner);
     setForm({
       name: owner.name || "",
@@ -163,8 +163,8 @@ const AdminOwners = () => {
 
       setForm({ ...form, signature_url: publicUrl });
       toast({ title: "Assinatura capturada com sucesso!" });
-    } catch (error: any) {
-      toast({ title: "Erro ao salvar assinatura", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erro ao salvar assinatura", description: error instanceof Error ? error.message : String(error), variant: "destructive" });
     } finally {
       setIsSaving(false);
     }

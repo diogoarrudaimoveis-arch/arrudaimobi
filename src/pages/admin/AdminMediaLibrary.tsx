@@ -15,6 +15,15 @@ import { TablePagination } from "@/components/ui/table-pagination";
 
 const MEDIA_PAGE_SIZE = 20;
 
+export interface MediaImage {
+  id: string;
+  url: string;
+  alt: string | null;
+  filename: string | null;
+  mime_type?: string | null;
+  size?: number | null;
+}
+
 function extractYouTubeId(url: string): string | null {
   const patterns = [
     /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
@@ -45,7 +54,7 @@ const AdminMediaLibrary = () => {
   const queryClient = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  const [editingImage, setEditingImage] = useState<any>(null);
+  const [editingImage, setEditingImage] = useState<MediaImage | null>(null);
   const [editAlt, setEditAlt] = useState("");
   const [editFilename, setEditFilename] = useState("");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -112,7 +121,7 @@ const AdminMediaLibrary = () => {
       toast({ title: "Imagens enviadas com sucesso!" });
       setUploading(false);
     },
-    onError: (err: any) => {
+    onError: (err) => {
       toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
       setUploading(false);
     },
@@ -141,7 +150,7 @@ const AdminMediaLibrary = () => {
       setYoutubeUrl("");
       setYoutubeTitle("");
     },
-    onError: (err: any) => {
+    onError: (err) => {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     },
   });
@@ -159,7 +168,7 @@ const AdminMediaLibrary = () => {
       queryClient.invalidateQueries({ queryKey: ["media-library"] });
       toast({ title: "Mídia removida" });
     },
-    onError: (err: any) => {
+    onError: (err) => {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     },
   });
@@ -177,12 +186,12 @@ const AdminMediaLibrary = () => {
       toast({ title: "Mídia atualizada!" });
       setEditingImage(null);
     },
-    onError: (err: any) => {
+    onError: (err) => {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     },
   });
 
-  const openEdit = (img: any) => {
+  const openEdit = (img: MediaImage) => {
     setEditingImage(img);
     setEditAlt(img.alt || "");
     setEditFilename(img.filename || "");
@@ -195,7 +204,7 @@ const AdminMediaLibrary = () => {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  const renderThumbnail = (img: any) => {
+  const renderThumbnail = (img: MediaImage) => {
     if (isYouTube(img.url)) {
       const videoId = extractYouTubeId(img.url);
       return (
@@ -217,7 +226,7 @@ const AdminMediaLibrary = () => {
     return <img src={img.url} alt={img.alt || ""} className="h-full w-full object-cover" />;
   };
 
-  const handlePreview = (img: any) => {
+  const handlePreview = (img: MediaImage) => {
     if (isYouTube(img.url)) {
       const videoId = extractYouTubeId(img.url);
       if (videoId) {

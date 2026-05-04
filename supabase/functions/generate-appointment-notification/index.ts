@@ -24,11 +24,21 @@ const getCorsHeaders = (origin: string | null) => {
   return { ...headers, "Access-Control-Allow-Origin": ALLOWED_ORIGINS[0] };
 };
 
+interface AppointmentRecord {
+  id?: string;
+  assigned_to: string;
+  property_id?: string;
+  start_time: string;
+  type?: string;
+  title: string;
+  priority: string;
+}
+
 interface AppointmentPayload {
   type: 'INSERT' | 'UPDATE';
   table: string;
-  record: any;
-  old_record: any | null;
+  record: AppointmentRecord;
+  old_record: AppointmentRecord | null;
 }
 
 Deno.serve(async (req) => {
@@ -122,9 +132,10 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
-  } catch (error) {
-    console.error("Error processing appointment notification:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("Error processing appointment notification:", message);
+    return new Response(JSON.stringify({ error: message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });

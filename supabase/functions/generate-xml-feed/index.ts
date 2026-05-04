@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
       <Media>`;
       
       if (p.images && Array.isArray(p.images)) {
-        p.images.forEach((img: any) => {
+        p.images.forEach((img: { alt?: string; url: string }) => {
           xml += `
         <Item medium="image" caption="${escapeXml(img.alt || p.title)}">${escapeXml(img.url)}</Item>`;
         });
@@ -118,6 +118,8 @@ Deno.serve(async (req) => {
       
       if (p.amenities && Array.isArray(p.amenities)) {
         p.amenities.forEach((amenity: string) => {
+          xml += `
+            <Feature>${escapeXml(amenity)}</Feature>`;
           xml += `
           <Feature>${escapeXml(amenity)}</Feature>`;
         });
@@ -148,7 +150,7 @@ Deno.serve(async (req) => {
         ...corsHeaders,
       },
     });
-  } catch (err: any) {
+  } catch (err) {
     return new Response(err.message, { 
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "text/plain" }

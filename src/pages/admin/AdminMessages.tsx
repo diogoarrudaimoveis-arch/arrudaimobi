@@ -26,6 +26,22 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { TenantSettings } from "@/hooks/use-tenant-settings";
 
+interface MessageRecord {
+  id: string;
+  phone_sanitized: string;
+  phone_raw?: string;
+  message: string;
+  status: string;
+  error_message?: string;
+  created_at: string;
+}
+
+interface InstanceInfo {
+  instance?: { instanceName?: string };
+  instanceName?: string;
+  name?: string;
+}
+
 const AdminMessages = () => {
   const { tenantId, user, isReady, isAdmin } = useAuth();
   const { toast } = useToast();
@@ -35,7 +51,7 @@ const AdminMessages = () => {
   const [configForm, setConfigForm] = useState({ api_key: "", base_url: "", instance_name: "" });
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
   const [loadingInstances, setLoadingInstances] = useState(false);
-  const [instances, setInstances] = useState<any[]>([]);
+  const [instances, setInstances] = useState<InstanceInfo[]>([]);
 
   // Send state
   const [selectedContactId, setSelectedContactId] = useState<string>("");
@@ -125,7 +141,7 @@ const AdminMessages = () => {
       const settings = { ...currentSettings, whatsapp_template: whatsappTemplate.trim() };
       const { error } = await supabase
         .from("tenants")
-        .update({ settings: settings as any })
+        .update({ settings: settings as Record<string, unknown> })
         .eq("id", tenantId!);
       if (error) throw error;
     },
@@ -134,7 +150,7 @@ const AdminMessages = () => {
       queryClient.invalidateQueries({ queryKey: ["tenant-settings"] });
       toast({ title: "Template salvo!" });
     },
-    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    onError: (err) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
   });
 
   // Save config
@@ -165,7 +181,7 @@ const AdminMessages = () => {
       toast({ title: "Configuração salva!" });
       setConfigDialogOpen(false);
     },
-    onError: (err: any) => {
+    onError: (err) => {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     },
   });
@@ -202,8 +218,9 @@ const AdminMessages = () => {
       const result = await res.json();
       setInstances(Array.isArray(result) ? result : []);
       toast({ title: `${Array.isArray(result) ? result.length : 0} instância(s) encontrada(s)` });
-    } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      toast({ title: "Erro", description: message, variant: "destructive" });
     } finally {
       setLoadingInstances(false);
     }
@@ -247,8 +264,9 @@ const AdminMessages = () => {
         toast({ title: "Falha no envio", description: data.error, variant: "destructive" });
       }
     },
-    onError: (err: any) => {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    onError: (err: unknown) => {
+      const message = err instanceof Error ? err.message : String(err);
+      toast({ title: "Erro", description: message, variant: "destructive" });
     },
   });
 
@@ -276,8 +294,8 @@ const AdminMessages = () => {
       if (!res.ok) throw new Error(data.error || "Erro ao limpar histórico");
       queryClient.invalidateQueries({ queryKey: ["messages-log"] });
       toast({ title: "Histórico limpo com sucesso!" });
-    } catch (err: any) {
-      toast({ title: err.message || "Erro ao limpar histórico", variant: "destructive" });
+    } catch (err) {
+      toast({ title: (err instanceof Error ? err.message : String(err)) || "Erro ao limpar histórico", variant: "destructive" });
     } finally {
       setClearingHistory(false);
     }
@@ -472,7 +490,7 @@ const AdminMessages = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {messages.map((msg: any) => (
+                      {messages.map((msg: MessageRecord) => (
                         <TableRow key={msg.id}>
                           <TableCell>
                             <div className="flex items-center gap-2">
@@ -612,7 +630,7 @@ const AdminMessages = () => {
                     >
                       <SelectTrigger><SelectValue placeholder="Selecione uma instância" /></SelectTrigger>
                       <SelectContent>
-                        {instances.map((inst: any) => {
+                        {instances.map((inst: InstanceInfo) => {
                           const name = inst.instance?.instanceName || inst.instanceName || inst.name || JSON.stringify(inst);
                           return (
                             <SelectItem key={name} value={name}>

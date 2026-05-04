@@ -68,8 +68,8 @@ export function PropertyContactForm({ propertyId, propertyTitle, agentId, tenant
       onTrackMarketingEvent?.("Lead", { property_id: propertyId });
       setSubmitted(true);
       toast({ title: "Mensagem enviada!", description: "O agente entrará em contato." });
-    } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } catch (err) {
+      toast({ title: "Erro", description: err instanceof Error ? err.message : String(err), variant: "destructive" });
     } finally {
       setSubmitting(false);
     }

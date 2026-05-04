@@ -17,7 +17,7 @@ export function SearchBar({ filters, onFiltersChange, compact = false }: SearchB
   const { data: propertyTypes } = usePropertyTypes();
   const { data: cities } = useCities();
 
-  const updateFilter = (key: keyof SearchFilters, value: any) => {
+  const updateFilter = (key: keyof SearchFilters, value: SearchFilters[keyof SearchFilters]) => {
     onFiltersChange({ ...filters, [key]: value });
   };
 

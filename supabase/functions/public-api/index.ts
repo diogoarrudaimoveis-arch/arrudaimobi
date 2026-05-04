@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const ALLOWED_ORIGINS = [
   "https://arrudaimobi.com.br",
@@ -31,7 +31,20 @@ function getSupabase() {
   return createClient(url, key);
 }
 
-async function enrichWithAgents(supabase: any, properties: any[]) {
+interface PropertyRecord {
+  agent_id?: string;
+  property_types?: { name?: string };
+}
+
+interface ProfileRecord {
+  user_id: string;
+  full_name: string;
+  avatar_url?: string;
+  phone?: string;
+  bio?: string;
+}
+
+async function enrichWithAgents(supabase: SupabaseClient, properties: PropertyRecord[]): Promise<PropertyRecord[]> {
   const agentIds = [...new Set(properties.map(p => p.agent_id).filter(Boolean))];
   if (agentIds.length === 0) return properties;
 
@@ -40,8 +53,8 @@ async function enrichWithAgents(supabase: any, properties: any[]) {
     .select("user_id, full_name, avatar_url, phone, bio")
     .in("user_id", agentIds);
 
-  const profileMap: Record<string, any> = {};
-  profiles?.forEach((p: any) => { profileMap[p.user_id] = p; });
+  const profileMap: Record<string, ProfileRecord> = {};
+  profiles?.forEach((p: ProfileRecord) => { profileMap[p.user_id] = p; });
 
   return properties.map(p => ({
     ...p,
@@ -68,7 +81,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    let result: any;
+    let result: unknown;
 
     switch (action) {
       case "list-properties": {
@@ -139,7 +152,7 @@ Deno.serve(async (req) => {
 
         // Filter by type name post-query
         if (type) {
-          enriched = enriched.filter((p: any) => p.property_types?.name === type);
+          enriched = enriched.filter((p: PropertyRecord) => p.property_types?.name === type);
         }
 
         result = {
@@ -213,7 +226,7 @@ Deno.serve(async (req) => {
           .in("agent_id", userIds);
 
         const counts: Record<string, number> = {};
-        propCounts?.forEach((p: any) => { counts[p.agent_id!] = (counts[p.agent_id!] || 0) + 1; });
+        propCounts?.forEach((p: Record<string, unknown>) => { counts[p.agent_id as string] = (counts[p.agent_id as string] || 0) + 1; });
 
         result = {
           data: visibleProfiles?.map(p => ({
@@ -290,7 +303,7 @@ Deno.serve(async (req) => {
           supabase.from("properties").select("city").eq("status", "available"),
         ]);
 
-        const uniqueCities = new Set(cities.data?.map((c: any) => c.city).filter(Boolean));
+        const uniqueCities = new Set(cities.data?.map((c: Record<string, unknown>) => c.city as string).filter(Boolean));
 
         result = {
           properties_count: props.count || 0,
@@ -307,7 +320,7 @@ Deno.serve(async (req) => {
           .eq("status", "available")
           .not("city", "is", null);
         if (error) throw error;
-        const unique = [...new Set((data || []).map((r: any) => r.city).filter(Boolean))].sort();
+        const unique = [...new Set((data || []).map((r: Record<string, unknown>) => r.city as string).filter(Boolean))].sort();
         result = unique;
         break;
       }
@@ -345,7 +358,7 @@ Deno.serve(async (req) => {
         if (error) throw error;
         
         const tenantName = data?.name || "Arruda Imobi";
-        const settings = (data?.settings as any) || {};
+        const settings = (data?.settings ?? {}) as Record<string, unknown>;
         
         const manifest = {
           name: tenantName,
@@ -404,7 +417,7 @@ Deno.serve(async (req) => {
               .from("blog_post_tags")
               .select("post_id")
               .eq("tag_id", tagData.id);
-            filteredPostIds = (ptData || []).map((r: any) => r.post_id);
+            filteredPostIds = (ptData || []).map((r: Record<string, unknown>) => r.post_id as string);
           } else {
             filteredPostIds = [];
           }
@@ -429,24 +442,24 @@ Deno.serve(async (req) => {
 
         // Enrich with author names
         const authorIds = [...new Set((data || []).map(p => p.author_id).filter(Boolean))];
-        let authorMap: Record<string, any> = {};
+        const authorMap: Record<string, ProfileRecord> = {};
         if (authorIds.length > 0) {
           const { data: profiles } = await supabase
             .from("profiles")
             .select("user_id, full_name, avatar_url")
             .in("user_id", authorIds);
-          profiles?.forEach((p: any) => { authorMap[p.user_id] = p; });
+          profiles?.forEach((p: ProfileRecord) => { authorMap[p.user_id] = p; });
         }
 
         // Enrich with tags
         const postIds = (data || []).map(p => p.id);
-        let tagMap: Record<string, any[]> = {};
+        const tagMap: Record<string, Record<string, unknown>[]> = {};
         if (postIds.length > 0) {
           const { data: ptData } = await supabase
             .from("blog_post_tags")
             .select("post_id, blog_tags(id, name, slug)")
             .in("post_id", postIds);
-          (ptData || []).forEach((pt: any) => {
+          (ptData || []).forEach((pt: Record<string, unknown>) => {
             if (!tagMap[pt.post_id]) tagMap[pt.post_id] = [];
             if (pt.blog_tags) tagMap[pt.post_id].push(pt.blog_tags);
           });
@@ -492,24 +505,27 @@ Deno.serve(async (req) => {
           });
         }
 
+        // Build result with enrichment
+        const enrichedPost = { ...data };
+
         // Get author
-        if (data.author_id) {
+        if (enrichedPost.author_id) {
           const { data: profile } = await supabase
             .from("profiles")
             .select("user_id, full_name, avatar_url")
-            .eq("user_id", data.author_id)
+            .eq("user_id", enrichedPost.author_id)
             .maybeSingle();
-          (data as any).author = profile || null;
+          enrichedPost.author = profile || null;
         }
 
         // Get tags
         const { data: ptData } = await supabase
           .from("blog_post_tags")
           .select("blog_tags(id, name, slug)")
-          .eq("post_id", data.id);
-        (data as any).tags = (ptData || []).map((pt: any) => pt.blog_tags).filter(Boolean);
+          .eq("post_id", enrichedPost.id);
+        enrichedPost.tags = (ptData || []).map((pt: { blog_tags: unknown }) => pt.blog_tags).filter(Boolean);
 
-        result = data;
+        result = enrichedPost;
         break;
       }
 
@@ -522,9 +538,10 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "unknown error";
     console.error("public-api error:", err);
-    return new Response(JSON.stringify({ error: err.message }), {
+    return new Response(JSON.stringify({ error: message }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

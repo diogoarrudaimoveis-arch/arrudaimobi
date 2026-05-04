@@ -47,7 +47,7 @@ const AdminPortals = () => {
 
   // 2. Create Mutation
   const createMutation = useMutation({
-    mutationFn: async (vars: any) => {
+    mutationFn: async (vars: { name: string; type: string; endpointUrl?: string | null; apiToken?: string | null }) => {
       const { data, error } = await supabase
         .from("portal_integrations")
         .insert({
@@ -70,8 +70,8 @@ const AdminPortals = () => {
       setDialogOpen(false);
       resetForm();
     },
-    onError: (error: any) => {
-      toast.error(`Erro ao criar integração: ${error.message}`);
+    onError: (error: unknown) => {
+      toast.error(`Erro ao criar integração: ${error instanceof Error ? error.message : String(error)}`);
     },
   });
 

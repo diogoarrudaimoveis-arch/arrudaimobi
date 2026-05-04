@@ -90,7 +90,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const initials = (profile?.full_name || "U")
     .split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
 
-  const NavLink = ({ item }: { item: any }) => {
+  const NavLink = ({ item }: { item: { label: string; href: string; icon?: React.ComponentType<{ className?: string }> } }) => {
     const active = location.pathname === item.href;
     const link = (
       <Link

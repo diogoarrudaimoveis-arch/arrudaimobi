@@ -19,14 +19,14 @@ function parseFiltersFromParams(sp: URLSearchParams): SearchFilters {
   return {
     query: sp.get("q") || "",
     type: sp.get("type") || "",
-    purpose: (sp.get("purpose") as any) || "",
+    purpose: (sp.get("purpose") || "") as SearchFilters["purpose"],
     minPrice: Number(sp.get("minPrice") || 0),
     maxPrice: Number(sp.get("maxPrice") || 0),
     bedrooms: Number(sp.get("bedrooms") || 0),
     bathrooms: Number(sp.get("bathrooms") || 0),
     garages: Number(sp.get("garages") || 0),
     city: sp.get("city") || "",
-    sortBy: (sp.get("sortBy") as any) || "newest",
+    sortBy: (sp.get("sortBy") || "newest") as SearchFilters["sortBy"],
   };
 }
 

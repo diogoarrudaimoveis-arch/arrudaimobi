@@ -15,8 +15,8 @@ export async function shareProperty(title: string, url?: string) {
       await navigator.clipboard.writeText(shareUrl);
       toast.success("Link copiado para a área de transferência!");
     }
-  } catch (err: any) {
-    if (err?.name !== "AbortError") {
+  } catch (err) {
+    if (err instanceof Error && err.name !== "AbortError") {
       await navigator.clipboard.writeText(shareUrl);
       toast.success("Link copiado para a área de transferência!");
     }

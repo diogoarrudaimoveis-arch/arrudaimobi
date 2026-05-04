@@ -82,7 +82,7 @@ export function AdvancedSiteSettings({ tenantId }: AdvancedSiteSettingsProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["site-settings"] });
     },
-    onError: (err: any) => {
+    onError: (err) => {
       toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
     }
   });
@@ -98,8 +98,8 @@ export function AdvancedSiteSettings({ tenantId }: AdvancedSiteSettingsProps) {
       
       const { data } = supabase.storage.from("property-images").getPublicUrl(`branding/${filename}`);
       setFaviconUrl(data.publicUrl);
-    } catch (err: any) {
-      toast({ title: "Erro ao enviar", description: err.message, variant: "destructive" });
+    } catch (err) {
+      toast({ title: "Erro ao enviar", description: (err instanceof Error ? err.message : String(err)), variant: "destructive" });
     } finally {
       setUploadingFavicon(false);
     }
@@ -116,8 +116,8 @@ export function AdvancedSiteSettings({ tenantId }: AdvancedSiteSettingsProps) {
       
       const { data } = supabase.storage.from("property-images").getPublicUrl(`branding/${filename}`);
       setSeoImageUrl(data.publicUrl);
-    } catch (err: any) {
-      toast({ title: "Erro ao enviar", description: err.message, variant: "destructive" });
+    } catch (err) {
+      toast({ title: "Erro ao enviar", description: (err instanceof Error ? err.message : String(err)), variant: "destructive" });
     } finally {
       setUploadingSeoImg(false);
     }

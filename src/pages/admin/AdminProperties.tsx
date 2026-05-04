@@ -39,7 +39,7 @@ const AdminProperties = () => {
   
   // Estados do Modal Assistente de IA
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
-  const [aiModalContext, setAiModalContext] = useState<any>(null);
+  const [aiModalContext, setAiModalContext] = useState<Record<string, unknown> | null>(null);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [generatingAI, setGeneratingAI] = useState(false);
@@ -176,9 +176,9 @@ const AdminProperties = () => {
       if (rolesErr) throw rolesErr;
 
       const roleMap: Record<string, string> = {};
-      (roles || []).forEach((r: any) => { roleMap[r.user_id] = r.role; });
+      (roles || []).forEach((r: { user_id: string; role: string }) => { roleMap[r.user_id] = r.role; });
 
-      return (profiles || []).map((profile: any) => ({
+      return (profiles || []).map((profile: { user_id: string; full_name?: string | null; phone?: string | null }) => ({
         ...profile,
         role: roleMap[profile.user_id] || "user",
       }));
@@ -291,7 +291,7 @@ const AdminProperties = () => {
         .eq("tenant_id", tenantId!)
         .not("city", "is", null)
         .neq("city", "");
-      const unique = [...new Set((data || []).map((p: any) => p.city as string))]
+      const unique = [...new Set((data || []).map((p) => p.city as string))]
         .filter(Boolean)
         .sort();
       return unique;
@@ -388,7 +388,7 @@ const AdminProperties = () => {
           property_id: propertyId,
           portal_id,
           status: "ativo",
-          modality: data.modality as any,
+          modality: data.modality as string,
         }));
 
       if (listingsToInsert.length > 0) {
@@ -472,8 +472,8 @@ const AdminProperties = () => {
                   console.log(`[SUCESSO] Imagem ${image.id} convertida para WebP e carimbada. Nova URL: ${newPublicUrl}`);
                 }
               }
-            } catch (error: any) {
-              const message = error?.message || String(error);
+            } catch (error: unknown) {
+              const message = error instanceof Error ? error.message : String(error);
               if (message.includes("row-level security") || message.includes("RLS") || message.includes("400") || message.toLowerCase().includes("cors") || message.toLowerCase().includes("failed to fetch")) {
                 console.log(`[Aviso] Foto ${image.id} não pôde ser carimbada por restrição do servidor ou erro de download (${message}), mantendo URL original.`);
                 return;
@@ -497,8 +497,8 @@ const AdminProperties = () => {
         setEditingId(id);
       }
     },
-    onError: (err: any) => {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    onError: (err) => {
+      toast({ title: "Erro", description: (err instanceof Error ? err.message : String(err)), variant: "destructive" });
     },
     onSettled: () => {
       setIsImageProcessing(false);
@@ -562,7 +562,7 @@ const AdminProperties = () => {
     setSelectedProfileUserId("");
   };
 
-  const openEdit = async (p: any) => {
+  const openEdit = async (p: { id: string; title?: string; description?: string; type_id?: string; purpose?: string; status?: string; price?: number; price_condominium?: number; price_iptu?: number; area?: number; area_total?: number; area_useful?: number; bedrooms?: number; suites?: number; living_rooms?: number; bathrooms?: number; garages?: number; address?: string; city?: string; state?: string; neighborhood?: string; zip_code?: string; number?: string }) => {
     console.log("[DEBUG] Abrindo edição para ID:", p.id);
     setEditingId(p.id);
     setForm({
@@ -747,7 +747,7 @@ const AdminProperties = () => {
                           }}>
                             <SelectTrigger><SelectValue placeholder="Selecione o agente responsável" /></SelectTrigger>
                             <SelectContent>
-                              {(tenantProfiles || []).map((profile: any) => (
+                              {(tenantProfiles || []).map((profile: { user_id: string; full_name?: string | null; role?: string }) => (
                                 <SelectItem key={profile.user_id} value={profile.user_id}>
                                   {profile.full_name || "Usuário sem nome"} {profile.role ? `(${profile.role})` : ""}
                                 </SelectItem>
@@ -876,7 +876,7 @@ const AdminProperties = () => {
                               }}>
                                 <SelectTrigger><SelectValue placeholder="Selecione um agente ou usuário" /></SelectTrigger>
                                 <SelectContent>
-                                  {(tenantProfiles || []).map((profile: any) => (
+                                  {(tenantProfiles || []).map((profile: { user_id: string; full_name?: string | null; role?: string }) => (
                                     <SelectItem key={profile.user_id} value={profile.user_id}>
                                       {profile.full_name || "Usuário sem nome"} ({profile.role})
                                     </SelectItem>
@@ -891,7 +891,7 @@ const AdminProperties = () => {
                                 className="text-[#003366] border-[#003366]"
                                 disabled={!selectedProfileUserId || createOwnerMutation.isPending}
                                 onClick={() => {
-                                  const profile = (tenantProfiles || []).find((p: any) => p.user_id === selectedProfileUserId);
+                                  const profile = (tenantProfiles || []).find((p: { user_id: string }) => p.user_id === selectedProfileUserId);
                                   if (!profile) return;
                                   createOwnerMutation.mutate({
                                     name: profile.full_name || "Usuário sem nome",
@@ -1398,7 +1398,7 @@ const AdminProperties = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {properties.map((p: any) => (
+                  {properties.map((p) => (
                     <TableRow key={p.id}>
                       <TableCell className="font-mono text-xs text-muted-foreground">{p.property_code || "—"}</TableCell>
                       <TableCell className="font-medium">{p.title}</TableCell>

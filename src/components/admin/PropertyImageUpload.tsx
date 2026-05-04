@@ -99,7 +99,7 @@ export function PropertyImageUpload({ propertyId, onProcessingChange }: Props) {
       setUploading(false);
       setProcessingState(false);
     },
-    onError: (err: any) => {
+    onError: (err) => {
       toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
       setUploading(false);
       setProcessingState(false);
@@ -120,7 +120,7 @@ export function PropertyImageUpload({ propertyId, onProcessingChange }: Props) {
       queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
       toast({ title: "Imagem removida" });
     },
-    onError: (err: any) => {
+    onError: (err) => {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     },
   });
@@ -139,7 +139,7 @@ export function PropertyImageUpload({ propertyId, onProcessingChange }: Props) {
       queryClient.invalidateQueries({ queryKey: ["property-images", propertyId] });
       queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
     },
-    onError: (err: any) => {
+    onError: (err) => {
       toast({ title: "Erro ao reordenar", description: err.message, variant: "destructive" });
     },
   });

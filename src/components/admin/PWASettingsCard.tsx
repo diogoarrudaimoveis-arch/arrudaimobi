@@ -57,7 +57,7 @@ export function PWASettingsCard({ tenantId, settings, allSettings }: PWASettings
       setPwaIcon192(urlData.publicUrl);
       setCropper192Open(false);
       toast({ title: "Ícone 192x192 enviado!" });
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Erro ao enviar ícone", description: err.message, variant: "destructive" });
     } finally {
       setUploading192(false);
@@ -76,7 +76,7 @@ export function PWASettingsCard({ tenantId, settings, allSettings }: PWASettings
       setPwaIcon512(urlData.publicUrl);
       setCropper512Open(false);
       toast({ title: "Ícone 512x512 enviado!" });
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Erro ao enviar ícone", description: err.message, variant: "destructive" });
     } finally {
       setUploading512(false);
@@ -108,7 +108,7 @@ export function PWASettingsCard({ tenantId, settings, allSettings }: PWASettings
       queryClient.invalidateQueries({ queryKey: ["admin-tenant"] });
       queryClient.invalidateQueries({ queryKey: ["tenant-settings"] });
       toast({ title: "Configurações do PWA salvas!" });
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
       setSaving(false);

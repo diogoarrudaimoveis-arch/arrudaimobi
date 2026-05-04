@@ -202,9 +202,9 @@ async function getSignedStorageUrlForImage(url: string): Promise<string | null> 
 async function downloadImageFromStorage(path: string, filename?: string): Promise<File> {
   const cleanPath = path.replace(/\?.*$/, "");
   const cacheBustedPath = `${cleanPath}?t=${Date.now()}`;
-  let downloadResult = await supabase.storage.from("property-images").download(cacheBustedPath);
+  const downloadResult = await supabase.storage.from("property-images").download(cacheBustedPath);
   let data = downloadResult.data;
-  let error = downloadResult.error;
+  const error = downloadResult.error;
 
   if (error || !data) {
     console.warn('[SISTEMA] Download SDK falhou, tentando fallback por publicUrl:', error?.message || error);

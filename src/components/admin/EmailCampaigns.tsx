@@ -280,7 +280,7 @@ export default function EmailCampaigns() {
       setSelectedIds(new Set());
       loadHistory();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Erro ao enviar";
+      const message = err instanceof Error ? (err instanceof Error ? err.message : String(err)) : "Erro ao enviar";
       toast({ title: message, variant: "destructive" });
     } finally {
       setSending(false);

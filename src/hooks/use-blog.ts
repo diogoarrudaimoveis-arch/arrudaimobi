@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 
 const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 const BASE = `https://udutxbyzrdwucabxqvgg.supabase.co/functions/v1/public-api`;
@@ -74,6 +75,8 @@ export function usePublicBlogTags() {
 }
 
 // Admin: list all posts (including drafts)
+type PostTagRow = Database["public"]["Tables"]["blog_post_tags"]["Row"];
+
 export function useAdminBlogPosts() {
   return useQuery({
     queryKey: ["admin-blog-posts"],
@@ -86,13 +89,13 @@ export function useAdminBlogPosts() {
 
       // Fetch tags for each post
       const postIds = (data || []).map(p => p.id);
-      let tagMap: Record<string, BlogTag[]> = {};
+      const tagMap: Record<string, BlogTag[]> = {};
       if (postIds.length > 0) {
         const { data: ptData } = await supabase
           .from("blog_post_tags")
           .select("post_id, tag_id, blog_tags(*)")
           .in("post_id", postIds);
-        (ptData || []).forEach((pt: any) => {
+        (ptData || []).forEach((pt: PostTagRow & { blog_tags?: BlogTag }) => {
           if (!tagMap[pt.post_id]) tagMap[pt.post_id] = [];
           if (pt.blog_tags) tagMap[pt.post_id].push(pt.blog_tags);
         });
@@ -140,15 +143,20 @@ export function useUpdateBlogPost() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, tag_ids, ...updates }: Partial<BlogPost> & { id: string; tag_ids?: string[] }) => {
+      const clean: Record<string, unknown> = { ...updates };
       if (updates.published) {
         const { data: existing } = await supabase.from("blog_posts").select("published_at").eq("id", id).single();
         if (!existing?.published_at) {
-          (updates as any).published_at = new Date().toISOString();
+          clean.published_at = new Date().toISOString();
         }
       }
+      delete clean.id;
+      delete clean.tag_ids;
+      delete clean.author;
+      delete clean.tags;
       const { data, error } = await supabase
         .from("blog_posts")
-        .update(updates as any)
+        .update(clean as Record<string, unknown>)
         .eq("id", id)
         .select()
         .single();

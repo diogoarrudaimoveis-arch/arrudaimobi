@@ -3,8 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { checkAllIntegrations } from "@/lib/integrations";
+import { getZproChannels, getZproTicketStats } from "@/lib/zpro-service";
 import { useLeadMetrics } from "@/hooks/use-contacts";
-import { Building2, Home, Users, MessageSquare, TrendingUp, Eye } from "lucide-react";
+import { Activity, AlertTriangle, Building2, CheckCircle2, Clock, Home, Send, Users, MessageSquare, TrendingUp, Eye } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from "recharts";
 
 const CHART_COLORS = [
@@ -18,9 +20,67 @@ const CHART_COLORS = [
   "#06b6d4",
 ];
 
+
+const operationalLeadPriorities = [
+  { label: "P0", description: "Ação imediata", value: 4, tone: "text-destructive", bg: "from-destructive/10 to-destructive/5" },
+  { label: "P1", description: "Leads quentes", value: 19, tone: "text-warning", bg: "from-warning/10 to-warning/5" },
+  { label: "P2", description: "Nutrição ativa", value: 38, tone: "text-info", bg: "from-info/10 to-info/5" },
+];
+
+const operationalMetrics = [
+  { title: "Mensagens hoje", value: "42", detail: "31 leads únicos", icon: Send, tone: "text-primary", bg: "from-primary/10 to-primary/5" },
+  { title: "Taxa de resposta", value: "28,4%", detail: "janela 24h", icon: TrendingUp, tone: "text-success", bg: "from-success/10 to-success/5" },
+  { title: "Alertas ativos", value: "2", detail: "1 P1, 1 P2", icon: AlertTriangle, tone: "text-warning", bg: "from-warning/10 to-warning/5" },
+];
+
+
+
 const AdminDashboard = () => {
   const { tenantId, isReady, profile } = useAuth();
   const { data: leadMetrics } = useLeadMetrics();
+
+  // ZPRO real data queries
+  const { data: zproChannels } = useQuery({
+    queryKey: ["zpro-channels"],
+    queryFn: getZproChannels,
+    staleTime: 60_000,
+  });
+  const { data: zproTicketStats } = useQuery({
+    queryKey: ["zpro-ticket-stats"],
+    queryFn: getZproTicketStats,
+    staleTime: 30_000,
+  });
+
+  const { data: health } = useQuery({
+    queryKey: ["integration-health"],
+    queryFn: () => checkAllIntegrations(supabase),
+    refetchInterval: 60_000,
+  });
+
+  const integrationStatus = health
+    ? [
+        {
+          name: "Supabase",
+          status: health.supabase.status === "ok" || health.supabase.status === "degraded" ? "ok" : health.supabase.status === "down" ? "error" : "unknown",
+          detail: health.supabase.latencyMs >= 0 ? `${health.supabase.latencyMs}ms` : "sem dados",
+        },
+        {
+          name: "ZPRO",
+          status: health.zpro.status === "ok" || health.zpro.status === "degraded" ? "ok" : health.zpro.status === "down" ? "error" : "unknown",
+          detail: health.zpro.latencyMs >= 0 ? `🔗 ${health.zpro.latencyMs}ms` : health.zpro.status === "unknown" ? "não configurado" : "erro",
+        },
+        {
+          name: "n8n",
+          status: "unknown",
+          detail: "em planejamento",
+        },
+        {
+          name: "MiniMax",
+          status: "unknown",
+          detail: "em planejamento",
+        },
+      ]
+    : [];
 
   const { data: stats } = useQuery({
     queryKey: ["admin-dashboard-stats", tenantId],
@@ -51,7 +111,7 @@ const AdminDashboard = () => {
         .select("type_id, property_types(name)")
         .eq("tenant_id", tenantId!);
       const counts: Record<string, number> = {};
-      data?.forEach((p: any) => {
+      data?.forEach((p: { property_types?: { name?: string }; purpose?: string; status?: string }) => {
         const name = p.property_types?.name || "Sem tipo";
         counts[name] = (counts[name] || 0) + 1;
       });
@@ -68,7 +128,7 @@ const AdminDashboard = () => {
         .select("purpose")
         .eq("tenant_id", tenantId!);
       const counts: Record<string, number> = {};
-      data?.forEach((p: any) => {
+      data?.forEach((p: { property_types?: { name?: string }; purpose?: string; status?: string }) => {
         const label = p.purpose === "sale" ? "Venda" : "Aluguel";
         counts[label] = (counts[label] || 0) + 1;
       });
@@ -88,7 +148,7 @@ const AdminDashboard = () => {
         available: "Disponível", sold: "Vendido", rented: "Alugado", pending: "Pendente",
       };
       const counts: Record<string, number> = {};
-      data?.forEach((p: any) => {
+      data?.forEach((p: { property_types?: { name?: string }; purpose?: string; status?: string }) => {
         const label = statusLabels[p.status] || p.status;
         counts[label] = (counts[label] || 0) + 1;
       });
@@ -117,7 +177,7 @@ const AdminDashboard = () => {
         months[key] = 0;
       }
 
-      data?.forEach((c: any) => {
+      data?.forEach((c: { created_at: string }) => {
         const d = new Date(c.created_at);
         const key = `${monthNames[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`;
         if (key in months) months[key]++;
@@ -165,6 +225,81 @@ const AdminDashboard = () => {
             </Card>
           ))}
         </div>
+
+
+        {/* Operational Cockpit - mocked until Supabase/ZPRO monitoring schema is approved */}
+        <section className="space-y-4">
+          <div className="flex flex-col gap-1">
+            <h2 className="font-display text-xl font-bold text-foreground">Cockpit Operacional Arruda</h2>
+            <p className="text-sm text-muted-foreground">Visão mockada para validar layout antes de conectar Supabase, ZPRO e n8n.</p>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-3">
+            {operationalLeadPriorities.map((item) => (
+              <Card key={item.label} className="overflow-hidden hover:shadow-card-hover">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className={`font-display text-3xl font-bold ${item.tone}`}>{item.value}</p>
+                      <p className="mt-1 text-sm font-semibold text-foreground">Leads {item.label}</p>
+                      <p className="text-xs text-muted-foreground">{item.description}</p>
+                    </div>
+                    <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${item.bg}`}>
+                      <Activity className={`h-6 w-6 ${item.tone}`} />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-3">
+            {operationalMetrics.map((metric) => (
+              <Card key={metric.title} className="overflow-hidden hover:shadow-card-hover">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-[13px] font-medium text-muted-foreground">{metric.title}</p>
+                      <p className="mt-1.5 font-display text-3xl font-bold tracking-tight">{metric.value}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{metric.detail}</p>
+                    </div>
+                    <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${metric.bg}`}>
+                      <metric.icon className={`h-6 w-6 ${metric.tone}`} />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-success/10">
+                  <CheckCircle2 className="h-4 w-4 text-success" />
+                </div>
+                Status das Integrações
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {integrationStatus.map((item) => (
+                  <div key={item.name} className="rounded-xl border border-border bg-muted/30 p-4">
+                    <div className="flex items-center gap-2">
+                      {item.status === "ok" ? (
+                        <CheckCircle2 className="h-4 w-4 text-success" />
+                      ) : (
+                        <Clock className="h-4 w-4 text-warning" />
+                      )}
+                      <span className="text-sm font-semibold text-foreground">{item.name}</span>
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">{item.detail}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </section>
 
         {/* Lead Metrics */}
         <div>
