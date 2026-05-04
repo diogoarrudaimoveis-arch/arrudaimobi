@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 
 const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 const BASE = `https://udutxbyzrdwucabxqvgg.supabase.co/functions/v1/public-api`;
@@ -74,6 +75,8 @@ export function usePublicBlogTags() {
 }
 
 // Admin: list all posts (including drafts)
+type PostTagRow = Database["public"]["Tables"]["blog_post_tags"]["Row"];
+
 export function useAdminBlogPosts() {
   return useQuery({
     queryKey: ["admin-blog-posts"],
@@ -92,7 +95,7 @@ export function useAdminBlogPosts() {
           .from("blog_post_tags")
           .select("post_id, tag_id, blog_tags(*)")
           .in("post_id", postIds);
-        (ptData || []).forEach((pt: any) => {
+        (ptData || []).forEach((pt: PostTagRow & { blog_tags?: BlogTag }) => {
           if (!tagMap[pt.post_id]) tagMap[pt.post_id] = [];
           if (pt.blog_tags) tagMap[pt.post_id].push(pt.blog_tags);
         });

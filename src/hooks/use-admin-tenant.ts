@@ -21,7 +21,7 @@ export function useAdminTenant() {
 
   const getCurrentSettings = (): TenantSettings => {
     if (!tenantId) return ((query.data?.settings as TenantSettings) || {});
-    const cached = queryClient.getQueryData<any>(["admin-tenant", tenantId]);
+    const cached = queryClient.getQueryData<{ settings: TenantSettings } | undefined>(["admin-tenant", tenantId]);
     return ((cached?.settings as TenantSettings) || (query.data?.settings as TenantSettings) || {});
   };
 
@@ -30,14 +30,14 @@ export function useAdminTenant() {
     const merged: TenantSettings = { ...getCurrentSettings(), ...partial };
     const { error } = await supabase
       .from("tenants")
-      .update({ settings: merged as any })
+      .update({ settings: merged as TenantSettings })
       .eq("id", tenantId);
     if (error) throw error;
 
-    queryClient.setQueryData(["admin-tenant", tenantId], (c: any) =>
+    queryClient.setQueryData(["admin-tenant", tenantId], (c: { settings: TenantSettings } | undefined) =>
       c ? { ...c, settings: merged } : c
     );
-    queryClient.setQueryData(["tenant-settings"], (c: any) =>
+    queryClient.setQueryData(["tenant-settings"], (c: { settings: TenantSettings } | undefined) =>
       c ? { ...c, settings: merged } : c
     );
     queryClient.invalidateQueries({ queryKey: ["admin-tenant"] });
