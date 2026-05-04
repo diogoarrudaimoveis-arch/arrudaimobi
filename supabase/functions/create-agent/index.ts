@@ -1,5 +1,23 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
+// Local type definition matching src/contexts/AuthContext.tsx
+interface UserProfile {
+  id: string;
+  user_id: string;
+  tenant_id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  phone: string | null;
+  bio: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface AuthUpdateData {
+  email?: string;
+  user_metadata?: { full_name?: string; avatar_url?: string };
+}
+
 const ALLOWED_ORIGINS = [
   "https://arrudaimobi.com.br",
   "https://www.arrudaimobi.com.br",
@@ -103,7 +121,11 @@ Deno.serve(async (req) => {
       if (!targetProfile) throw new Error("Usuário não encontrado ou pertence a outro tenant");
 
       // Update Auth (Email and Metadata)
-      const updateAuthData: any = {};
+      type AuthUpdateData = {
+        email?: string;
+        user_metadata?: { full_name?: string; avatar_url?: string };
+      };
+      const updateAuthData: AuthUpdateData = {};
       if (email) updateAuthData.email = email;
       
       // Sync full_name and avatar_url to Auth metadata for consistency
@@ -116,7 +138,8 @@ Deno.serve(async (req) => {
       if (authUpErr) throw authUpErr;
 
       // Update Profile Table
-      const profileUpdates: any = {};
+      // Update Profile Table
+      const profileUpdates: Partial<UserProfile> = {};
       if (full_name) profileUpdates.full_name = full_name;
       if (phone !== undefined) profileUpdates.phone = phone;
       if (avatar_url !== undefined) profileUpdates.avatar_url = avatar_url;
@@ -177,7 +200,7 @@ Deno.serve(async (req) => {
         .eq("tenant_id", tenantId);
     }
 
-    const initialProfileUpdates: any = { tenant_id: tenantId };
+    const initialProfileUpdates: Partial<UserProfile> & { tenant_id: string } = { tenant_id: tenantId };
     if (phone) initialProfileUpdates.phone = phone;
     if (avatar_url) initialProfileUpdates.avatar_url = avatar_url;
     if (show_on_public_page !== undefined) initialProfileUpdates.show_on_public_page = show_on_public_page;
