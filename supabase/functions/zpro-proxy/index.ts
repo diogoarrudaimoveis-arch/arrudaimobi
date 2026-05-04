@@ -125,7 +125,8 @@ const routeFor = (action: ZproAction, params: Record<string, unknown> = {}): Zpr
       // CRM write is private until a rate-limited public lead endpoint is explicitly approved.
       return { method: "POST", path: "/createContact", public: false };
     case "probe":
-      return { method: "GET", path: "/listChannels", public: false };
+      // Public sanitized probe: confirms proxy + upstream auth without exposing CRM data.
+      return { method: "GET", path: "/listChannels", public: true };
     default:
       throw new Error("Unsupported ZPRO action");
   }
@@ -194,6 +195,13 @@ Deno.serve(async (req) => {
 
     const text = await upstream.text();
     const contentType = upstream.headers.get("content-type") || "application/json";
+
+    if (action === "probe") {
+      return json({ ok: upstream.ok, upstreamStatus: upstream.status }, upstream.ok ? 200 : 502, {
+        ...corsHeaders,
+        "Cache-Control": "no-store",
+      });
+    }
 
     return new Response(text, {
       status: upstream.status,
