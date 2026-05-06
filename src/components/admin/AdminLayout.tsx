@@ -9,8 +9,10 @@ import {
   Building2, LayoutDashboard, Home, Users, Settings, Tag,
   Sparkles, MessageSquare, LogOut, X, Menu, Sun, Moon, User, Image, Send, Mail,
   PanelLeftClose, PanelLeftOpen, ChevronRight, FileText, Download, Globe,
-  Calendar as CalendarIcon, Target, BarChart3
+  Calendar as CalendarIcon, Target, BarChart3, BrainCircuit, Bot, Workflow,
+  ScrollText, HeartPulse, GitBranch, Database
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
@@ -52,6 +54,19 @@ const navGroups = [
     ]
   },
   {
+    label: "IA Operacional",
+    items: [
+      { label: "Central IA", href: "/admin/ia-operacional", icon: BrainCircuit },
+      { label: "Agentes IA", href: "/admin/ia-agentes", icon: Bot },
+      { label: "Automações N8N", href: "/admin/ia-automacoes", icon: Workflow },
+      { label: "Logs", href: "/admin/ia-logs", icon: ScrollText },
+      { label: "Health Checks", href: "/admin/ia-health", icon: HeartPulse },
+      { label: "DevOps", href: "/admin/devops", icon: GitBranch },
+      { label: "Meta Ads", href: "/admin/meta-ads", icon: Target },
+      { label: "Supabase", href: "/admin/supabase-monitor", icon: Database },
+    ]
+  },
+  {
     label: "Sistema",
     items: [
       { label: "Meu Perfil", href: "/admin/perfil", icon: User },
@@ -90,7 +105,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const initials = (profile?.full_name || "U")
     .split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
 
-  const NavLink = ({ item }: { item: any }) => {
+  const NavLink = ({ item }: { item: { label: string; href: string; icon: LucideIcon } }) => {
     const active = location.pathname === item.href;
     const link = (
       <Link
