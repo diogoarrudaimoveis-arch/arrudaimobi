@@ -47,6 +47,9 @@ const AdminAIAgents = lazy(() => import("./pages/admin/ai/AdminAIAgents"));
 const AdminAIAutomations = lazy(() => import("./pages/admin/ai/AdminAIAutomations"));
 const AdminAILogs = lazy(() => import("./pages/admin/ai/AdminAILogs"));
 const AdminAIHealth = lazy(() => import("./pages/admin/ai/AdminAIHealth"));
+const AdminAIAlerts = lazy(() => import("./pages/admin/ai/AdminAIAlerts"));
+const AdminAITelemetry = lazy(() => import("./pages/admin/ai/AdminAITelemetry"));
+const AdminAISecurity = lazy(() => import("./pages/admin/ai/AdminAISecurity"));
 const AdminDevOps = lazy(() => import("./pages/admin/ai/AdminDevOps"));
 const AdminMetaAds = lazy(() => import("./pages/admin/ai/AdminMetaAds"));
 const AdminSupabaseMonitor = lazy(() => import("./pages/admin/ai/AdminSupabaseMonitor"));
@@ -126,6 +129,9 @@ const App = () => (
                         <Route path="/admin/ia-automacoes" element={<ProtectedRoute requireAdmin><AdminAIAutomations /></ProtectedRoute>} />
                         <Route path="/admin/ia-logs" element={<ProtectedRoute requireAdmin><AdminAILogs /></ProtectedRoute>} />
                         <Route path="/admin/ia-health" element={<ProtectedRoute requireAdmin><AdminAIHealth /></ProtectedRoute>} />
+                        <Route path="/admin/ia-alertas" element={<ProtectedRoute requireAdmin><AdminAIAlerts /></ProtectedRoute>} />
+                        <Route path="/admin/ia-telemetria" element={<ProtectedRoute requireAdmin><AdminAITelemetry /></ProtectedRoute>} />
+                        <Route path="/admin/ia-security" element={<ProtectedRoute requireAdmin><AdminAISecurity /></ProtectedRoute>} />
                         <Route path="/admin/devops" element={<ProtectedRoute requireAdmin><AdminDevOps /></ProtectedRoute>} />
                         <Route path="/admin/meta-ads" element={<ProtectedRoute requireAdmin><AdminMetaAds /></ProtectedRoute>} />
                         <Route path="/admin/supabase-monitor" element={<ProtectedRoute requireAdmin><AdminSupabaseMonitor /></ProtectedRoute>} />

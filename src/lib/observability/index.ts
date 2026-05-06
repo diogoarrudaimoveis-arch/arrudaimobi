@@ -4,3 +4,4 @@ export * from './healthService';
 export * from './logService';
 export * from './alertRegistry';
 export * from './telemetryService';
+export * from './securityHealthService';
