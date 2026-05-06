@@ -140,6 +140,38 @@ export function HealthStatusCard({ health }: { health: HealthStatusMock }) {
   );
 }
 
+// Card for real integration health data (from useIntegrationHealth hook)
+import type { IntegrationHealthItem } from "@/hooks/use-integration-health";
+
+const iconStringMap: Record<string, LucideIcon> = {
+  CheckCircle2,
+  Bot,
+  Database,
+  Workflow,
+  Activity,
+  ShieldAlert,
+  AlertTriangle,
+  Clock,
+};
+
+export function RealIntegrationHealthCard({ health }: { health: IntegrationHealthItem }) {
+  const Icon = iconStringMap[health.icon] ?? Activity;
+  return (
+    <Card className="overflow-hidden hover:shadow-card-hover">
+      <CardContent className="p-5">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-foreground">{health.label}</p>
+            <p className="mt-1 font-display text-2xl font-bold">{health.value}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{health.detail}</p>
+          </div>
+          <IconBubble icon={Icon} status={health.status} />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function AlertSeverityCard({ alert }: { alert: AlertMock }) {
   const Icon = alert.severity === "critical" || alert.severity === "error" ? ShieldAlert : AlertTriangle;
   const status: OpsStatus = alert.severity === "critical" || alert.severity === "error" ? "critical" : "warning";

@@ -4,12 +4,16 @@ import {
   AlertSeverityCard,
   HealthStatusCard,
   LeadSlaCard,
+  RealIntegrationHealthCard,
   SectionHeader,
   SummaryMetricCard,
 } from "@/components/admin/ai/AiOpsCards";
+import { useIntegrationHealth } from "@/hooks/use-integration-health";
 import { aiAgents, aiOpsSummaryCards, alerts, healthStatuses, leadSlaCards } from "@/data/aiOpsMockData";
+import { AlertTriangle } from "lucide-react";
 
 export default function AdminAIOperational() {
+  const { healthItems, isLoading, isError } = useIntegrationHealth();
   return (
     <AdminLayout>
       <div className="space-y-8">
@@ -25,7 +29,23 @@ export default function AdminAIOperational() {
         </div>
 
         <section className="space-y-4">
-          <SectionHeader title="Health operacional" description="Visão consolidada dos serviços críticos da operação." />
+          <SectionHeader title="Health operacional" description="Verificação real dos serviços críticos via hooks. Fallback para dados mock em caso de falha." />
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {isError && healthItems.length === 0 ? (
+              <div className="col-span-full flex items-center gap-2 text-sm text-warning">
+                <AlertTriangle className="h-4 w-4" />
+                Falha ao obter health real — usando dados mock. Recarregue para tentar novamente.
+              </div>
+            ) : (
+              healthItems.map((health) => (
+                <RealIntegrationHealthCard key={health.id} health={health} />
+              ))
+            )}
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <SectionHeader title="Health legado (mock)" description="Dados estáticos mockados —保留 para compatibilidade." />
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {healthStatuses.map((health) => (
               <HealthStatusCard key={health.id} health={health} />
