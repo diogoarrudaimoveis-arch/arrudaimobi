@@ -18,7 +18,10 @@ export const alerts: Alert[] = [
     acknowledgedBy: null,
     notifiedVia: ['none'],
     triggerCondition: 'cron LC-01 executado + feature flag = false',
-    isActive: true,
+    isActive: false,
+    resolvedAt: new Date().toISOString(),
+    acknowledgedBy: 'system',
+    quarantineNote: 'Pausado via crontab 2026-05-06 — feature desabilitada, 277 falhas consecutivas',
   },
   {
     id: 'alert-002',
@@ -50,7 +53,10 @@ export const alerts: Alert[] = [
     acknowledgedBy: null,
     notifiedVia: ['none'],
     triggerCondition: 'OC-01 cron timeout + 3 retries',
-    isActive: true,
+    isActive: false,
+    resolvedAt: new Date().toISOString(),
+    acknowledgedBy: 'system',
+    quarantineNote: 'OpenClaw cron job 6366c61d disabled 2026-05-06 — node desconectado, timeout loop',
   },
   {
     id: 'alert-004',
