@@ -124,7 +124,7 @@ serve(async (req) => {
       throw new Error("Nenhuma chave de IA configurada para o tenant ou na variável de ambiente.");
     }
 
-    let apiErrors: any[] = [];
+    const apiErrors: any[] = [];
 
     const tryProvider = async (provider: string) => {
       const keys = aiSettings[`${provider}_keys` as keyof typeof aiSettings] as string[];
