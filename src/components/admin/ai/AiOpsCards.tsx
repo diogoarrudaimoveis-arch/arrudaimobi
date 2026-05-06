@@ -14,7 +14,7 @@ import {
   type SupabaseStatusMock,
   statusIconMap,
 } from "@/data/aiOpsMockData";
-import { Activity, AlertTriangle, Bot, Clock, Database, GitBranch, Megaphone, MessageCircle, ShieldAlert, Workflow } from "lucide-react";
+import { Activity, AlertTriangle, Bot, CheckCircle2, Clock, Database, GitBranch, Megaphone, MessageCircle, ShieldAlert, Workflow } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 const statusStyles: Record<OpsStatus, string> = {
