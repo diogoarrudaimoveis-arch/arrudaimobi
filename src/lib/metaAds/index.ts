@@ -1,5 +1,10 @@
 // Meta Ads — Public API (READ-ONLY)
-export { getMetaAdsOverview, getMetaSetupChecklist } from './metaAdsClient';
+export {
+  applyMetaCampaignDailyBudget,
+  draftMetaCampaignDailyBudget,
+  getMetaAdsOverview,
+  getMetaSetupChecklist,
+} from './metaAdsClient';
 export { checkMetaHealth } from './metaAdsHealth';
 export * from './metaAdsTypes';
 export {

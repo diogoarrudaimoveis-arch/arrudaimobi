@@ -80,7 +80,10 @@ function mapCampaign(raw: Record<string, unknown>): Record<string, unknown> {
     effectiveStatus: mapCampaignStatus(raw.effective_status as string),
     objective: raw.objective ?? "",
     dailyBudget: raw.daily_budget
-      ? (Number(raw.daily_budget) / 1_000_000).toFixed(2)
+      ? (Number(raw.daily_budget) / 100).toFixed(2)
+      : null,
+    lifetimeBudget: raw.lifetime_budget
+      ? (Number(raw.lifetime_budget) / 100).toFixed(2)
       : null,
     startTime: raw.start_time ?? null,
     stopTime: raw.stop_time ?? null,
@@ -175,17 +178,24 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Fetch account + campaigns in parallel
-    const [accountData, campaignsData] = await Promise.all([
+    // Fetch account + campaigns + token scopes in parallel
+    const [accountData, campaignsData, debugData] = await Promise.all([
       metaFetch<Record<string, unknown>>(
         `/${accountId}?fields=name,account_status,currency,timezone_name`,
         token
       ).catch(() => null),
       metaFetch<{ data: Record<string, unknown>[] }>(
-        `/${accountId}/campaigns?fields=id,name,status,effective_status,objective,daily_budget,start_time,stop_time&limit=50`,
+        `/${accountId}/campaigns?fields=id,name,status,effective_status,objective,daily_budget,lifetime_budget,start_time,stop_time&limit=50`,
         token
       ).catch(() => ({ data: [] })),
+      metaFetch<{ data: { is_valid: boolean; scopes: string[]; expires_at: number } }>(
+        `/debug_token?input_token=${token}`,
+        token
+      ).catch(() => null),
     ]);
+
+    const scopes = debugData?.data?.scopes ?? [];
+    const hasAdsManage = scopes.includes("ads_management");
 
     const campaigns = (campaignsData?.data ?? []).map(mapCampaign);
 
@@ -231,7 +241,7 @@ Deno.serve(async (req: Request) => {
         accountName: (accountData as Record<string, unknown>)?.name as string ?? null,
         accountStatus: (accountData as Record<string, unknown>)?.account_status as number ?? null,
         canReadAds: true,
-        canManageAds: false,
+        canManageAds: hasAdsManage,
         tokenExpiresAt: null,
         apiVersion: META_API_VERSION,
         checkedAt: new Date().toISOString(),

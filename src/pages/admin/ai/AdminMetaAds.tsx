@@ -3,13 +3,20 @@ import { AdminLayout } from '@/components/admin/AdminLayout';
 import { SectionHeader } from '@/components/admin/ai/AiOpsCards';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import type {
+  MetaAdsBudgetDraft,
   MetaAdsOverview,
   MetaHealthStatus,
   MetaCampaignWithInsights,
   MetaAdsMetricCardData,
 } from '@/lib/metaAds';
 import {
+  applyMetaCampaignDailyBudget,
+  draftMetaCampaignDailyBudget,
   getMetaAdsOverview,
   getMetaSetupChecklist,
   statusToBadge,
@@ -31,6 +38,7 @@ import {
   Activity,
   Shield,
   Settings,
+  Pencil,
 } from 'lucide-react';
 
 // ─── Health Badge ────────────────────────────────────────────────────────────
@@ -131,7 +139,17 @@ function MetaMetricCard({ metric }: { metric: MetaAdsMetricCardData }) {
 
 // ─── Campaign Table ──────────────────────────────────────────────────────────
 
-function CampaignTable({ campaigns }: { campaigns: MetaCampaignWithInsights[] }) {
+function formatBudget(value: string | null) {
+  if (!value) return '—';
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? `R$ ${numeric.toFixed(2)}` : '—';
+}
+
+function CampaignTable({ campaigns, canWrite, onEditBudget }: {
+  campaigns: MetaCampaignWithInsights[];
+  canWrite: boolean;
+  onEditBudget: (campaign: MetaCampaignWithInsights) => void;
+}) {
   if (campaigns.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground text-sm">
@@ -162,6 +180,8 @@ function CampaignTable({ campaigns }: { campaigns: MetaCampaignWithInsights[] })
             <th className="pb-2 pr-4 font-medium text-muted-foreground text-right">CTR</th>
             <th className="pb-2 pr-4 font-medium text-muted-foreground text-right">CPC</th>
             <th className="pb-2 font-medium text-muted-foreground text-right">CPM</th>
+            <th className="pb-2 pl-4 font-medium text-muted-foreground text-right">Budget</th>
+            <th className="pb-2 pl-4 font-medium text-muted-foreground text-right">Ações</th>
           </tr>
         </thead>
         <tbody>
@@ -191,11 +211,147 @@ function CampaignTable({ campaigns }: { campaigns: MetaCampaignWithInsights[] })
               <td className="py-2 text-right font-mono">
                 {c.insights ? `R$ ${c.insights.cpm.toFixed(2)}` : '—'}
               </td>
+              <td className="py-2 pl-4 text-right font-mono">
+                {formatBudget(c.dailyBudget)}
+              </td>
+              <td className="py-2 pl-4 text-right">
+                <Button size="sm" variant="outline" onClick={() => onEditBudget(c)}>
+                  <Pencil size={12} className="mr-1" />
+                  {canWrite ? 'Editar orçamento' : 'Ver write mode'}
+                </Button>
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
     </div>
+  );
+}
+
+function BudgetEditModal({
+  campaign,
+  canWrite,
+  open,
+  onOpenChange,
+}: {
+  campaign: MetaCampaignWithInsights | null;
+  canWrite: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [dailyBudget, setDailyBudget] = useState('');
+  const [draft, setDraft] = useState<MetaAdsBudgetDraft | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setDailyBudget(campaign?.dailyBudget ?? '');
+    setDraft(null);
+    setStatus(null);
+  }, [campaign]);
+
+  const newDailyBudget = Number(String(dailyBudget).replace(',', '.'));
+  const invalidBudget = !Number.isFinite(newDailyBudget) || newDailyBudget < 5 || newDailyBudget > 10000;
+
+  async function saveDraft() {
+    if (!campaign || invalidBudget) return;
+    setLoading(true);
+    setStatus(null);
+    try {
+      const result = await draftMetaCampaignDailyBudget({
+        campaignId: campaign.id,
+        campaignName: campaign.name,
+        currentDailyBudget: campaign.dailyBudget,
+        newDailyBudget,
+      });
+      setDraft(result.draft);
+      setStatus('Rascunho criado. Nenhuma alteração foi aplicada na Meta.');
+    } catch (err) {
+      setStatus(err instanceof Error ? err.message : 'Erro ao criar rascunho');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function applyAfterApproval() {
+    if (!campaign || !draft || invalidBudget) return;
+    setLoading(true);
+    setStatus(null);
+    try {
+      const result = await applyMetaCampaignDailyBudget({
+        campaignId: campaign.id,
+        campaignName: campaign.name,
+        currentDailyBudget: campaign.dailyBudget,
+        newDailyBudget,
+        approvalId: draft.approvalId,
+      });
+      setStatus(result.mode === 'applied'
+        ? 'Alteração aplicada e validada.'
+        : result.error ?? 'Aplicação bloqueada pelo servidor.');
+    } catch (err) {
+      setStatus(err instanceof Error ? err.message : 'Erro ao aplicar alteração');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Editar orçamento diário</DialogTitle>
+          <DialogDescription>
+            Fluxo seguro: rascunho → preview → aprovação Diogo → execução → log → validação.
+          </DialogDescription>
+        </DialogHeader>
+        {campaign && (
+          <div className="space-y-4">
+            <div className="rounded-lg border border-white/10 bg-white/5 p-3 text-sm">
+              <p className="font-semibold truncate">{campaign.name}</p>
+              <p className="text-muted-foreground">Orçamento atual: {formatBudget(campaign.dailyBudget)}</p>
+              <p className="text-muted-foreground">Status: {campaign.effectiveStatus}</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="meta-daily-budget">Novo orçamento diário (R$)</Label>
+              <Input
+                id="meta-daily-budget"
+                inputMode="decimal"
+                value={dailyBudget}
+                onChange={(event) => setDailyBudget(event.target.value)}
+                placeholder="Ex.: 25,00"
+              />
+              <p className="text-xs text-muted-foreground">Mínimo R$ 5,00 · máximo R$ 10.000,00.</p>
+            </div>
+            <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3 text-xs text-yellow-200">
+              <strong>Alerta de risco:</strong> orçamento impacta gasto real. Nada é aplicado sem aprovação explícita.
+            </div>
+            {!canWrite && (
+              <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-3 text-xs text-red-300">
+                Token sem write mode segundo o health atual. Apenas rascunho/preview ficam disponíveis.
+              </div>
+            )}
+            {draft && (
+              <div className="rounded-lg border border-green-500/30 bg-green-500/5 p-3 text-xs text-green-200">
+                <p><strong>Approval ID:</strong> {draft.approvalId}</p>
+                <p>Preview: R$ {draft.currentDailyBudget ?? 0} → R$ {draft.newDailyBudget.toFixed(2)}</p>
+              </div>
+            )}
+            {status && <p className="text-sm text-muted-foreground">{status}</p>}
+          </div>
+        )}
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button variant="outline" onClick={saveDraft} disabled={loading || invalidBudget}>
+            Salvar rascunho
+          </Button>
+          <Button variant="secondary" disabled={!draft || loading} onClick={() => setStatus('Aprovação registrada como pendente. Solicitar confirmação do Diogo antes de aplicar.')}>
+            Solicitar aprovação
+          </Button>
+          <Button onClick={applyAfterApproval} disabled={!draft || loading || !canWrite}>
+            Aplicar após aprovação
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -241,6 +397,7 @@ export default function AdminMetaAds() {
   const [overview, setOverview] = useState<MetaAdsOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [budgetCampaign, setBudgetCampaign] = useState<MetaCampaignWithInsights | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -341,6 +498,7 @@ export default function AdminMetaAds() {
   }
 
   const { health, account, campaigns, totalSpend, totalImpressions, totalClicks, avgCpc, avgCpm, avgCtr, topCampaigns, worstCampaigns, noDeliveryCampaigns, pausedCampaigns, errorCampaigns, fetchedAt } = overview;
+  const canWriteMetaAds = health.canReadAds && health.canManageAds;
 
   // ── Degraded mode banner ──
   const isDegraded = health.status === 'DEGRADED';
@@ -416,10 +574,16 @@ export default function AdminMetaAds() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <SectionHeader
             title="Meta Ads"
-            description="Campanhas, métricas e alertas. READ-ONLY — sem permissão de escrita."
+            description={canWriteMetaAds
+              ? 'Campanhas, métricas e alertas. WRITE-MODE controlado — rascunho e aprovação obrigatórios.'
+              : 'Campanhas, métricas e alertas. READ-ONLY — sem permissão de escrita.'}
           />
           <div className="flex flex-wrap items-center gap-2">
             <HealthBadge status={health.status} />
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${canWriteMetaAds ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'}`}>
+              <Shield size={12} />
+              {canWriteMetaAds ? 'WRITE-MODE READY' : 'READ-ONLY'}
+            </span>
             {isDegraded && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
                 <AlertTriangle size={12} />
@@ -485,7 +649,7 @@ export default function AdminMetaAds() {
             count={campaigns.length}
             defaultOpen={campaigns.length <= 10}
           >
-            <CampaignTable campaigns={campaigns} />
+            <CampaignTable campaigns={campaigns} canWrite={canWriteMetaAds} onEditBudget={setBudgetCampaign} />
           </CollapsibleSection>
         )}
 
@@ -496,7 +660,7 @@ export default function AdminMetaAds() {
             icon={<TrendingUp size={16} />}
             count={topCampaigns.length}
           >
-            <CampaignTable campaigns={topCampaigns} />
+            <CampaignTable campaigns={topCampaigns} canWrite={canWriteMetaAds} onEditBudget={setBudgetCampaign} />
           </CollapsibleSection>
         )}
 
@@ -507,7 +671,7 @@ export default function AdminMetaAds() {
             icon={<TrendingDown size={16} />}
             count={worstCampaigns.length}
           >
-            <CampaignTable campaigns={worstCampaigns} />
+            <CampaignTable campaigns={worstCampaigns} canWrite={canWriteMetaAds} onEditBudget={setBudgetCampaign} />
           </CollapsibleSection>
         )}
 
@@ -518,7 +682,7 @@ export default function AdminMetaAds() {
             icon={<AlertTriangle size={16} />}
             count={noDeliveryCampaigns.length}
           >
-            <CampaignTable campaigns={noDeliveryCampaigns} />
+            <CampaignTable campaigns={noDeliveryCampaigns} canWrite={canWriteMetaAds} onEditBudget={setBudgetCampaign} />
           </CollapsibleSection>
         )}
 
@@ -529,9 +693,27 @@ export default function AdminMetaAds() {
             icon={<XCircle size={16} />}
             count={errorCampaigns.length}
           >
-            <CampaignTable campaigns={errorCampaigns} />
+            <CampaignTable campaigns={errorCampaigns} canWrite={canWriteMetaAds} onEditBudget={setBudgetCampaign} />
           </CollapsibleSection>
         )}
+
+        <CollapsibleSection
+          title="Histórico de alterações"
+          icon={<Activity size={16} />}
+          defaultOpen={false}
+        >
+          <div className="text-sm text-muted-foreground space-y-2">
+            <p>Logs serão gravados em <code className="bg-white/10 px-1 rounded">meta_ads_audit_log</code> quando a Edge Function write for habilitada.</p>
+            <p>Rollback usa valor anterior salvo no log antes de qualquer mutação.</p>
+          </div>
+        </CollapsibleSection>
+
+        <BudgetEditModal
+          campaign={budgetCampaign}
+          canWrite={canWriteMetaAds}
+          open={Boolean(budgetCampaign)}
+          onOpenChange={(open) => !open && setBudgetCampaign(null)}
+        />
 
         {/* Empty state */}
         {campaigns.length === 0 && health.status === 'CONNECTED' && (
