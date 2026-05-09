@@ -2,7 +2,7 @@
 // Chama Supabase Edge Function (server-side) — token NUNCA sai do browser
 // O Edge Function faz as chamadas à Meta API com META_SYSTEM_USER_TOKEN em servidor
 
-import type { MetaAdsOverview } from './metaAdsTypes';
+import type { MetaAdsBudgetDraftResponse, MetaAdsOverview } from './metaAdsTypes';
 
 const TIMEOUT_MS = 12000;
 
@@ -51,9 +51,67 @@ async function edgeFetch<T>(path: string): Promise<T> {
   }
 }
 
+async function edgePost<T>(path: string, body: unknown): Promise<T> {
+  const supabaseUrl = getSupabaseUrl();
+  const supabaseKey = getSupabaseKey();
+  const url = `${supabaseUrl}/functions/v1/${path}`;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Content-Type': 'application/json',
+        'apikey': supabaseKey,
+      },
+      body: JSON.stringify(body),
+    });
+
+    clearTimeout(timeout);
+
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(payload?.error ?? `HTTP ${res.status}`);
+    }
+    return payload as T;
+  } catch (err) {
+    clearTimeout(timeout);
+    throw err;
+  }
+}
+
 // Overview completo via Edge Function
 export async function getMetaAdsOverview(): Promise<MetaAdsOverview> {
   return edgeFetch<MetaAdsOverview>('meta-ads-readonly');
+}
+
+export async function draftMetaCampaignDailyBudget(params: {
+  campaignId: string;
+  campaignName?: string;
+  currentDailyBudget?: string | null;
+  newDailyBudget: number;
+}): Promise<MetaAdsBudgetDraftResponse> {
+  return edgePost<MetaAdsBudgetDraftResponse>('meta-ads-write', {
+    action: 'draft-budget-update',
+    ...params,
+  });
+}
+
+export async function applyMetaCampaignDailyBudget(params: {
+  campaignId: string;
+  campaignName?: string;
+  currentDailyBudget?: string | null;
+  newDailyBudget: number;
+  approvalId: string;
+}): Promise<MetaAdsBudgetDraftResponse> {
+  return edgePost<MetaAdsBudgetDraftResponse>('meta-ads-write', {
+    action: 'apply-budget-update',
+    ...params,
+  });
 }
 
 // Setup checklist — agora verifica apenas config do Supabase (token está no Edge)

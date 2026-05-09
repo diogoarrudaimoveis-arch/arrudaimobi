@@ -56,6 +56,27 @@ export interface MetaCampaignWithInsights extends MetaCampaign {
   insights: MetaInsight | null;
 }
 
+export interface MetaAdsBudgetDraft {
+  approvalId: string;
+  campaignId: string;
+  campaignName: string;
+  status: string;
+  effectiveStatus: string;
+  currentDailyBudgetCents: number | string | null;
+  currentDailyBudget: number | null;
+  newDailyBudget: number;
+  newDailyBudgetCents: number;
+  canManageAds: boolean;
+  risk: string;
+}
+
+export interface MetaAdsBudgetDraftResponse {
+  ok: boolean;
+  mode: 'draft' | 'blocked' | 'applied';
+  draft: MetaAdsBudgetDraft;
+  error?: string;
+}
+
 export interface MetaAdsHealth {
   status: MetaHealthStatus;
   accountId: string | null;
