@@ -100,6 +100,9 @@ function mapInsight(raw: Record<string, unknown>, campaignId: string, campaignNa
   const leads = extractActions(actions, "lead");
   const roasActions = actions.filter(a => a.action_type.includes("purchase_roas"));
   const roas = roasActions.length > 0 ? parseFloat(roasActions[0].action_value) || 0 : 0;
+  const cpc = parseFloat(raw.cpc as string);
+  const cpm = parseFloat(raw.cpm as string);
+  const ctr = parseFloat(raw.ctr as string);
 
   return {
     campaignId,
@@ -107,9 +110,9 @@ function mapInsight(raw: Record<string, unknown>, campaignId: string, campaignNa
     spend: parseFloat(spend.toFixed(2)),
     impressions,
     clicks,
-    cpc: clicks > 0 ? parseFloat((spend / clicks).toFixed(2)) : 0,
-    cpm: impressions > 0 ? parseFloat(((spend / impressions) * 1000).toFixed(2)) : 0,
-    ctr: impressions > 0 ? parseFloat(((clicks / impressions) * 100).toFixed(2)) : 0,
+    cpc: Number.isFinite(cpc) ? parseFloat(cpc.toFixed(2)) : clicks > 0 ? parseFloat((spend / clicks).toFixed(2)) : 0,
+    cpm: Number.isFinite(cpm) ? parseFloat(cpm.toFixed(2)) : impressions > 0 ? parseFloat(((spend / impressions) * 1000).toFixed(2)) : 0,
+    ctr: Number.isFinite(ctr) ? parseFloat(ctr.toFixed(2)) : impressions > 0 ? parseFloat(((clicks / impressions) * 100).toFixed(2)) : 0,
     reach: parseInt(raw.reach as string) || 0,
     purchases,
     leads,
@@ -202,7 +205,7 @@ Deno.serve(async (req: Request) => {
     // Fetch insights per campaign (parallel, non-blocking)
     const insightsResults = await Promise.allSettled(
       campaigns.map((c: Record<string, unknown>) =>
-        metaFetch<Record<string, unknown>>(
+        metaFetch<{ data?: Record<string, unknown>[] }>(
           `/${c.id}/insights?fields=spend,impressions,clicks,cpc,cpm,ctr,reach,actions&date_preset=last_7d&limit=1`,
           token
         )
@@ -211,7 +214,7 @@ Deno.serve(async (req: Request) => {
 
     const campaignsWithInsights = campaigns.map((c: Record<string, unknown>, i: number) => {
       const result = insightsResults[i];
-      const insightRaw = result.status === "fulfilled" ? result.value : null;
+      const insightRaw = result.status === "fulfilled" ? result.value?.data?.[0] ?? null : null;
       return {
         ...c,
         insights: insightRaw ? mapInsight(insightRaw, c.id as string, c.name as string) : null,

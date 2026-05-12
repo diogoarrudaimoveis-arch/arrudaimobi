@@ -39,6 +39,7 @@ import {
   Shield,
   Settings,
   Pencil,
+  RefreshCw,
 } from 'lucide-react';
 
 // ─── Health Badge ────────────────────────────────────────────────────────────
@@ -139,10 +140,16 @@ function MetaMetricCard({ metric }: { metric: MetaAdsMetricCardData }) {
 
 // ─── Campaign Table ──────────────────────────────────────────────────────────
 
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+
+const formatNumber = (value: number) =>
+  new Intl.NumberFormat('pt-BR').format(value);
+
 function formatBudget(value: string | null) {
   if (!value) return '—';
   const numeric = Number(value);
-  return Number.isFinite(numeric) ? `R$ ${numeric.toFixed(2)}` : '—';
+  return Number.isFinite(numeric) ? formatCurrency(numeric) : '—';
 }
 
 function CampaignTable({ campaigns, canWrite, onEditBudget }: {
@@ -194,22 +201,22 @@ function CampaignTable({ campaigns, canWrite, onEditBudget }: {
                 </span>
               </td>
               <td className="py-2 pr-4 text-right font-mono">
-                {c.insights ? `R$ ${c.insights.spend.toFixed(2)}` : '—'}
+                {c.insights ? formatCurrency(c.insights.spend) : <span className="text-xs text-muted-foreground">Sem dados</span>}
               </td>
               <td className="py-2 pr-4 text-right font-mono">
-                {c.insights ? c.insights.impressions.toLocaleString('pt-BR') : '—'}
+                {c.insights ? formatNumber(c.insights.impressions) : <span className="text-xs text-muted-foreground">Sem dados</span>}
               </td>
               <td className="py-2 pr-4 text-right font-mono">
-                {c.insights ? c.insights.clicks.toLocaleString('pt-BR') : '—'}
+                {c.insights ? formatNumber(c.insights.clicks) : <span className="text-xs text-muted-foreground">Sem dados</span>}
               </td>
               <td className="py-2 pr-4 text-right font-mono">
-                {c.insights ? `${c.insights.ctr}%` : '—'}
+                {c.insights ? `${c.insights.ctr.toFixed(2)}%` : <span className="text-xs text-muted-foreground">Sem dados</span>}
               </td>
               <td className="py-2 pr-4 text-right font-mono">
-                {c.insights ? `R$ ${c.insights.cpc.toFixed(2)}` : '—'}
+                {c.insights ? formatCurrency(c.insights.cpc) : <span className="text-xs text-muted-foreground">Sem dados</span>}
               </td>
               <td className="py-2 text-right font-mono">
-                {c.insights ? `R$ ${c.insights.cpm.toFixed(2)}` : '—'}
+                {c.insights ? formatCurrency(c.insights.cpm) : <span className="text-xs text-muted-foreground">Sem dados</span>}
               </td>
               <td className="py-2 pl-4 text-right font-mono">
                 {formatBudget(c.dailyBudget)}
@@ -396,29 +403,44 @@ function CollapsibleSection({
 export default function AdminMetaAds() {
   const [overview, setOverview] = useState<MetaAdsOverview | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
   const [budgetCampaign, setBudgetCampaign] = useState<MetaCampaignWithInsights | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
+  async function fetchLiveMetaAds({ initial = false }: { initial?: boolean } = {}) {
+    if (initial) setLoading(true);
+    else setRefreshing(true);
     setError(null);
+    setRefreshError(null);
 
+    try {
+      const data = await getMetaAdsOverview();
+      setOverview(data);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (initial) setError(message);
+      else setRefreshError(message || 'Erro ao atualizar dados da Meta Ads');
+    } finally {
+      if (initial) setLoading(false);
+      else setRefreshing(false);
+    }
+  }
+
+  useEffect(() => {
+    let mounted = true;
     getMetaAdsOverview()
       .then((data) => {
-        if (!cancelled) {
-          setOverview(data);
-          setLoading(false);
-        }
+        if (mounted) setOverview(data);
       })
       .catch((err) => {
-        if (!cancelled) {
-          setError(String(err));
-          setLoading(false);
-        }
+        if (mounted) setError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
       });
 
-    return () => { cancelled = true; };
+    return () => { mounted = false; };
   }, []);
 
   // ── Não configurado / Sem token ──
@@ -508,7 +530,7 @@ export default function AdminMetaAds() {
     {
       id: 'spend',
       title: 'Spend (7d)',
-      value: totalSpend > 0 ? `R$ ${totalSpend.toFixed(2)}` : '—',
+      value: totalSpend > 0 ? formatCurrency(totalSpend) : 'Sem dados',
       icon: '💰',
       status: totalSpend > 0 ? 'success' : 'neutral',
       detail: account ? `Conta: ${account.name ?? account.id}` : undefined,
@@ -516,21 +538,21 @@ export default function AdminMetaAds() {
     {
       id: 'impressions',
       title: 'Impressões (7d)',
-      value: totalImpressions > 0 ? totalImpressions.toLocaleString('pt-BR') : '—',
+      value: totalImpressions > 0 ? formatNumber(totalImpressions) : 'Sem dados',
       icon: '👁',
       status: 'neutral',
     },
     {
       id: 'clicks',
       title: 'Clicks (7d)',
-      value: totalClicks > 0 ? totalClicks.toLocaleString('pt-BR') : '—',
+      value: totalClicks > 0 ? formatNumber(totalClicks) : 'Sem dados',
       icon: '🖱',
       status: 'neutral',
     },
     {
       id: 'ctr',
       title: 'CTR (7d)',
-      value: avgCtr > 0 ? `${avgCtr}%` : '—',
+      value: avgCtr > 0 ? `${avgCtr.toFixed(2)}%` : 'Sem dados',
       icon: '📊',
       status: avgCtr > 2 ? 'success' : avgCtr > 0 ? 'warning' : 'neutral',
       trend: avgCtr > 2 ? 'up' : avgCtr > 0 ? 'stable' : undefined,
@@ -538,7 +560,7 @@ export default function AdminMetaAds() {
     {
       id: 'cpc',
       title: 'CPC Médio (7d)',
-      value: avgCpc > 0 ? `R$ ${avgCpc.toFixed(2)}` : '—',
+      value: avgCpc > 0 ? formatCurrency(avgCpc) : 'Sem dados',
       icon: '💲',
       status: avgCpc > 0 && avgCpc < 3 ? 'success' : avgCpc > 5 ? 'danger' : 'neutral',
       trend: avgCpc > 0 && avgCpc < 3 ? 'up' : avgCpc > 5 ? 'down' : undefined,
@@ -546,7 +568,7 @@ export default function AdminMetaAds() {
     {
       id: 'cpm',
       title: 'CPM Médio (7d)',
-      value: avgCpm > 0 ? `R$ ${avgCpm.toFixed(2)}` : '—',
+      value: avgCpm > 0 ? formatCurrency(avgCpm) : 'Sem dados',
       icon: '📢',
       status: 'neutral',
     },
@@ -579,6 +601,17 @@ export default function AdminMetaAds() {
               : 'Campanhas, métricas e alertas. READ-ONLY — sem permissão de escrita.'}
           />
           <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => fetchLiveMetaAds()}
+              disabled={refreshing}
+              aria-label="Atualizar dados ao vivo da Meta Ads"
+            >
+              <RefreshCw size={14} className={`mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              {refreshing ? 'Atualizando...' : 'Atualizar agora'}
+            </Button>
             <HealthBadge status={health.status} />
             <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${canWriteMetaAds ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'}`}>
               <Shield size={12} />
@@ -591,10 +624,16 @@ export default function AdminMetaAds() {
               </span>
             )}
             <span className="text-xs text-muted-foreground">
-              Atualizado {new Date(fetchedAt).toLocaleTimeString('pt-BR')}
+              Atualizado às {new Date(fetchedAt).toLocaleTimeString('pt-BR')}
             </span>
           </div>
         </div>
+
+        {refreshError && (
+          <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-3 text-sm text-red-300">
+            Não foi possível atualizar agora: {refreshError}
+          </div>
+        )}
 
         {/* Degraded banner */}
         {isDegraded && (
