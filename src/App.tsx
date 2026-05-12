@@ -25,6 +25,7 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const CaptarImovel = lazy(() => import("./pages/CaptarImovel"));
 const AdminProfile = lazy(() => import("./pages/admin/AdminProfile"));
 const AdminProperties = lazy(() => import("./pages/admin/AdminProperties"));
 const AdminAgents = lazy(() => import("./pages/admin/AdminAgents"));
@@ -106,6 +107,7 @@ const App = () => (
                         <Route path="/imoveis/:id" element={<PropertyDetail />} />
                         <Route path="/agentes" element={<Agents />} />
                         <Route path="/agentes/:id" element={<AgentDetail />} />
+                        <Route path="/captar-imovel" element={<CaptarImovel />} />
                         <Route path="/contato" element={<Contact />} />
                         <Route path="/login" element={<Login />} />
                         <Route path="/reset-password" element={<ResetPassword />} />
