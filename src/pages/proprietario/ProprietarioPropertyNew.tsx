@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { Home, Loader2, CheckCircle2 } from "lucide-react";
 
 const propertyTypes = [
@@ -60,22 +59,31 @@ const ProprietarioPropertyNew = () => {
 
     setLoading(true);
     try {
-      const { error } = await supabase.from("properties").insert({
-        owner_id: ownerId,
-        title: form.title,
-        city: form.city,
-        state: form.state || "MG",
-        price: parseFloat(form.price) || 0,
-        type_id: null,
-        purpose: form.purpose,
-        description: form.description || "",
-        status: "available",
-        review_status: "pending_review",
-        tenant_id: "9b4b048e-7d09-48a7-aebb-8376cc443695",
-        featured: false,
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-property`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          owner_id: ownerId,
+          portal_token: token,
+          title: form.title,
+          city: form.city,
+          state: form.state || "MG",
+          price: parseFloat(form.price) || 0,
+          property_type: form.property_type,
+          purpose: form.purpose,
+          description: form.description || "",
+          neighborhood: form.neighborhood || "",
+        }),
       });
 
-      if (error) throw error;
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Erro ao salvar imóvel");
+      }
       setSubmitted(true);
       toast({ title: "Imóvel cadastrado!", description: "Sua propriedade está em revisão." });
     } catch (err: any) {
