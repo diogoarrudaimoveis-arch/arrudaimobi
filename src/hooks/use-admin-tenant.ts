@@ -4,6 +4,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import type { TenantSettings } from "@/hooks/use-tenant-settings";
 
+interface CachedTenant {
+  id: string;
+  settings?: Record<string, unknown>;
+}
+
 export function useAdminTenant() {
   const { tenantId, isReady } = useAuth();
   const queryClient = useQueryClient();
@@ -21,7 +26,7 @@ export function useAdminTenant() {
 
   const getCurrentSettings = (): TenantSettings => {
     if (!tenantId) return ((query.data?.settings as TenantSettings) || {});
-    const cached = queryClient.getQueryData<any>(["admin-tenant", tenantId]);
+    const cached = queryClient.getQueryData<CachedTenant | undefined>(["admin-tenant", tenantId]);
     return ((cached?.settings as TenantSettings) || (query.data?.settings as TenantSettings) || {});
   };
 
@@ -30,14 +35,14 @@ export function useAdminTenant() {
     const merged: TenantSettings = { ...getCurrentSettings(), ...partial };
     const { error } = await supabase
       .from("tenants")
-      .update({ settings: merged as any })
+      .update({ settings: merged as unknown as Record<string, unknown> })
       .eq("id", tenantId);
     if (error) throw error;
 
-    queryClient.setQueryData(["admin-tenant", tenantId], (c: any) =>
-      c ? { ...c, settings: merged } : c
+    queryClient.setQueryData<CachedTenant | undefined>(["admin-tenant", tenantId], (c) =>
+      c ? { ...c, settings: merged as unknown as Record<string, unknown> } : c
     );
-    queryClient.setQueryData(["tenant-settings"], (c: any) =>
+    queryClient.setQueryData<{ settings: TenantSettings } | undefined>(["tenant-settings"], (c) =>
       c ? { ...c, settings: merged } : c
     );
     queryClient.invalidateQueries({ queryKey: ["admin-tenant"] });

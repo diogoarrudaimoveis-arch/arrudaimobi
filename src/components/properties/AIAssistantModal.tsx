@@ -34,7 +34,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface AIAssistantModalProps {
   isOpen: boolean;
   onClose: () => void;
-  propertyContext: any; // Context formatado já no pattern requerido
+  propertyContext: Record<string, string | number | undefined>; // Context formatado já no pattern requerido
   onAccept: (text: string) => void;
   tenantId: string | null;
 }
@@ -131,7 +131,7 @@ export function AIAssistantModal({
     onAccept(generatedText);
   };
 
-  const formatCurrency = (val: any) => {
+  const formatCurrency = (val: number | string) => {
     if (!val) return "Consulte";
     const num = parseFloat(String(val).replace(/[^0-9,.-]/g, ""));
     if (isNaN(num)) return "Consulte";
