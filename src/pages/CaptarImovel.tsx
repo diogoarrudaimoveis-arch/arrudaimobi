@@ -61,66 +61,45 @@ const CaptarImovel = () => {
 
     setSubmitting(true);
     try {
-      // Get default tenant
-      const { data: tenantData, error: tenantError } = await supabase
-        .rpc("get_default_tenant")
-        .single();
-
-      if (tenantError || !tenantData?.id) {
-        // Try via function
-        const res = await fetch(`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/public-api?action=get-default-tenant`);
-        const td = await res.json();
-        if (!td?.id) throw new Error("Não foi possível identificar a imobiliária");
-      }
-
-      const tenantId = tenantData?.id || "9b4b048e-7d09-48a7-aebb-8376cc443695";
-
-      // Create owner with status pending_review
       const phoneDigits = form.phone.replace(/\D/g, "");
 
-      const { data: owner, error: ownerError } = await supabase
-        .from("owners")
-        .insert([{
-          tenant_id: tenantId,
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-owner`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({
           name: form.name.trim(),
           phone: phoneDigits,
           email: form.email.trim() || null,
           cpf_cnpj: form.cpf_cnpj.replace(/\D/g, "") || null,
-          status: "pending_review",
-          notes: `Tipo: ${form.property_type} | Intenção: ${form.intention} | Cidade: ${form.city}\n${form.notes || ""}`.trim(),
-        }])
-        .select()
-        .single();
+          city: form.city,
+          property_type: form.property_type,
+          intention: form.intention,
+          source: "captacao-imovel",
+          notes: form.notes || "",
+        }),
+      });
 
-      if (ownerError) {
-        // If owners table doesn't exist or RLS blocks, try without tenant_id
-        const { data: ownerFallback, error: fallbackError } = await supabase
-          .from("owners")
-          .insert([{
-            name: form.name.trim(),
-            phone: phoneDigits,
-            email: form.email.trim() || null,
-            cpf_cnpj: form.cpf_cnpj.replace(/\D/g, "") || null,
-            status: "pending_review",
-            notes: `Tipo: ${form.property_type} | Intenção: ${form.intention} | Cidade: ${form.city}\n${form.notes || ""}`.trim(),
-          }])
-          .select()
-          .single();
+      const result = await response.json();
 
-        if (fallbackError) throw new Error("Erro ao cadastrar proprietário. Tente novamente.");
-        setSubmitted(true);
-        toast({
-          title: "Cadastro enviado!",
-          description: "Nossa equipe entrará em contato em breve.",
-        });
-        return;
+      if (!response.ok || result.error || !result.owner_id) {
+        throw new Error(result.error || "Erro ao cadastrar proprietário. Tente novamente.");
       }
+
+      const portalToken = result.portal_token || btoa(result.owner_id);
 
       setSubmitted(true);
       toast({
         title: "Cadastro enviado!",
         description: "Nossa equipe entrará em contato em breve.",
       });
+
+      setTimeout(() => {
+        navigate(`/proprietario/imoveis/novo?owner=${encodeURIComponent(result.owner_id)}&token=${encodeURIComponent(portalToken)}`);
+      }, 1200);
 
     } catch (err: any) {
       toast({

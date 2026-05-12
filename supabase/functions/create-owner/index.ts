@@ -6,86 +6,114 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, apikey, content-type",
 };
 
+const DEFAULT_TENANT_ID = "9b4b048e-7d09-48a7-aebb-8376cc443695";
+
+const json = (body: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
+const onlyDigits = (value: unknown) => String(value || "").replace(/\D/g, "");
+const cleanText = (value: unknown) => String(value || "").trim();
+
+const createPortalToken = (ownerId: string) => {
+  const random = crypto.getRandomValues(new Uint8Array(24));
+  const randomPart = btoa(String.fromCharCode(...random)).replace(/[+/=]/g, "").slice(0, 24);
+  return `${ownerId}.${randomPart}`;
+};
+
 Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  if (req.method !== "POST") {
+    return json({ error: "Method not allowed" }, 405);
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabaseAdmin = createClient(supabaseUrl, serviceKey);
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    const { name, phone, email, cpf_cnpj, city, property_type, intention, notes, tenant_id } = await req.json();
-
-    // Validate required fields
-    if (!name || !phone || !city || !property_type || !intention) {
-      return new Response(JSON.stringify({ error: "Missing required fields" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!supabaseUrl || !serviceKey) {
+      return json({ error: "Server configuration missing" }, 500);
     }
 
-    // 1. Create owner in owners table
+    const payload = await req.json();
+    const name = cleanText(payload.name);
+    const phone = onlyDigits(payload.phone);
+    const email = cleanText(payload.email);
+    const cpfCnpj = onlyDigits(payload.cpf_cnpj);
+    const city = cleanText(payload.city);
+    const propertyType = cleanText(payload.property_type);
+    const intention = cleanText(payload.intention || payload.intent);
+    const source = cleanText(payload.source || "captacao-imovel");
+    const notes = cleanText(payload.notes);
+    const tenantId = cleanText(payload.tenant_id) || DEFAULT_TENANT_ID;
+
+    if (!name || !phone || !city || !propertyType || !intention) {
+      return json({ error: "Missing required fields" }, 400);
+    }
+
+    const supabaseAdmin = createClient(supabaseUrl, serviceKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+
     const ownerData = {
-      tenant_id: tenant_id || "9b4b048e-7d09-48a7-aebb-8376cc443695",
+      tenant_id: tenantId,
       name,
-      phone: phone.replace(/\D/g, ""),
+      phone,
       email: email || null,
-      cpf_cnpj: cpf_cnpj ? cpf_cnpj.replace(/\D/g, "") : null,
-      bank_name: null,
-      bank_agency: null,
-      bank_account: null,
-      pix_key: null,
-      signature_url: null,
+      cpf_cnpj: cpfCnpj || null,
+      bank_name: "",
+      bank_agency: "",
+      bank_account: "",
+      pix_key: "",
+      signature_url: "",
     };
 
-    const { data: owner, error: ownerError } = await supabaseAdmin.from("owners").insert(ownerData).select().single();
+    const { data: owner, error: ownerError } = await supabaseAdmin
+      .from("owners")
+      .insert(ownerData)
+      .select("id, name, phone, email, cpf_cnpj, tenant_id, created_at")
+      .single();
 
-    if (ownerError) {
-      return new Response(JSON.stringify({ error: `Owner creation failed: ${ownerError.message}` }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    if (ownerError || !owner?.id) {
+      console.error("create-owner owners insert failed", { code: ownerError?.code, message: ownerError?.message });
+      return json({ error: "Owner creation failed" }, 500);
+    }
+
+    const portalToken = createPortalToken(owner.id);
+
+    // Optional table for richer owner portal/audit. Ignore if migration is not applied yet.
+    const { error: proprietarioError } = await supabaseAdmin.from("proprietarios").insert({
+      id: owner.id,
+      nome: name,
+      cpf_cnpj: cpfCnpj || null,
+      email: email || null,
+      whatsapp: phone,
+      telefone: phone,
+      cidade: city,
+      status: "pending_review",
+      portal_token: portalToken,
+      notes: `Tipo: ${propertyType} | Intenção: ${intention} | Origem: ${source} | ${notes}`.trim(),
+    });
+
+    if (proprietarioError) {
+      console.warn("create-owner proprietarios optional insert skipped", {
+        code: proprietarioError.code,
+        message: proprietarioError.message,
       });
     }
 
-    // 2. Create proprietario record (if table exists) - graceful ignore if not
-    try {
-      await supabaseAdmin.from("proprietarios").insert({
-        id: owner.id,
-        nome: name,
-        cpf_cnpj: cpf_cnpj?.replace(/\D/g, "") || null,
-        email: email || null,
-        whatsapp: phone.replace(/\D/g, ""),
-        telefone: phone.replace(/\D/g, ""),
-        cidade: city,
-        status: "pending_review",
-        notes: `Tipo: ${property_type} | Intenção: ${intention} | ${notes || ""}`.trim(),
-      });
-    } catch (e) {
-      // proprietarios table might not exist yet - ignore
-    }
-
-    // 3. Create tracking tables if they don't exist (graceful)
-    for (const table of ["property_views", "property_clicks", "property_leads"]) {
-      try {
-        // Just verify we can access - creation via migration
-      } catch (e) {}
-    }
-
-    return new Response(JSON.stringify({
+    return json({
       success: true,
       owner_id: owner.id,
-      message: "Proprietário criado com sucesso"
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      portal_token: portalToken,
+      status: "pending_review",
+      message: "Proprietário criado com sucesso",
     });
-
-  } catch (e: any) {
-    return new Response(JSON.stringify({ error: e.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+  } catch (error) {
+    console.error("create-owner unexpected error", error instanceof Error ? error.message : "unknown");
+    return json({ error: "Unexpected error" }, 500);
   }
 });
