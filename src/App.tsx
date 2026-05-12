@@ -26,6 +26,8 @@ const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const CaptarImovel = lazy(() => import("./pages/CaptarImovel"));
+const ProprietarioDashboard = lazy(() => import("./pages/proprietario/ProprietarioDashboard"));
+const ProprietarioPropertyNew = lazy(() => import("./pages/proprietario/ProprietarioPropertyNew"));
 const AdminProfile = lazy(() => import("./pages/admin/AdminProfile"));
 const AdminProperties = lazy(() => import("./pages/admin/AdminProperties"));
 const AdminAgents = lazy(() => import("./pages/admin/AdminAgents"));
@@ -108,6 +110,8 @@ const App = () => (
                         <Route path="/agentes" element={<Agents />} />
                         <Route path="/agentes/:id" element={<AgentDetail />} />
                         <Route path="/captar-imovel" element={<CaptarImovel />} />
+                        <Route path="/proprietario" element={<ProprietarioDashboard />} />
+                        <Route path="/proprietario/imoveis/novo" element={<ProprietarioPropertyNew />} />
                         <Route path="/contato" element={<Contact />} />
                         <Route path="/login" element={<Login />} />
                         <Route path="/reset-password" element={<ResetPassword />} />
