@@ -32,7 +32,7 @@ const operationalMetrics = [
 ];
 
 const integrationStatus = [
-  { name: "Supabase", status: "ok", detail: "service_role validado" },
+  { name: "Supabase", status: "ok", detail: "conexão OK" },
   { name: "ZPRO", status: "ok", detail: "modo leitura/sem envio" },
   { name: "n8n", status: "ok", detail: "orchestrator planejado" },
   { name: "MiniMax", status: "warning", detail: "monitorar timeout/custo" },
