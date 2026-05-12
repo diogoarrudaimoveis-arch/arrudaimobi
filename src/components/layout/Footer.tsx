@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Building2, Mail, Phone, MapPin, Instagram, Facebook, Linkedin, Youtube, Cookie } from "lucide-react";
+import { Building2, Mail, Phone, MapPin, Instagram, Facebook, Linkedin, Youtube, Cookie, ArrowRight } from "lucide-react";
 import { useTenantSettings } from "@/hooks/use-tenant-settings";
 import { useCookieConsent } from "@/contexts/CookieConsentContext";
 
@@ -143,6 +143,23 @@ export function Footer() {
               </div>
             )}
           </div>
+        </div>
+
+        <div className="mt-10 rounded-2xl border border-primary/15 bg-primary/5 p-5 shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-6">
+          <div>
+            <h4 className="font-display text-base font-semibold text-foreground">Tem um imóvel para vender?</h4>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Cadastre seu imóvel ou empreendimento para avaliação da Arruda Imobi.
+            </p>
+          </div>
+          <a
+            href="/#/captar-imovel"
+            aria-label="Anuncie seu imóvel na Arruda Imobi"
+            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/20 transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/25 sm:mt-0 sm:w-auto"
+          >
+            Anuncie seu imóvel
+            <ArrowRight className="h-4 w-4" />
+          </a>
         </div>
 
         <div className="mt-12 border-t border-border/60 pt-6 flex flex-col items-center gap-3 text-xs text-muted-foreground">
