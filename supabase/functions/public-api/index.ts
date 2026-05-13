@@ -580,6 +580,180 @@ Deno.serve(async (req) => {
         break;
       }
 
+      case "crm-update-lead-stage": {
+        // Admin-only: update lead stage in CRM with full audit trail
+        // NO WhatsApp, NO ZPRO write, NO delete — stage move only
+        const authHeader = req.headers.get("authorization");
+        if (!authHeader) {
+          return new Response(JSON.stringify({ error: "Unauthorized" }), {
+            status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Get authenticated user
+        const { data: { user }, error: authError } = await supabase.auth.getUser(
+          authHeader.replace("Bearer ", "")
+        );
+        if (authError || !user) {
+          return new Response(JSON.stringify({ error: "Unauthorized" }), {
+            status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Verify admin role
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (!roleData || roleData.role !== "admin") {
+          return new Response(JSON.stringify({ error: "Forbidden — admin only" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Parse body
+        let body: any;
+        try {
+          body = await req.json();
+        } catch {
+          return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const { leadId, stageSlug, reason, actor } = body;
+
+        // Validate inputs
+        if (!leadId) {
+          return new Response(JSON.stringify({ error: "leadId is required" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (!stageSlug) {
+          return new Response(JSON.stringify({ error: "stageSlug is required" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Verify stage exists
+        const { data: stage, error: stageError } = await supabase
+          .from("crm_pipeline_stages")
+          .select("id, slug, name")
+          .eq("slug", stageSlug)
+          .eq("is_active", true)
+          .maybeSingle();
+
+        if (stageError || !stage) {
+          return new Response(JSON.stringify({ error: `Stage '${stageSlug}' not found or inactive` }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Get current lead
+        const { data: lead, error: leadError } = await supabase
+          .from("crm_leads")
+          .select("id, name, stage_slug, stage_name, tenant_name, source")
+          .eq("id", leadId)
+          .maybeSingle();
+
+        if (leadError || !lead) {
+          return new Response(JSON.stringify({ error: "Lead not found" }), {
+            status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Verify tenant
+        if (lead.tenant_name !== "Arruda Imobi") {
+          return new Response(JSON.stringify({ error: "Forbidden — Arruda Imobi tenant only" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Block ZPRO leads (no write to ZPRO)
+        if (lead.source === "zpro") {
+          return new Response(JSON.stringify({ error: "ZPRO leads cannot be modified via this endpoint. Update directly in ZPRO." }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const oldStage = lead.stage_slug;
+        const oldStageName = lead.stage_name;
+
+        // No-op if same stage
+        if (oldStage === stageSlug) {
+          return new Response(JSON.stringify({
+            ok: true,
+            leadId,
+            oldStage,
+            newStage: stageSlug,
+            eventId: null,
+            note: "Lead already in this stage"
+          }), {
+            status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Update lead stage
+        const { data: updatedLead, error: updateError } = await supabase
+          .from("crm_leads")
+          .update({
+            stage_slug: stageSlug,
+            kanban_slug: stageSlug,
+            stage_name: stage.name,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", leadId)
+          .select("id, stage_slug, stage_name")
+          .maybeSingle();
+
+        if (updateError) {
+          console.error("lead stage update error:", updateError);
+          return new Response(JSON.stringify({ error: "Failed to update lead stage" }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Insert audit event into crm_lead_events
+        const eventPayload = {
+          old_stage: oldStage,
+          old_stage_name: oldStageName,
+          new_stage: stageSlug,
+          new_stage_name: stage.name,
+          reason: reason || null,
+          actor: actor || "admin",
+          user_id: user.id,
+          lead_name: lead.name,
+          lead_phone: lead.phone,
+        };
+
+        const { data: event, error: eventError } = await supabase
+          .from("crm_lead_events")
+          .insert({
+            lead_id: leadId,
+            event_type: "stage_changed",
+            payload: eventPayload,
+            actor: actor || "admin",
+          })
+          .select("id")
+          .maybeSingle();
+
+        if (eventError) {
+          console.error("crm_lead_events insert error:", eventError);
+          // Stage was updated, event logging failed — log but still return success
+        }
+
+        result = {
+          ok: true,
+          leadId,
+          oldStage,
+          newStage: stageSlug,
+          eventId: event?.id || null,
+        };
+        break;
+      }
+
       default:
         return new Response(JSON.stringify({ error: "unknown action" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -17,6 +17,8 @@ import { useToast } from "@/hooks/use-toast";
 
 const TABLE_PAGE_SIZE = 20;
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://udutxbyzrdwucabxqvgg.supabase.co";
+
 // =============================================================================
 // Blocked actions — ZPRO source (no write/WhatsApp/delete until audit)
 // =============================================================================
@@ -188,12 +190,6 @@ function KanbanColumn({
   draggedId: string | null;
 }) {
   const { toast } = useToast();
-  const isZpro = leads.some((l) => l.source === "zpro" || l.origin === "zpro");
-
-  const handleDropBlocked = (e: React.DragEvent) => {
-    e.preventDefault();
-    blockedToast({ toast }, "Movimentação de estágio será liberada após endpoint seguro de auditoria.");
-  };
 
   return (
     <div className="flex flex-col w-64 shrink-0">
@@ -212,20 +208,16 @@ function KanbanColumn({
           {leads.map((lead) => (
             <div
               key={lead.id}
-              draggable={!isZpro}
               onDragStart={(e) => {
-                if (isZpro) { e.preventDefault(); return; }
                 e.dataTransfer.effectAllowed = "move";
                 onDragStart(lead.id);
               }}
               onDragOver={(e) => {
-                if (isZpro) { e.preventDefault(); return; }
                 e.preventDefault();
                 e.dataTransfer.dropEffect = "move";
                 onDragOver(e);
               }}
               onDrop={(e) => {
-                if (isZpro) { handleDropBlocked(e); return; }
                 onDrop(e, stage.slug);
               }}
               className={draggedId === String(lead.id) ? "opacity-50 scale-95" : ""}
@@ -387,11 +379,72 @@ const AdminContacts = () => {
     setDragOverStage(stageSlug);
   };
 
-  const handleDrop = (e: React.DragEvent, targetStage: string) => {
+  const handleDrop = async (e: React.DragEvent, targetStage: string) => {
     e.preventDefault();
-    if (draggedId) {
-      blockedToast({ toast }, "Movimentação de estágio será liberada após endpoint seguro de auditoria.");
+    if (!draggedId) return;
+
+    const leadId = draggedId;
+    const lead = leads.find((l) => String(l.id) === leadId);
+
+    if (!lead) return;
+
+    // Block ZPRO leads
+    if (lead.source === "zpro" || lead.origin === "zpro") {
+      blockedToast({ toast }, "Lead ZPRO não pode ser movido via CRM. Atualize diretamente no ZPRO.");
+      setDraggedId(null);
+      setDragOverStage(null);
+      return;
     }
+
+    // Block if same stage
+    if (lead.stage_slug === targetStage) {
+      setDraggedId(null);
+      setDragOverStage(null);
+      return;
+    }
+
+    // Call Edge Function to update stage
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.access_token) {
+        toast({ title: "Erro", description: "Sessão não encontrada. Faça login novamente.", variant: "destructive" });
+        return;
+      }
+
+      const res = await fetch(
+        `${SUPABASE_URL}/functions/v1/public-api?action=crm-update-lead-stage`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.session.access_token}`,
+          },
+          body: JSON.stringify({
+            leadId: String(leadId),
+            stageSlug: targetStage,
+            reason: "kanban-drag-drop",
+            actor: "admin",
+          }),
+        }
+      );
+
+      const json = await res.json();
+
+      if (!res.ok || json.error) {
+        toast({ title: "Erro ao mover lead", description: json.error || "Falha ao atualizar estágio", variant: "destructive" });
+      } else {
+        toast({
+          title: "Lead movido",
+          description: `${lead.name || "Lead"} movido para ${targetStage}. Movimentação registrada em auditoria.`,
+          variant: "default",
+        });
+        // Refetch CRM data
+        refetch?.();
+      }
+    } catch (err: any) {
+      toast({ title: "Erro de conexão", description: err.message, variant: "destructive" });
+    }
+
     setDraggedId(null);
     setDragOverStage(null);
   };
