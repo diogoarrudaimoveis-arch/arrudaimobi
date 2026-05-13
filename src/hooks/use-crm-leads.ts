@@ -83,7 +83,8 @@ export function useCrmLeads() {
       }
 
       const json = await res.json();
-      if (!json.success) {
+      // Edge Function returns {ok: true} on success (success may be null)
+      if (!json.ok && json.success === false) {
         throw new Error(json.error || "Edge Function error");
       }
       return json as {
