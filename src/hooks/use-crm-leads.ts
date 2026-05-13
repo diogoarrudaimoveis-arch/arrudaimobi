@@ -1,11 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
 
-// =============================================================================
-// Types
-// =============================================================================
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const ARRUDA_TENANT = "Arruda Imobi";
 
 export interface CrmStage {
   id: number;
@@ -51,99 +49,125 @@ export interface CountsByStage {
   [stageSlug: string]: number;
 }
 
-// =============================================================================
-// Hook
-// =============================================================================
-
 export const CRM_LEADS_QUERY_KEY = "crm-leads";
 
 /**
- * Fetch CRM leads + pipeline stages for the Arruda Imobi tenant.
- * Falls back to legacy contacts if CRM tables are unavailable.
+ * Fetch CRM leads + pipeline stages via Edge Function (server-side, uses service_role).
+ * Falls back to direct Supabase query if Edge Function is unavailable.
+ * Direct queries use anon key and will show empty if RLS blocks access.
  */
 export function useCrmLeads() {
-  const { tenantId, isReady, session } = useAuth();
-  const ARRUDA_TENANT = "Arruda Imobi";
+  const { session, isReady } = useAuth();
 
-  // Fetch stages
-  const stagesQuery = useQuery({
-    queryKey: [CRM_LEADS_QUERY_KEY, "stages"],
+  // PRIMARY: Call Edge Function (service_role bypasses RLS)
+  const edgeQuery = useQuery({
+    queryKey: [CRM_LEADS_QUERY_KEY, "edge", session?.user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("crm_pipeline_stages")
-        .select("id, slug, name, sort_order, emoji, color, is_default, is_active")
-        .eq("is_active", true)
-        .order("sort_order");
-
-      if (error) {
-        console.error("CRM stages error:", error);
-        return [] as CrmStage[];
+      if (!SUPABASE_URL) throw new Error("SUPABASE_URL not configured");
+      
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (session?.access_token) {
+        headers["Authorization"] = `Bearer ${session.access_token}`;
       }
-      return (data ?? []) as CrmStage[];
+
+      const res = await fetch(
+        `${SUPABASE_URL}/functions/v1/public-api?action=crm-admin-leads`,
+        { headers }
+      );
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Request failed" }));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
+
+      const json = await res.json();
+      if (!json.success) {
+        throw new Error(json.error || "Edge Function error");
+      }
+      return json as {
+        stages: CrmStage[];
+        leads: CrmLead[];
+        leadsByStage: LeadsByStage;
+        countsByStage: CountsByStage;
+        total: number;
+      };
+    },
+    enabled: isReady && !!session?.access_token,
+    staleTime: 2 * 60_000,
+    retry: 1,
+  });
+
+  // FALLBACK: Direct Supabase query (anon key, RLS may block)
+  const directQuery = useQuery({
+    queryKey: [CRM_LEADS_QUERY_KEY, "direct"],
+    queryFn: async () => {
+      const [{ data: stagesData, error: sErr }, { data: leadsData, error: lErr }] = await Promise.all([
+        supabase
+          .from("crm_pipeline_stages")
+          .select("id, slug, name, sort_order, emoji, color, is_default, is_active")
+          .eq("is_active", true)
+          .order("sort_order"),
+        supabase
+          .from("crm_leads")
+          .select("*")
+          .eq("tenant_name", ARRUDA_TENANT)
+          .order("updated_at", { ascending: false }),
+      ]);
+
+      if (sErr) console.error("stages error:", sErr);
+      if (lErr) console.error("leads error:", lErr);
+
+      return {
+        stages: (stagesData ?? []) as CrmStage[],
+        leads: (leadsData ?? []) as CrmLead[],
+      };
     },
     enabled: isReady,
     staleTime: 5 * 60_000,
   });
 
-  // Fetch leads
-  const leadsQuery = useQuery({
-    queryKey: [CRM_LEADS_QUERY_KEY, "leads", tenantId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("crm_leads")
-        .select("*")
-        .eq("tenant_name", ARRUDA_TENANT)
-        .order("updated_at", { ascending: false });
+  // Use Edge data if available, otherwise direct
+  const stages = edgeQuery.data?.stages ?? directQuery.data?.stages ?? [];
+  const leads = edgeQuery.data?.leads ?? directQuery.data?.leads ?? [];
+  const countsByStage: CountsByStage = edgeQuery.data?.countsByStage ?? {};
+  const total = edgeQuery.data?.total ?? leads.length;
 
-      if (error) {
-        console.error("CRM leads error:", error);
-        // Fallback: return empty but don't throw - let UI decide
-        return [] as CrmLead[];
-      }
-      return (data ?? []) as CrmLead[];
-    },
-    enabled: isReady && !!tenantId,
-    staleTime: 2 * 60_000,
-  });
-
-  // Group leads by stage slug
+  // Group leads by stage slug (if not already grouped by Edge)
   const leadsByStage: LeadsByStage = {};
-  const countsByStage: CountsByStage = {};
-
-  if (leadsQuery.data) {
-    for (const lead of leadsQuery.data) {
+  if (!edgeQuery.data?.leadsByStage && leads.length > 0) {
+    for (const lead of leads) {
       const slug = lead.stage_slug || "novos_leads_ia";
-      if (!leadsByStage[slug]) {
-        leadsByStage[slug] = [];
-        countsByStage[slug] = 0;
-      }
+      if (!leadsByStage[slug]) { leadsByStage[slug] = []; }
       leadsByStage[slug].push(lead);
-      countsByStage[slug]++;
     }
+  } else if (edgeQuery.data?.leadsByStage) {
+    Object.assign(leadsByStage, edgeQuery.data.leadsByStage);
   }
 
+  const loading = (edgeQuery.isLoading && !edgeQuery.data) || 
+                  (directQuery.isLoading && !directQuery.data);
+  const error = edgeQuery.error || (directQuery.error as Error | null);
+
   return {
-    stages: stagesQuery.data ?? [],
-    leads: leadsQuery.data ?? [],
+    stages,
+    leads,
     leadsByStage,
     countsByStage,
-    total: leadsQuery.data?.length ?? 0,
-    loading: stagesQuery.isLoading || leadsQuery.isLoading,
-    error: stagesQuery.error || leadsQuery.error,
+    total,
+    loading,
+    error,
     refetch: () => {
-      stagesQuery.refetch();
-      leadsQuery.refetch();
+      edgeQuery.refetch();
+      directQuery.refetch();
     },
-    // Is CRM data available?
-    isCrmAvailable: !!(leadsQuery.data && leadsQuery.data.length > 0),
-    // Fallback mode
-    isFallbackMode: !(leadsQuery.data && leadsQuery.data.length > 0),
+    isEdgeAvailable: !!edgeQuery.data,
+    // Alias for backward compatibility with AdminContacts
+    isCrmAvailable: !!edgeQuery.data,
+    isFallbackMode: !edgeQuery.data && !directQuery.data,
   };
 }
-
-// =============================================================================
-// Filter helpers
-// =============================================================================
 
 export function filterLeads(
   leads: CrmLead[],
@@ -157,7 +181,6 @@ export function filterLeads(
   }
 ): CrmLead[] {
   let result = [...leads];
-
   if (filters.search) {
     const q = filters.search.toLowerCase();
     result = result.filter(
@@ -168,26 +191,10 @@ export function filterLeads(
         l.last_message?.toLowerCase().includes(q)
     );
   }
-
-  if (filters.stageSlug) {
-    result = result.filter((l) => l.stage_slug === filters.stageSlug);
-  }
-
-  if (filters.channel) {
-    result = result.filter((l) => l.channel === filters.channel);
-  }
-
-  if (filters.isVip) {
-    result = result.filter((l) => l.is_vip);
-  }
-
-  if (filters.isHot) {
-    result = result.filter((l) => l.is_hot);
-  }
-
-  if (filters.staleOnly) {
-    result = result.filter((l) => (l.stale_hours ?? 0) > 0);
-  }
-
+  if (filters.stageSlug) result = result.filter((l) => l.stage_slug === filters.stageSlug);
+  if (filters.channel) result = result.filter((l) => l.channel === filters.channel);
+  if (filters.isVip) result = result.filter((l) => l.is_vip);
+  if (filters.isHot) result = result.filter((l) => l.is_hot);
+  if (filters.staleOnly) result = result.filter((l) => (l.stale_hours ?? 0) > 0);
   return result;
 }
