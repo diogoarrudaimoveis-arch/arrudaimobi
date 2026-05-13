@@ -386,6 +386,73 @@ Deno.serve(async (req) => {
         });
       }
 
+      case "crm-admin-leads": {
+        // Admin-only CRM leads read — uses service_role internally
+        // Requires Authorization header with valid Supabase token
+        const authHeader = req.headers.get("authorization");
+        if (!authHeader) {
+          return new Response(JSON.stringify({ error: "Unauthorized" }), {
+            status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Get authenticated user from token
+        const { data: { user }, error: authError } = await supabase.auth.getUser(
+          authHeader.replace("Bearer ", "")
+        );
+        if (authError || !user) {
+          return new Response(JSON.stringify({ error: "Unauthorized" }), {
+            status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Verify admin role
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (!roleData || roleData.role !== "admin") {
+          return new Response(JSON.stringify({ error: "Forbidden — admin only" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+
+        // Fetch stages (not sensitive — just pipeline names)
+        const { data: stages, error: stagesError } = await supabase
+          .from("crm_pipeline_stages")
+          .select("id, slug, name, sort_order, emoji, color, is_default, is_active")
+          .eq("is_active", true)
+          .order("sort_order");
+        if (stagesError) throw stagesError;
+
+
+        // Fetch leads for Arruda Imobi tenant
+        const { data: leads, error: leadsError } = await supabase
+          .from("crm_leads")
+          .select("*")
+          .eq("tenant_name", "Arruda Imobi")
+          .order("updated_at", { ascending: false });
+        if (leadsError) throw leadsError;
+
+        const total = leads?.length ?? 0;
+        const countsByStage: Record<string, number> = {};
+        const leadsByStage: Record<string, any[]> = {};
+        if (leads) {
+          for (const lead of leads) {
+            const slug = lead.stage_slug || "novos_leads_ia";
+            if (!leadsByStage[slug]) { leadsByStage[slug] = []; countsByStage[slug] = 0; }
+            leadsByStage[slug].push(lead);
+            countsByStage[slug]++;
+          }
+        }
+
+        result = { success: true, stages: stages || [], leads: leads || [], leadsByStage, countsByStage, total, source: "crm_leads", synced_at: new Date().toISOString() };
+        break;
+      }
+
       case "list-blog-posts": {
         const page = Math.max(1, Number(url.searchParams.get("page") || 1));
         const pageSize = Math.min(Math.max(1, Number(url.searchParams.get("pageSize") || 12)), 50);
