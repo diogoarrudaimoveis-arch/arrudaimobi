@@ -48,13 +48,13 @@ export function Layout({ children }: LayoutProps) {
           <meta property="og:image" content={`${siteSettings.seo_image_url}?v=${Date.now()}`} />
         )}
 
-        <link rel="canonical" href="https://arrudaimobi.vercel.app" />
+        <link rel="canonical" href={`https://www.arrudaimobi.com.br${location.pathname}`} />
         <script type="application/ld+json">
           {JSON.stringify({
             "@context": "https://schema.org",
             "@type": ["RealEstateAgent", "Organization", "LocalBusiness"],
             "name": "Arruda Imobi",
-            "url": "https://arrudaimobi.vercel.app",
+            "url": "https://www.arrudaimobi.com.br",
             "telephone": "+55 31 99791-8717",
             "image": siteSettings?.seo_image_url || ""
           })}
