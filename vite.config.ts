@@ -25,6 +25,7 @@ export default defineConfig(({ mode }) => ({
         description: "Gestão Imobiliária Profissional",
         theme_color: "#003366",
         background_color: "#ffffff",
+        lang: "pt-BR",
         display: "standalone",
         icons: [
           {

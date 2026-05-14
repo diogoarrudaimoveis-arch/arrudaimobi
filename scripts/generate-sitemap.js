@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const SITE_URL = 'https://arrudaimobi.vercel.app';
+const SITE_URL = 'https://www.arrudaimobi.com.br';
 const PROJECT_ID = 'udutxbyzrdwucabxqvgg';
 const API_URL = `https://${PROJECT_ID}.supabase.co/functions/v1/public-api?action=get-properties`;
 
