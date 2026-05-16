@@ -463,8 +463,8 @@ const AdminContacts = () => {
         {/* Header */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="font-display text-2xl font-bold">Contatos / Leads</h1>
-            <p className="text-muted-foreground text-sm">
+            <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Contatos / Leads</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
               {displayTotal} leads
               {isFallbackMode && (
                 <span className="text-amber-600 ml-2">

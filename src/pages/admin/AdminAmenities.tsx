@@ -66,8 +66,8 @@ const AdminAmenities = () => {
       <div className="space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="font-display text-2xl font-bold">Comodidades</h1>
-            <p className="text-muted-foreground">Gerencie as comodidades disponíveis</p>
+            <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Comodidades</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Gerencie as comodidades disponíveis</p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={(v) => { setDialogOpen(v); if (!v) { setForm({ name: "", icon: "Check" }); setEditingId(null); } }}>
             <DialogTrigger asChild>
