@@ -1,5 +1,6 @@
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AdminPageShell, AdminPageHeader } from "@/components/admin/shared/AdminComponents";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -102,37 +103,27 @@ const AdminMenuPermissions = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-5 p-5 lg:p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-              <Shield className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold">Permissões de Menu</h1>
-              <p className="text-sm text-muted-foreground">
-                Configure qual menu cada perfil pode ver no painel admin.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {canEdit ? (
-              <>
+      <AdminPageShell>
+        <AdminPageHeader
+          title="Permissões de Menu"
+          subtitle="Configure qual menu cada perfil pode ver no painel admin."
+          actions={
+            canEdit ? (
+              <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={handleReset}>
                   Restaurar Padrão
                 </Button>
                 <Button size="sm" onClick={handleSave}>
                   Salvar Configuração
                 </Button>
-              </>
+              </div>
             ) : (
               <Badge variant="outline" className="text-xs">
                 <Lock className="h-3 w-3 mr-1" /> Apenas Admin/Developer
               </Badge>
-            )}
-          </div>
-        </div>
+            )
+          }
+        />
 
         {/* Info Banner */}
         <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
@@ -257,7 +248,7 @@ const AdminMenuPermissions = () => {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </AdminPageShell>
     </AdminLayout>
   );
 };
