@@ -1,6 +1,7 @@
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
+import { useState } from "react";
 import {
   BarChart3, Building2, Eye, Home, LucideIcon,
   MoreHorizontal, Phone, TrendingUp, Users,
@@ -163,15 +164,15 @@ const StatusDot = ({ status }: { status: string }) => {
 
 // ─── Sub Navigation Tabs ──────────────────────────────────────────────────
 const SUB_TABS = [
-  "Visão Geral",
-  "Analytics Site",
-  "Imóveis",
-  "Leads",
-  "Propostas",
-  "Financeiro",
-  "Equipe",
-  "Agenda",
-  "Marketing",
+  { id: "visao-geral", label: "Visão Geral", section: "overview" },
+  { id: "analytics", label: "Analytics Site", section: "analytics" },
+  { id: "imoveis", label: "Imóveis", section: "properties" },
+  { id: "leads", label: "Leads", section: "leads" },
+  { id: "propostas", label: "Propostas", section: "proposals" },
+  { id: "financeiro", label: "Financeiro", section: "finance" },
+  { id: "equipe", label: "Equipe", section: "team" },
+  { id: "agenda", label: "Agenda", section: "schedule" },
+  { id: "marketing", label: "Marketing", section: "marketing" },
 ];
 
 const PERIOD_FILTERS = ["Hoje", "Ontem", "7D", "15D", "3M", "6M", "12M", "Este Ano"];
@@ -179,6 +180,7 @@ const PERIOD_FILTERS = ["Hoje", "Ontem", "7D", "15D", "3M", "6M", "12M", "Este A
 // ─── Dashboard ────────────────────────────────────────────────────────────
 const AdminDashboard = () => {
   const { profile } = useAuth();
+  const [activeTab, setActiveTab] = useState("visao-geral");
   const firstName = profile?.full_name?.split(" ")[0] || "Admin";
 
   const metaPercent = Math.round((MOCK_METRICS.leads.novos / MOCK_METRICS.leads.total) * 100);
@@ -189,16 +191,17 @@ const AdminDashboard = () => {
 
         {/* ─── Sub Navigation (tabs like in video) ─────────────────────────── */}
         <div className="flex items-center gap-1 overflow-x-auto pb-1">
-          {SUB_TABS.map((tab, i) => (
+          {SUB_TABS.map((tab) => (
             <button
-              key={tab}
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors ${
-                i === 0
+                activeTab === tab.id
                   ? "bg-primary text-white"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
             >
-              {tab}
+              {tab.label}
             </button>
           ))}
         </div>

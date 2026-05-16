@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminPageShell, AdminPageHeader } from "@/components/admin/shared/AdminComponents";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -85,7 +86,8 @@ export default function AdminAgenda() {
 
   return (
     <AdminLayout>
-      <div className="flex flex-col gap-6 lg:flex-row">
+      <AdminPageShell>
+        <div className="flex flex-col gap-6 lg:flex-row">
         {/* Main Calendar Area */}
         <div className="flex-1 order-2 lg:order-1">
           <Card className="shadow-xl overflow-hidden">
@@ -294,6 +296,7 @@ export default function AdminAgenda() {
           border-color: hsl(var(--border)) !important;
         }
       `}</style>
-    </AdminLayout>
+    </AdminPageShell>
+  </AdminLayout>
   );
 }

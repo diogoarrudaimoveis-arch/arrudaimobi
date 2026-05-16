@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminPageShell, AdminPageHeader, PageCard } from "@/components/admin/shared/AdminComponents";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -223,45 +224,47 @@ const AdminOwners = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Proprietários</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Gerenciamento de proprietários e autorizações</p>
-          </div>
-          <Button onClick={() => { resetForm(); setDialogOpen(true); }} className="gap-2 bg-[#003366] hover:bg-[#002244]">
-            <Plus className="h-4 w-4" /> Novo Proprietário
-          </Button>
-        </div>
+      <AdminPageShell>
+        <AdminPageHeader
+          title="Proprietários"
+          subtitle="Gerenciamento de proprietários e autorizações"
+          actions={
+            <Button onClick={() => { resetForm(); setDialogOpen(true); }} className="gap-2 bg-[#003366] hover:bg-[#002244]">
+              <Plus className="h-4 w-4" /> Novo Proprietário
+            </Button>
+          }
+        />
 
         {/* Search bar */}
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-            <input
-              id="owners-search"
-              type="text"
-              value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-              placeholder="Buscar por nome, contato ou CPF/CNPJ..."
-              className="w-full pl-9 pr-9 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-[#003366]/30 focus:border-[#003366] transition-colors"
-            />
+        <PageCard>
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <input
+                id="owners-search"
+                type="text"
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+                placeholder="Buscar por nome, contato ou CPF/CNPJ..."
+                className="w-full pl-9 pr-9 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-[#003366]/30 focus:border-[#003366] transition-colors"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => { setSearchQuery(""); setPage(1); }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="Limpar busca"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
             {searchQuery && (
-              <button
-                onClick={() => { setSearchQuery(""); setPage(1); }}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                aria-label="Limpar busca"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              <span className="text-sm text-muted-foreground whitespace-nowrap">
+                {filteredOwners.length} resultado{filteredOwners.length !== 1 ? "s" : ""}
+              </span>
             )}
           </div>
-          {searchQuery && (
-            <span className="text-sm text-muted-foreground whitespace-nowrap">
-              {filteredOwners.length} resultado{filteredOwners.length !== 1 ? "s" : ""}
-            </span>
-          )}
-        </div>
+        </PageCard>
 
         <Card className="overflow-hidden border-border bg-card">
           {isLoading ? (
@@ -520,7 +523,7 @@ const AdminOwners = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </div>
+      </AdminPageShell>
     </AdminLayout>
   );
 };
