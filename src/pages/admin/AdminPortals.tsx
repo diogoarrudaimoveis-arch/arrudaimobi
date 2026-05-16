@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminPageShell, PageCard } from "@/components/admin/shared/AdminComponents";
+import { Globe } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -116,12 +118,14 @@ const AdminPortals = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Portais Imobiliários</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Gerencie integrações e sincronização com portais parceiros</p>
-          </div>
+      <AdminPageShell>
+        <PageCard title="Portais Imobiliários" icon={Globe}>
+          <div className="space-y-6">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Portais Imobiliários</h1>
+                <p className="mt-1 text-sm text-muted-foreground">Gerencie integrações e sincronização com portais parceiros</p>
+              </div>
           <Button onClick={() => setDialogOpen(true)} className="gap-2 bg-[#003366] hover:bg-[#002244]">
             <Plus className="h-4 w-4" /> Adicionar Nova Integração
           </Button>
@@ -338,7 +342,9 @@ const AdminPortals = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
+          </div>
+        </PageCard>
+      </AdminPageShell>
     </AdminLayout>
   );
 };

@@ -1,4 +1,5 @@
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminPageShell, PageCard } from "@/components/admin/shared/AdminComponents";
 import {
   AgentStatusCard,
   AlertSeverityCard,
@@ -10,13 +11,14 @@ import {
 } from "@/components/admin/ai/AiOpsCards";
 import { useIntegrationHealth } from "@/hooks/use-integration-health";
 import { aiAgents, aiOpsSummaryCards, alerts, healthStatuses, leadSlaCards } from "@/data/aiOpsMockData";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Bot } from "lucide-react";
 
 export default function AdminAIOperational() {
   const { healthItems, isLoading, isError } = useIntegrationHealth();
   return (
     <AdminLayout>
-      <div className="space-y-8">
+      <AdminPageShell>
+        <div className="space-y-8">
         <SectionHeader
           title="Central IA Operacional"
           description="Mockup seguro da camada AI-first. Dados estáticos, sem APIs reais, sem tokens e sem escrita em banco."
@@ -75,7 +77,8 @@ export default function AdminAIOperational() {
             ))}
           </div>
         </section>
-      </div>
+        </div>
+      </AdminPageShell>
     </AdminLayout>
   );
 }

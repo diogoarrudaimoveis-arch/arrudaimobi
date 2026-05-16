@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminPageShell, PageCard } from "@/components/admin/shared/AdminComponents";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -153,11 +154,12 @@ const AdminProfile = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <h1 className="font-display text-2xl font-bold">Meu Perfil</h1>
+      <AdminPageShell>
+        <PageCard>
+          <h1 className="font-display text-2xl font-bold">Meu Perfil</h1>
 
-        {/* Avatar + Info */}
-        <Card>
+          {/* Avatar + Info */}
+          <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <User className="h-5 w-5 text-primary" /> Informações Pessoais
@@ -271,7 +273,8 @@ const AdminProfile = () => {
             </Button>
           </CardContent>
         </Card>
-      </div>
+        </PageCard>
+      </AdminPageShell>
     </AdminLayout>
   );
 };

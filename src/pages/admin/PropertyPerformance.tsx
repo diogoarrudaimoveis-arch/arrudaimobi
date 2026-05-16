@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminPageShell, PageCard } from "@/components/admin/shared/AdminComponents";
+import { BarChart3 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useTenantSettings } from "@/hooks/use-tenant-settings";
 import { supabase } from "@/integrations/supabase/client";
@@ -239,7 +241,9 @@ export default function PropertyPerformance() {
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <AdminLayout>
-      <div className="space-y-6 pb-10">
+      <AdminPageShell>
+        <PageCard title="Performance de Imóveis" icon={BarChart3}>
+          <div className="space-y-6 pb-10">
 
         {/* ── Header ── */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -449,7 +453,9 @@ export default function PropertyPerformance() {
           </CardContent>
         </Card>
 
-      </div>
+          </div>
+        </PageCard>
+      </AdminPageShell>
     </AdminLayout>
   );
 }

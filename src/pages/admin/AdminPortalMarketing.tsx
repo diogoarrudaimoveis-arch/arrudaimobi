@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminPageShell, PageCard } from "@/components/admin/shared/AdminComponents";
+import { Activity } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -163,12 +165,14 @@ export default function AdminPortalMarketing() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold font-display text-foreground md:text-3xl">Rastreamento do Portal</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Configure os pixels e IDs de marketing para o seu portal público.</p>
-          </div>
+      <AdminPageShell>
+        <PageCard title="Rastreamento do Portal" icon={Activity}>
+          <div className="space-y-6">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="text-2xl font-bold font-display text-foreground md:text-3xl">Rastreamento do Portal</h1>
+                <p className="mt-1 text-sm text-muted-foreground">Configure os pixels e IDs de marketing para o seu portal público.</p>
+              </div>
           <Button 
             onClick={() => saveMutation.mutate()} 
             disabled={saveMutation.isPending}
@@ -221,7 +225,9 @@ export default function AdminPortalMarketing() {
             </p>
           </div>
         </div>
-      </div>
+          </div>
+        </PageCard>
+      </AdminPageShell>
     </AdminLayout>
   );
 }

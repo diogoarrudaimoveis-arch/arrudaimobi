@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
+import { AdminPageShell } from '@/components/admin/shared/AdminComponents';
 import { SectionHeader } from '@/components/admin/ai/AiOpsCards';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +13,6 @@ import {
   Shield,
   Clock,
   CheckCircle2,
-  ChevronDown,
   BellOff,
 } from 'lucide-react';
 
@@ -147,142 +147,144 @@ export default function AdminAIAlerts() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <SectionHeader
-          title="Alert Center"
-          description="Central de alertas operacionais e governança. Alertas são READ-ONLY — nenhuma ação automática é executada. Notificações estão PREPARADAS mas não ativadas."
-        />
+      <AdminPageShell>
+        <div className="space-y-6">
+          <SectionHeader
+            title="Alert Center"
+            description="Central de alertas operacionais e governança. Alertas são READ-ONLY — nenhuma ação automática é executada. Notificações estão PREPARADAS mas não ativadas."
+          />
 
-        {/* Stats */}
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Card className="border-white/5">
-            <CardContent className="p-4 text-center">
-              <p className="text-3xl font-bold font-mono">{rawAlerts.length}</p>
-              <p className="text-xs text-muted-foreground">Total alertas</p>
-            </CardContent>
-          </Card>
-          <Card className="border-red-500/20">
-            <CardContent className="p-4 text-center">
-              <p className="text-3xl font-bold font-mono text-red-400">{criticalAlerts.length}</p>
-              <p className="text-xs text-muted-foreground">Críticos</p>
-            </CardContent>
-          </Card>
-          <Card className="border-white/5">
-            <CardContent className="p-4 text-center">
-              <p className="text-3xl font-bold font-mono text-orange-400">{activeAlerts.length}</p>
-              <p className="text-xs text-muted-foreground">Ativos</p>
-            </CardContent>
-          </Card>
-          <Card className="border-white/5">
-            <CardContent className="p-4 text-center">
-              <p className="text-3xl font-bold font-mono">{governanceItems.filter(g => g.isActionable).length}</p>
-              <p className="text-xs text-muted-foreground">Governança</p>
-            </CardContent>
-          </Card>
-        </div>
+          {/* Stats */}
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <Card className="border-white/5">
+              <CardContent className="p-4 text-center">
+                <p className="text-3xl font-bold font-mono">{rawAlerts.length}</p>
+                <p className="text-xs text-muted-foreground">Total alertas</p>
+              </CardContent>
+            </Card>
+            <Card className="border-red-500/20">
+              <CardContent className="p-4 text-center">
+                <p className="text-3xl font-bold font-mono text-red-400">{criticalAlerts.length}</p>
+                <p className="text-xs text-muted-foreground">Críticos</p>
+              </CardContent>
+            </Card>
+            <Card className="border-white/5">
+              <CardContent className="p-4 text-center">
+                <p className="text-3xl font-bold font-mono text-orange-400">{activeAlerts.length}</p>
+                <p className="text-xs text-muted-foreground">Ativos</p>
+              </CardContent>
+            </Card>
+            <Card className="border-white/5">
+              <CardContent className="p-4 text-center">
+                <p className="text-3xl font-bold font-mono">{governanceItems.filter(g => g.isActionable).length}</p>
+                <p className="text-xs text-muted-foreground">Governança</p>
+              </CardContent>
+            </Card>
+          </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 border-b border-white/10">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 text-sm border-b-2 transition-colors ${
-                activeTab === tab.id
-                  ? 'border-blue-500 text-white'
-                  : 'border-transparent text-muted-foreground hover:text-white'
-              }`}
-            >
-              {tab.label}
-              <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                activeTab === tab.id ? 'bg-blue-500/20 text-blue-400' : 'bg-white/10'
-              }`}>
-                {tab.count}
-              </span>
-            </button>
-          ))}
-        </div>
-
-        {/* Alert Tab */}
-        {activeTab === 'alerts' && (
-          <div className="space-y-3">
-            {/* Severity Filter */}
-            <div className="flex gap-2 flex-wrap">
+          {/* Tabs */}
+          <div className="flex gap-1 border-b border-white/10">
+            {tabs.map(tab => (
               <button
-                onClick={() => setSeverityFilter('all')}
-                className={`px-3 py-1.5 rounded text-xs border transition-colors ${severityFilter === 'all' ? 'border-white/20 bg-white/10 text-white' : 'border-white/10 text-muted-foreground hover:bg-white/5'}`}
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-2.5 text-sm border-b-2 transition-colors ${
+                  activeTab === tab.id
+                    ? 'border-blue-500 text-white'
+                    : 'border-transparent text-muted-foreground hover:text-white'
+                }`}
               >
-                Todos
+                {tab.label}
+                <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                  activeTab === tab.id ? 'bg-blue-500/20 text-blue-400' : 'bg-white/10'
+                }`}>
+                  {tab.count}
+                </span>
               </button>
-              {(Object.keys(SEVERITY_CONFIG) as Severity[]).map(sev => {
-                const cfg = SEVERITY_CONFIG[sev];
-                return (
-                  <button
-                    key={sev}
-                    onClick={() => setSeverityFilter(sev)}
-                    className={`inline-flex items-center gap-1 px-3 py-1.5 rounded text-xs border transition-colors ${severityFilter === sev ? cfg.badge + ' border' : 'border-white/10 text-muted-foreground hover:bg-white/5'}`}
-                  >
-                    {cfg.icon}{cfg.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Alert List */}
-            <Card className="border-white/5">
-              <CardContent className="p-4 space-y-2">
-                {filteredAlerts.length === 0 ? (
-                  <div className="text-center py-12">
-                    <BellOff size={32} className="mx-auto mb-3 opacity-30" />
-                    <p className="text-sm text-muted-foreground">Nenhum alerta</p>
-                  </div>
-                ) : (
-                  filteredAlerts.map(alert => (
-                    <AlertRow key={alert.id} alert={alert} />
-                  ))
-                )}
-              </CardContent>
-            </Card>
+            ))}
           </div>
-        )}
 
-        {/* Governance Tab */}
-        {activeTab === 'governance' && (
-          <div className="space-y-3">
-            <Card className="border-white/5">
-              <CardContent className="p-4 space-y-2">
-                {governanceItems.map(item => (
-                  <GovernanceRow key={item.id} item={item} />
-                ))}
-              </CardContent>
-            </Card>
-          </div>
-        )}
+          {/* Alert Tab */}
+          {activeTab === 'alerts' && (
+            <div className="space-y-3">
+              {/* Severity Filter */}
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  onClick={() => setSeverityFilter('all')}
+                  className={`px-3 py-1.5 rounded text-xs border transition-colors ${severityFilter === 'all' ? 'border-white/20 bg-white/10 text-white' : 'border-white/10 text-muted-foreground hover:bg-white/5'}`}
+                >
+                  Todos
+                </button>
+                {(Object.keys(SEVERITY_CONFIG) as Severity[]).map(sev => {
+                  const cfg = SEVERITY_CONFIG[sev];
+                  return (
+                    <button
+                      key={sev}
+                      onClick={() => setSeverityFilter(sev)}
+                      className={`inline-flex items-center gap-1 px-3 py-1.5 rounded text-xs border transition-colors ${severityFilter === sev ? cfg.badge + ' border' : 'border-white/10 text-muted-foreground hover:bg-white/5'}`}
+                    >
+                      {cfg.icon}{cfg.label}
+                    </button>
+                  );
+                })}
+              </div>
 
-        {/* Notification Status */}
-        <Card className="border-white/5">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm">📨 Status das Notificações</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 rounded-full bg-yellow-400" />
-              <span className="text-sm">Telegram — <strong className="text-yellow-400">PRONTO (não ativado)</strong> — @arruda_master_bot conectado</span>
+              {/* Alert List */}
+              <Card className="border-white/5">
+                <CardContent className="p-4 space-y-2">
+                  {filteredAlerts.length === 0 ? (
+                    <div className="text-center py-12">
+                      <BellOff size={32} className="mx-auto mb-3 opacity-30" />
+                      <p className="text-sm text-muted-foreground">Nenhum alerta</p>
+                    </div>
+                  ) : (
+                    filteredAlerts.map(alert => (
+                      <AlertRow key={alert.id} alert={alert} />
+                    ))
+                  )}
+                </CardContent>
+              </Card>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 rounded-full bg-gray-500" />
-              <span className="text-sm">Slack — <strong className="text-gray-400">PREPARADO (não configurado)</strong> — Webhook URL não definido</span>
+          )}
+
+          {/* Governance Tab */}
+          {activeTab === 'governance' && (
+            <div className="space-y-3">
+              <Card className="border-white/5">
+                <CardContent className="p-4 space-y-2">
+                  {governanceItems.map(item => (
+                    <GovernanceRow key={item.id} item={item} />
+                  ))}
+                </CardContent>
+              </Card>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 rounded-full bg-gray-500" />
-              <span className="text-sm">Email — <strong className="text-gray-400">PREPARADO (não configurado)</strong> — SMTP não configurado</span>
-            </div>
-            <p className="text-xs text-muted-foreground pt-2 border-t border-white/5">
-              ⚠️ Notificações reais devem ser ativadas apenas após aprovação do Diogo. Alertas críticos podem ser enviados automaticamente quando configurado.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+          )}
+
+          {/* Notification Status */}
+          <Card className="border-white/5">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">📨 Status das Notificações</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-yellow-400" />
+                <span className="text-sm">Telegram — <strong className="text-yellow-400">PRONTO (não ativado)</strong> — @arruda_master_bot conectado</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-gray-500" />
+                <span className="text-sm">Slack — <strong className="text-gray-400">PREPARADO (não configurado)</strong> — Webhook URL não definido</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-gray-500" />
+                <span className="text-sm">Email — <strong className="text-gray-400">PREPARADO (não configurado)</strong> — SMTP não configurado</span>
+              </div>
+              <p className="text-xs text-muted-foreground pt-2 border-t border-white/5">
+                ⚠️ Notificações reais devem ser ativadas apenas após aprovação do Diogo. Alertas críticos podem ser enviados automaticamente quando configurado.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </AdminPageShell>
     </AdminLayout>
   );
 }

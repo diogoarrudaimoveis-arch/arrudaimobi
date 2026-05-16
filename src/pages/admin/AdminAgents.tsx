@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminPageShell, PageCard } from "@/components/admin/shared/AdminComponents";
+import { Users } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -215,12 +217,14 @@ const AdminAgents = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Agentes & Usuários</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Gerencie perfis, funções e acessos · {agents?.length || 0} membros</p>
-          </div>
+      <AdminPageShell>
+        <PageCard title="Agentes & Usuários" icon={Users}>
+          <div className="space-y-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Agentes & Usuários</h1>
+                <p className="mt-1 text-sm text-muted-foreground">Gerencie perfis, funções e acessos · {agents?.length || 0} membros</p>
+              </div>
           <Button className="gap-2" onClick={() => { resetForm(); setDialogOpen(true); }}>
             <UserPlus className="h-4 w-4" /> Adicionar
           </Button>
@@ -384,8 +388,9 @@ const AdminAgents = () => {
             </Table>
           </div>
         )}
-      </div>
-
+          </div>
+        </PageCard>
+      </AdminPageShell>
       <AlertDialog open={!!deleteConfirmAgent} onOpenChange={() => setDeleteConfirmAgent(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

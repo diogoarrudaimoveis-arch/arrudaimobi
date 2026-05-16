@@ -1,4 +1,5 @@
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminPageShell, PageCard } from "@/components/admin/shared/AdminComponents";
 import { Loader2 } from "lucide-react";
 import { useAdminTenant } from "@/hooks/use-admin-tenant";
 import { RegistrationToggle } from "@/components/admin/settings/RegistrationToggle";
@@ -17,14 +18,19 @@ const AdminSettings = () => {
   if (isLoading) {
     return (
       <AdminLayout>
-        <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+        <AdminPageShell>
+          <PageCard>
+            <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+          </PageCard>
+        </AdminPageShell>
       </AdminLayout>
     );
   }
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <AdminPageShell>
+        <PageCard>
         <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Configurações</h1>
 
         <RegistrationToggle />
@@ -53,7 +59,8 @@ const AdminSettings = () => {
 
         {/* Configurações Avançadas do Site (Favicon, SEO, Docs, Cookies) */}
         {tenantId && <AdvancedSiteSettings tenantId={tenantId} />}
-      </div>
+        </PageCard>
+      </AdminPageShell>
     </AdminLayout>
   );
 };
