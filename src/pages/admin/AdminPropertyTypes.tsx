@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminPageShell, AdminPageHeader, PageCard } from "@/components/admin/shared/AdminComponents";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -78,41 +79,16 @@ const AdminPropertyTypes = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Tipos de Imóvel</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Gerencie os tipos disponíveis</p>
-          </div>
-          <Dialog open={dialogOpen} onOpenChange={(v) => { setDialogOpen(v); if (!v) resetForm(); }}>
-            <DialogTrigger asChild>
-              <Button className="gap-2"><Plus className="h-4 w-4" /> Novo Tipo</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{editingId ? "Editar Tipo" : "Novo Tipo"}</DialogTitle>
-                <DialogDescription className="sr-only">Cadastre ou edite os tipos de imóveis disponíveis na plataforma, definindo nomes, ícones e status de exibição.</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={(e) => { e.preventDefault(); saveMutation.mutate(); }} className="space-y-4">
-                <div>
-                  <label className="mb-1 block text-sm font-medium">Nome *</label>
-                  <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium">Ícone</label>
-                  <Input value={form.icon} onChange={(e) => setForm({ ...form, icon: e.target.value })} placeholder="Building2" />
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch checked={form.active} onCheckedChange={(v) => setForm({ ...form, active: v })} />
-                  <label className="text-sm">Ativo</label>
-                </div>
-                <Button type="submit" className="w-full" disabled={saveMutation.isPending}>
-                  {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
+      <AdminPageShell>
+        <AdminPageHeader
+          title="Tipos de Imóvel"
+          subtitle="Gerencie os tipos disponíveis"
+          actions={
+            <Button onClick={() => { resetForm(); setDialogOpen(true); }} className="gap-2">
+              <Plus className="h-4 w-4" /> Novo Tipo
+            </Button>
+          }
+        />
 
         {isLoading ? (
           <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
@@ -122,39 +98,68 @@ const AdminPropertyTypes = () => {
             <p className="mt-3 font-display font-semibold">Nenhum tipo cadastrado</p>
           </Card>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Ícone</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {types.map((t: any) => (
-                  <TableRow key={t.id}>
-                    <TableCell className="font-medium">{t.name}</TableCell>
-                    <TableCell>{t.icon}</TableCell>
-                    <TableCell>
-                      <Badge variant={t.active ? "default" : "secondary"}>
-                        {t.active ? "Ativo" : "Inativo"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(t)}><Pencil className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeleteConfirmId(t.id)}><Trash2 className="h-4 w-4" /></Button>
-                      </div>
-                    </TableCell>
+          <PageCard>
+            <div className="overflow-x-auto rounded-lg border border-border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Ícone</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {types.map((t: any) => (
+                    <TableRow key={t.id}>
+                      <TableCell className="font-medium">{t.name}</TableCell>
+                      <TableCell>{t.icon}</TableCell>
+                      <TableCell>
+                        <Badge variant={t.active ? "default" : "secondary"}>
+                          {t.active ? "Ativo" : "Inativo"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(t)}><Pencil className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeleteConfirmId(t.id)}><Trash2 className="h-4 w-4" /></Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </PageCard>
         )}
-      </div>
+      </AdminPageShell>
+
+      {/* Create/Edit Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={(v) => { setDialogOpen(v); if (!v) resetForm(); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingId ? "Editar Tipo" : "Novo Tipo"}</DialogTitle>
+            <DialogDescription className="sr-only">Cadastre ou edite os tipos de imóveis disponíveis na plataforma, definindo nomes, ícones e status de exibição.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={(e) => { e.preventDefault(); saveMutation.mutate(); }} className="space-y-4">
+            <div>
+              <label className="mb-1 block text-sm font-medium">Nome *</label>
+              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium">Ícone</label>
+              <Input value={form.icon} onChange={(e) => setForm({ ...form, icon: e.target.value })} placeholder="Building2" />
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch checked={form.active} onCheckedChange={(v) => setForm({ ...form, active: v })} />
+              <label className="text-sm">Ativo</label>
+            </div>
+            <Button type="submit" className="w-full" disabled={saveMutation.isPending}>
+              {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
         <AlertDialogContent>

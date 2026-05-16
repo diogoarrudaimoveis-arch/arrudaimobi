@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminPageShell, AdminPageHeader, PageCard } from "@/components/admin/shared/AdminComponents";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -459,59 +460,47 @@ const AdminContacts = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-4">
-        {/* Header */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Contatos / Leads</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {displayTotal} leads
-              {isFallbackMode && (
-                <span className="text-amber-600 ml-2">
-                  ⚠️ Modo legado: CRM ZPRO indisponível.
-                </span>
-              )}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Atualizar ZPRO button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                refetch();
-                toast({ title: "Sincronizando...", description: "Buscando dados do CRM ZPRO." });
-              }}
-              disabled={crmLoading}
-            >
-              <RefreshCw className={`h-4 w-4 mr-1.5 ${crmLoading ? "animate-spin" : ""}`} />
-              Atualizar ZPRO
-            </Button>
-
-            {/* View toggle */}
-            <div className="flex rounded-lg border border-border overflow-hidden">
+      <AdminPageShell>
+        <AdminPageHeader
+          title="Contatos / Leads"
+          subtitle={`${displayTotal} leads${isFallbackMode ? " — Modo legado: CRM ZPRO indisponível" : ""}`}
+          actions={
+            <div className="flex items-center gap-2 flex-wrap">
               <Button
-                variant={viewMode === "kanban" ? "default" : "ghost"}
+                variant="outline"
                 size="sm"
-                className="rounded-none gap-1.5"
-                onClick={() => setViewMode("kanban")}
+                onClick={() => {
+                  refetch();
+                  toast({ title: "Sincronizando...", description: "Buscando dados do CRM ZPRO." });
+                }}
+                disabled={crmLoading}
               >
-                <LayoutGrid className="h-4 w-4" />
-                <span className="hidden sm:inline">Kanban</span>
+                <RefreshCw className={`h-4 w-4 mr-1.5 ${crmLoading ? "animate-spin" : ""}`} />
+                Atualizar ZPRO
               </Button>
-              <Button
-                variant={viewMode === "table" ? "default" : "ghost"}
-                size="sm"
-                className="rounded-none gap-1.5"
-                onClick={() => setViewMode("table")}
-              >
-                <TableIcon className="h-4 w-4" />
-                <span className="hidden sm:inline">Tabela</span>
-              </Button>
+              <div className="flex rounded-lg border border-border overflow-hidden">
+                <Button
+                  variant={viewMode === "kanban" ? "default" : "ghost"}
+                  size="sm"
+                  className="rounded-none gap-1.5"
+                  onClick={() => setViewMode("kanban")}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                  <span className="hidden sm:inline">Kanban</span>
+                </Button>
+                <Button
+                  variant={viewMode === "table" ? "default" : "ghost"}
+                  size="sm"
+                  className="rounded-none gap-1.5"
+                  onClick={() => setViewMode("table")}
+                >
+                  <TableIcon className="h-4 w-4" />
+                  <span className="hidden sm:inline">Tabela</span>
+                </Button>
+              </div>
             </div>
-          </div>
-        </div>
+          }
+        />
 
         {/* CRM Summary Banner */}
         {!isFallbackMode && isCrmAvailable && (
@@ -647,7 +636,7 @@ const AdminContacts = () => {
             </p>
           </div>
         )}
-      </div>
+      </AdminPageShell>
     </AdminLayout>
   );
 };
