@@ -24,7 +24,10 @@ const Login = lazy(() => import("./pages/Login"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
-const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+// AdminDashboard is imported directly (not lazy) to prevent React lifecycle race conditions
+// that cause tab state to reset when component remounts after lazy Suspense resolution.
+// See: diagnostic-dashboard-tabs.md — Fix 1 (Highest Priority)
+import AdminDashboard from "./pages/admin/AdminDashboard";
 const CaptarImovel = lazy(() => import("./pages/CaptarImovel"));
 const ProprietarioDashboard = lazy(() => import("./pages/proprietario/ProprietarioDashboard"));
 const ProprietarioPropertyNew = lazy(() => import("./pages/proprietario/ProprietarioPropertyNew"));
