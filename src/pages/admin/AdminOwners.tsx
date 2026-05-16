@@ -279,17 +279,18 @@ const AdminOwners = () => {
               <TableBody>
                 {filteredOwners.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
+                    <TableCell colSpan={4} className="text-center py-16">
                       {searchQuery ? (
-                        <div className="flex flex-col items-center gap-2">
-                          <Search className="h-8 w-8 opacity-20" />
-                          <p>Nenhum proprietário encontrado para <strong>"{searchQuery}"</strong></p>
-                          <button onClick={() => setSearchQuery("")} className="text-[#003366] text-sm underline">Limpar filtro</button>
+                        <div className="flex flex-col items-center gap-3">
+                          <Search className="h-10 w-10 text-muted-foreground/30" />
+                          <p className="text-muted-foreground">Nenhum proprietário encontrado para <strong>"{searchQuery}"</strong></p>
+                          <button onClick={() => setSearchQuery("")} className="text-[#003366] text-sm underline hover:text-[#002244]">Limpar filtro</button>
                         </div>
                       ) : (
-                        <div className="flex flex-col items-center gap-2">
-                          <User className="h-8 w-8 opacity-20" />
-                          <p>Nenhum proprietário cadastrado</p>
+                        <div className="flex flex-col items-center gap-3">
+                          <User className="h-10 w-10 text-muted-foreground/30" />
+                          <p className="text-muted-foreground">Nenhum proprietário cadastrado</p>
+                          <p className="text-xs text-muted-foreground/60">Clique em "Adicionar" para criar o primeiro</p>
                         </div>
                       )}
                     </TableCell>
