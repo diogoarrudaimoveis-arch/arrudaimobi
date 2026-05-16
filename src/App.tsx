@@ -37,6 +37,7 @@ const AdminPropertyTypes = lazy(() => import("./pages/admin/AdminPropertyTypes")
 const AdminAmenities = lazy(() => import("./pages/admin/AdminAmenities"));
 const AdminContacts = lazy(() => import("./pages/admin/AdminContacts"));
 const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
+const AdminMenuPermissions = lazy(() => import("./pages/admin/AdminMenuPermissions"));
 const AdminMediaLibrary = lazy(() => import("./pages/admin/AdminMediaLibrary"));
 const AdminEmailSettings = lazy(() => import("./pages/admin/AdminEmailSettings"));
 const AdminMessages = lazy(() => import("./pages/admin/AdminMessages"));
@@ -144,6 +145,7 @@ const App = () => (
                         <Route path="/admin/mensagens" element={<ProtectedRoute><AdminMessages /></ProtectedRoute>} />
                         <Route path="/admin/perfil" element={<ProtectedRoute><AdminProfile /></ProtectedRoute>} />
                         <Route path="/admin/email" element={<ProtectedRoute requireAdmin><AdminEmailSettings /></ProtectedRoute>} />
+                        <Route path="/admin/permissoes-menu" element={<ProtectedRoute requireAdmin><AdminMenuPermissions /></ProtectedRoute>} />
                         <Route path="/admin/configuracoes" element={<ProtectedRoute requireAdmin><AdminSettings /></ProtectedRoute>} />
                         <Route path="/blog" element={<Blog />} />
                         <Route path="/blog/:slug" element={<BlogPost />} />

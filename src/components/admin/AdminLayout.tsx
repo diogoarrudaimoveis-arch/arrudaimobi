@@ -7,7 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils";
 import { normalizeRole, canSeeMenuItem, getRoleLabel, type AdminMenuItem } from "@/lib/adminPermissions";
 import {
-  Building2, LayoutDashboard, Home, Users, Settings, Tag,
+  Building2, LayoutDashboard, Home, Users, Settings, Tag, Sparkles, Mail, User, Database, Shield,
   Sparkles, MessageSquare, LogOut, X, Menu, Sun, Moon, User, Image, Send, Mail,
   PanelLeftClose, PanelLeftOpen, ChevronRight, FileText, Download, Globe,
   Calendar as CalendarIcon, Target, BarChart3, BrainCircuit, Bot, Workflow,
@@ -52,6 +52,7 @@ const allMenuItems: AdminMenuItem[] = [
   { key: "profile", label: "Meu Perfil", href: "/admin/perfil", icon: User, section: "Sistema" },
   { key: "email-config", label: "Config. E-mail", href: "/admin/email", icon: Mail, section: "Sistema", adminOnly: true },
   { key: "settings", label: "Configurações", href: "/admin/configuracoes", icon: Settings, section: "Sistema", adminOnly: true },
+  { key: "menu-permissions", label: "Permissões de Menu", href: "/admin/permissoes-menu", icon: Shield, section: "Sistema", adminOnly: true },
 ];
 
 // Group menu items by section
@@ -61,7 +62,7 @@ const menuSections = [
   { label: "CRM & Atendimento", keys: ["contacts", "messages"] },
   { label: "Marketing Digital", keys: ["ai-config", "portals", "tracking", "performance"] },
   { label: "IA Operacional", keys: ["central-ai", "ai-agents", "n8n", "logs", "health", "devops", "meta-ads", "supabase"] },
-  { label: "Sistema", keys: ["profile", "email-config", "settings"] },
+  { label: "Sistema", keys: ["profile", "email-config", "settings", "menu-permissions"] },
 ];
 
 interface AdminLayoutProps {

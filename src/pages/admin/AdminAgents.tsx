@@ -82,7 +82,17 @@ const AdminAgents = () => {
       toast({ title: "Papel atualizado!" });
     },
     onError: (err: any) => {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      // Friendly RLS error handling — do not bypass RLS
+      const isRLSError = err?.message?.includes('row-level security') || err?.code === '42501';
+      if (isRLSError) {
+        toast({
+          title: "Sem permissão para alterar papéis",
+          description: "Configure a policy de RLS em user_roles no Supabase para permitir esta ação, ou peça ao administrador.",
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Erro ao atualizar papel", description: err.message, variant: "destructive" });
+      }
     },
   });
 
