@@ -196,7 +196,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             {navGroups.map((group) => (
               <div key={group.label} className="space-y-1">
                 {!collapsed && (
-                  <h3 className="px-3 text-[10px] font-bold uppercase tracking-wider text-sidebar-foreground/40 mb-2">
+                  <h3 className="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-sidebar-foreground/40">
                     {group.label}
                   </h3>
                 )}

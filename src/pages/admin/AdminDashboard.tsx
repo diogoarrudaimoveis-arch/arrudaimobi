@@ -186,7 +186,6 @@ const AdminDashboard = () => {
           ))}
         </div>
 
-
         {/* Operational Cockpit - mocked until Supabase/ZPRO monitoring schema is approved */}
         <section className="space-y-4">
           <div className="flex flex-col gap-1">
@@ -194,42 +193,50 @@ const AdminDashboard = () => {
             <p className="text-sm text-muted-foreground">Visão mockada para validar layout antes de conectar Supabase, ZPRO e n8n.</p>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-3">
-            {operationalLeadPriorities.map((item) => (
-              <Card key={item.label} className="overflow-hidden hover:shadow-card-hover">
-                <CardContent className="p-5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className={`font-display text-3xl font-bold ${item.tone}`}>{item.value}</p>
-                      <p className="mt-1 text-sm font-semibold text-foreground">Leads {item.label}</p>
-                      <p className="text-xs text-muted-foreground">{item.description}</p>
+          {/* Lead Priorities - P0/P1/P2 */}
+          <div className="mt-6">
+            <h3 className="mb-3 font-display text-base font-semibold text-foreground">Prioridades de Leads</h3>
+            <div className="grid gap-4 lg:grid-cols-3">
+              {operationalLeadPriorities.map((item) => (
+                <Card key={item.label} className="overflow-hidden border-l-2 border-l-destructive hover:shadow-card-hover">
+                  <CardContent className="p-5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className={`font-display text-3xl font-bold ${item.tone}`}>{item.value}</p>
+                        <p className="mt-1 text-sm font-semibold text-foreground">Leads {item.label}</p>
+                        <p className="text-xs text-muted-foreground">{item.description}</p>
+                      </div>
+                      <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${item.bg}`}>
+                        <Activity className={`h-6 w-6 ${item.tone}`} />
+                      </div>
                     </div>
-                    <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${item.bg}`}>
-                      <Activity className={`h-6 w-6 ${item.tone}`} />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-3">
-            {operationalMetrics.map((metric) => (
-              <Card key={metric.title} className="overflow-hidden hover:shadow-card-hover">
-                <CardContent className="p-5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-[13px] font-medium text-muted-foreground">{metric.title}</p>
-                      <p className="mt-1.5 font-display text-3xl font-bold tracking-tight">{metric.value}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{metric.detail}</p>
+          {/* Operational Metrics */}
+          <div className="mt-6">
+            <h3 className="mb-3 font-display text-base font-semibold text-foreground">Métricas Operacionais</h3>
+            <div className="grid gap-4 lg:grid-cols-3">
+              {operationalMetrics.map((metric) => (
+                <Card key={metric.title} className="overflow-hidden hover:shadow-card-hover">
+                  <CardContent className="p-5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-[13px] font-medium text-muted-foreground">{metric.title}</p>
+                        <p className="mt-1.5 font-display text-3xl font-bold tracking-tight">{metric.value}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{metric.detail}</p>
+                      </div>
+                      <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${metric.bg}`}>
+                        <metric.icon className={`h-6 w-6 ${metric.tone}`} />
+                      </div>
                     </div>
-                    <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${metric.bg}`}>
-                      <metric.icon className={`h-6 w-6 ${metric.tone}`} />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
 
           <Card>
