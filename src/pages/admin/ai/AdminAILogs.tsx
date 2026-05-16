@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
+import { AdminPageShell } from '@/components/admin/shared/AdminComponents';
 import { SectionHeader } from '@/components/admin/ai/AiOpsCards';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -88,7 +89,8 @@ export default function AdminAILogs() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <AdminPageShell>
+        <div className="space-y-6">
         {/* Header */}
         <SectionHeader
           title="Log Center"
@@ -253,6 +255,7 @@ export default function AdminAILogs() {
           </span>
         </div>
       </div>
+      </AdminPageShell>
     </AdminLayout>
   );
 }

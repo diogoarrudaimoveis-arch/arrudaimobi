@@ -1,5 +1,6 @@
 import { useState, useRef, useMemo } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminPageShell, AdminPageHeader, PageCard } from "@/components/admin/shared/AdminComponents";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -230,39 +231,39 @@ const AdminMediaLibrary = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Biblioteca de Mídias</h1>
-            <p className="mt-1 text-sm text-muted-foreground">{totalMedia} itens</p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={() => setYoutubeDialogOpen(true)}
-            >
-              <Youtube className="h-4 w-4" />
-              YouTube
-            </Button>
-            <Button className="gap-2" disabled={uploading} onClick={() => fileRef.current?.click()}>
-              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              Upload
-            </Button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={(e) => {
-                const files = e.target.files ? Array.from(e.target.files) : [];
-                if (files.length) uploadMutation.mutate(files);
-                e.target.value = "";
-              }}
-            />
-          </div>
-        </div>
+      <AdminPageShell>
+        <AdminPageHeader
+          title="Biblioteca de Mídias"
+          subtitle={`${totalMedia} itens`}
+          actions={
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => setYoutubeDialogOpen(true)}
+              >
+                <Youtube className="h-4 w-4" />
+                YouTube
+              </Button>
+              <Button className="gap-2" disabled={uploading} onClick={() => fileRef.current?.click()}>
+                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                Upload
+              </Button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  const files = e.target.files ? Array.from(e.target.files) : [];
+                  if (files.length) uploadMutation.mutate(files);
+                  e.target.value = "";
+                }}
+              />
+            </div>
+          }
+        />
 
         {isLoading ? (
           <div className="flex justify-center py-12">
@@ -324,7 +325,7 @@ const AdminMediaLibrary = () => {
           />
           </>
         )}
-      </div>
+      </AdminPageShell>
 
       {/* YouTube dialog */}
       <Dialog open={youtubeDialogOpen} onOpenChange={setYoutubeDialogOpen}>

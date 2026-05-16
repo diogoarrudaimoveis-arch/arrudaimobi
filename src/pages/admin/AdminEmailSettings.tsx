@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminPageShell, PageCard } from "@/components/admin/shared/AdminComponents";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -216,16 +217,21 @@ export default function AdminEmailSettings() {
   if (loading) {
     return (
       <AdminLayout>
-        <div className="flex min-h-[400px] items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+        <AdminPageShell>
+          <PageCard>
+            <div className="flex min-h-[400px] items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          </PageCard>
+        </AdminPageShell>
       </AdminLayout>
     );
   }
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <AdminPageShell>
+        <PageCard>
         {/* Page header */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -486,7 +492,8 @@ export default function AdminEmailSettings() {
             <EmailCampaigns />
           </TabsContent>
         </Tabs>
-      </div>
+        </PageCard>
+      </AdminPageShell>
     </AdminLayout>
   );
 }

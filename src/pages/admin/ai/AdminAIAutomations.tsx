@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminPageShell } from "@/components/admin/shared/AdminComponents";
 import { SectionHeader, SummaryMetricCard } from "@/components/admin/ai/AiOpsCards";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -131,7 +132,8 @@ export default function AdminAIAutomations() {
 
   return (
     <AdminLayout>
-      <div className="space-y-8">
+      <AdminPageShell>
+        <div className="space-y-8">
         <SectionHeader
           title="Governança de Automações"
           description="Registry local/mock das automações da stack. Esta tela é somente leitura: nenhum cron, job, processo ou deploy é alterado daqui."
@@ -269,7 +271,8 @@ export default function AdminAIAutomations() {
             </CardDescription>
           </CardHeader>
         </Card>
-      </div>
+        </div>
+      </AdminPageShell>
     </AdminLayout>
   );
 }

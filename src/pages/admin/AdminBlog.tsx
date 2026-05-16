@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminPageShell, AdminPageHeader, PageCard } from "@/components/admin/shared/AdminComponents";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminBlogPosts, useCreateBlogPost, useUpdateBlogPost, useDeleteBlogPost, generateSlug } from "@/hooks/use-blog";
 import type { BlogPost } from "@/hooks/use-blog";
@@ -133,18 +134,16 @@ export default function AdminBlog() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
-              <FileText className="h-6 w-6 text-primary" /> Blog
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">Gerencie os posts e notícias do seu site</p>
-          </div>
-          <Button onClick={openNew} className="gap-2">
-            <Plus className="h-4 w-4" /> Novo Post
-          </Button>
-        </div>
+      <AdminPageShell>
+        <AdminPageHeader
+          title="Blog"
+          subtitle="Gerencie os posts e notícias do seu site"
+          actions={
+            <Button onClick={openNew} className="gap-2">
+              <Plus className="h-4 w-4" /> Novo Post
+            </Button>
+          }
+        />
 
         {isLoading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -204,7 +203,7 @@ export default function AdminBlog() {
             ))}
           </div>
         )}
-      </div>
+      </AdminPageShell>
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

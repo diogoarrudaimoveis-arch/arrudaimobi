@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
+import { AdminPageShell, PageCard } from '@/components/admin/shared/AdminComponents';
 import { SectionHeader } from '@/components/admin/ai/AiOpsCards';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -447,13 +448,15 @@ export default function AdminMetaAds() {
   if (!loading && overview?.health.status === 'NOT_CONFIGURED') {
     return (
       <AdminLayout>
-        <div className="space-y-6">
-          <SectionHeader
-            title="Meta Ads"
-            description="Painel de campanhas, métricas e alertas. READ-ONLY — sem permissão de escrita."
-          />
-          <SetupChecklist />
-        </div>
+        <AdminPageShell>
+          <PageCard>
+            <SectionHeader
+              title="Meta Ads"
+              description="Painel de campanhas, métricas e alertas. READ-ONLY — sem permissão de escrita."
+            />
+            <SetupChecklist />
+          </PageCard>
+        </AdminPageShell>
       </AdminLayout>
     );
   }
@@ -462,23 +465,25 @@ export default function AdminMetaAds() {
   if (!loading && (overview?.health.status === 'NO_PERMISSION' || overview?.health.status === 'TOKEN_INVALID')) {
     return (
       <AdminLayout>
-        <div className="space-y-6">
-          <SectionHeader
-            title="Meta Ads"
-            description="Painel READ-ONLY. Token existe mas não tem permissões de Marketing API."
-          />
-          <div className="flex items-center gap-3 rounded-lg border border-red-500/30 bg-red-500/5 p-4">
-            <XCircle className="text-red-400 shrink-0" size={20} />
-            <div className="space-y-1">
-              <p className="text-sm font-semibold text-red-400">Meta Ads — Sem Permissão</p>
-              <p className="text-xs text-muted-foreground">
-                O token configurado não possui escopo <code className="bg-red-500/10 px-1 rounded">ads_read</code>.
-                Acesse Business Manager e crie um System User com permissões de Marketing API.
-              </p>
+        <AdminPageShell>
+          <PageCard>
+            <SectionHeader
+              title="Meta Ads"
+              description="Painel READ-ONLY. Token existe mas não tem permissões de Marketing API."
+            />
+            <div className="flex items-center gap-3 rounded-lg border border-red-500/30 bg-red-500/5 p-4">
+              <XCircle className="text-red-400 shrink-0" size={20} />
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-red-400">Meta Ads — Sem Permissão</p>
+                <p className="text-xs text-muted-foreground">
+                  O token configurado não possui escopo <code className="bg-red-500/10 px-1 rounded">ads_read</code>.
+                  Acesse Business Manager e crie um System User com permissões de Marketing API.
+                </p>
+              </div>
             </div>
-          </div>
-          <SetupChecklist />
-        </div>
+            <SetupChecklist />
+          </PageCard>
+        </AdminPageShell>
       </AdminLayout>
     );
   }
@@ -487,20 +492,22 @@ export default function AdminMetaAds() {
   if (loading) {
     return (
       <AdminLayout>
-        <div className="space-y-6">
-          <SectionHeader title="Meta Ads" description="Carregando dados..." />
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <Card key={i} className="border-white/5">
-                <CardContent className="p-4 space-y-2">
-                  <Skeleton className="h-3 w-20" />
-                  <Skeleton className="h-7 w-16" />
-                  <Skeleton className="h-3 w-12" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
+        <AdminPageShell>
+          <PageCard>
+            <SectionHeader title="Meta Ads" description="Carregando dados..." />
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <Card key={i} className="border-white/5">
+                  <CardContent className="p-4 space-y-2">
+                    <Skeleton className="h-3 w-20" />
+                    <Skeleton className="h-7 w-16" />
+                    <Skeleton className="h-3 w-12" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </PageCard>
+        </AdminPageShell>
       </AdminLayout>
     );
   }
@@ -509,12 +516,14 @@ export default function AdminMetaAds() {
   if (error || !overview) {
     return (
       <AdminLayout>
-        <div className="space-y-6">
-          <SectionHeader title="Meta Ads" description="Erro ao carregar dados." />
-          <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-4 text-red-400 text-sm">
-            {error ?? 'Erro desconhecido'}
-          </div>
-        </div>
+        <AdminPageShell>
+          <PageCard>
+            <SectionHeader title="Meta Ads" description="Erro ao carregar dados." />
+            <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-4 text-red-400 text-sm">
+              {error ?? 'Erro desconhecido'}
+            </div>
+          </PageCard>
+        </AdminPageShell>
       </AdminLayout>
     );
   }
@@ -591,7 +600,8 @@ export default function AdminMetaAds() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <AdminPageShell>
+        <PageCard>
         {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-4">
           <SectionHeader
@@ -761,7 +771,8 @@ export default function AdminMetaAds() {
             <p className="text-sm">Nenhuma campanha encontrada nesta conta.</p>
           </div>
         )}
-      </div>
+        </PageCard>
+      </AdminPageShell>
     </AdminLayout>
   );
 }

@@ -7,7 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils";
 import { normalizeRole, canSeeMenuItem, getRoleLabel, type AdminMenuItem } from "@/lib/adminPermissions";
 import {
-  Building2, LayoutDashboard, Home, Users, Settings, Tag,
+  Building2, LayoutDashboard, Home, Users, Settings, Tag, Sparkles, Mail, User, Database, Shield,
   Sparkles, MessageSquare, LogOut, X, Menu, Sun, Moon, User, Image, Send, Mail,
   PanelLeftClose, PanelLeftOpen, ChevronRight, FileText, Download, Globe,
   Calendar as CalendarIcon, Target, BarChart3, BrainCircuit, Bot, Workflow,
@@ -52,6 +52,7 @@ const allMenuItems: AdminMenuItem[] = [
   { key: "profile", label: "Meu Perfil", href: "/admin/perfil", icon: User, section: "Sistema" },
   { key: "email-config", label: "Config. E-mail", href: "/admin/email", icon: Mail, section: "Sistema", adminOnly: true },
   { key: "settings", label: "Configurações", href: "/admin/configuracoes", icon: Settings, section: "Sistema", adminOnly: true },
+  { key: "menu-permissions", label: "Permissões de Menu", href: "/admin/permissoes-menu", icon: Shield, section: "Sistema", adminOnly: true },
 ];
 
 // Group menu items by section
@@ -61,7 +62,7 @@ const menuSections = [
   { label: "CRM & Atendimento", keys: ["contacts", "messages"] },
   { label: "Marketing Digital", keys: ["ai-config", "portals", "tracking", "performance"] },
   { label: "IA Operacional", keys: ["central-ai", "ai-agents", "n8n", "logs", "health", "devops", "meta-ads", "supabase"] },
-  { label: "Sistema", keys: ["profile", "email-config", "settings"] },
+  { label: "Sistema", keys: ["profile", "email-config", "settings", "menu-permissions"] },
 ];
 
 interface AdminLayoutProps {
@@ -103,14 +104,14 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       <Link
         to={item.href}
         className={cn(
-          "group relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[12px] font-medium transition-all duration-150",
+          "group relative flex items-center gap-2 rounded-sm px-2 py-1.5 text-[12px] font-medium transition-all duration-150",
           collapsed && "justify-center px-1.5",
           active
-            ? "bg-slate-800 text-white shadow-sm"
+            ? "bg-slate-800 text-white border-l-2 border-primary shadow-sm"
             : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
         )}
       >
-        <item.icon className={cn("h-[15px] w-[15px] shrink-0")} />
+        <item.icon className={cn("h-[14px] w-[14px] shrink-0")} />
         {!collapsed && <span className="truncate">{item.label}</span>}
         {!collapsed && active && <ChevronRight className="ml-auto h-3 w-3 opacity-50" />}
       </Link>
@@ -150,7 +151,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         )}
       >
         {/* Header */}
-        <div className={cn("flex h-16 shrink-0 items-center gap-3 px-5", collapsed && "justify-center px-3")}>
+        <div className={cn("flex h-14 shrink-0 items-center gap-3 px-4", collapsed && "justify-center px-2")}>
           <Link to="/admin" className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-600 shadow-lg">
               <Building2 className="h-5 w-5 text-white" />
@@ -175,14 +176,14 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         </div>
 
         {/* Navigation */}
-        <nav className={cn("flex-1 overflow-y-auto px-3 py-4 scrollbar-sidebar", collapsed && "px-1.5")}>
+        <nav className={cn("flex-1 overflow-y-auto px-2 py-3 scrollbar-sidebar", collapsed && "px-1.5")}>
           {menuSections.map((section) => {
             const sectionItems = visibleItems.filter(item => section.keys.includes(item.key));
             if (sectionItems.length === 0) return null;
             return (
-              <div key={section.label} className="space-y-0.5 mb-5">
+              <div key={section.label} className="space-y-0.5 mb-4">
                 {!collapsed && (
-                  <h3 className="mb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  <h3 className="mb-0.5 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
                     {section.label}
                   </h3>
                 )}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminPageShell, PageCard } from "@/components/admin/shared/AdminComponents";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -158,9 +159,13 @@ const AdminAIConfig = () => {
   if (isLoading) {
     return (
       <AdminLayout>
-        <div className="flex items-center justify-center p-24">
-          <Loader2 className="h-8 w-8 animate-spin text-[#003366]" />
-        </div>
+        <AdminPageShell>
+          <PageCard>
+            <div className="flex items-center justify-center p-24">
+              <Loader2 className="h-8 w-8 animate-spin text-[#003366]" />
+            </div>
+          </PageCard>
+        </AdminPageShell>
       </AdminLayout>
     );
   }
@@ -200,7 +205,8 @@ const AdminAIConfig = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <AdminPageShell>
+        <PageCard>
         {/* Header */}
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Configurações de IA</h1>
@@ -366,7 +372,8 @@ const AdminAIConfig = () => {
             </Button>
           </CardFooter>
         </Card>
-      </div>
+        </PageCard>
+      </AdminPageShell>
     </AdminLayout>
   );
 };

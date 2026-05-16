@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
+import { AdminPageShell, PageCard } from '@/components/admin/shared/AdminComponents';
 import { SectionHeader } from '@/components/admin/ai/AiOpsCards';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -128,36 +129,38 @@ export default function AdminAITelemetry() {
 
   return (
     <AdminLayout>
-      <div className="space-y-8">
-        <SectionHeader
-          title="Telemetry"
-          description="Métricas operacionais em tempo real. Valores marcados como 'est.' são estimativas baseadas em dados disponíveis — não medições diretas de servidor."
-        />
+      <AdminPageShell>
+        <PageCard>
+          <SectionHeader
+            title="Telemetry"
+            description="Métricas operacionais em tempo real. Valores marcados como 'est.' são estimativas baseadas em dados disponíveis — não medições diretas de servidor."
+          />
 
-        <TelemetrySection title="⚙️ Core" metrics={coreMetrics} />
-        <TelemetrySection title="⚡ Automações" metrics={automationMetrics} />
-        <TelemetrySection title="🔔 Alertas" metrics={alertMetrics} />
-        <TelemetrySection title="📢 Meta Ads (7 dias)" metrics={metaMetrics} />
+          <TelemetrySection title="⚙️ Core" metrics={coreMetrics} />
+          <TelemetrySection title="⚡ Automações" metrics={automationMetrics} />
+          <TelemetrySection title="🔔 Alertas" metrics={alertMetrics} />
+          <TelemetrySection title="📢 Meta Ads (7 dias)" metrics={metaMetrics} />
 
-        {/* Data Quality Note */}
-        <Card className="border-white/5">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <Activity size={16} className="text-blue-400 mt-0.5 shrink-0" />
-              <div className="space-y-1">
-                <p className="text-sm font-medium">Sobre as métricas</p>
-                <ul className="text-xs text-muted-foreground space-y-1">
-                  <li>• CPU/RAM: <strong className="text-white/60">estimativa browser</strong> — não mede servidor</li>
-                  <li>• Uptime: <strong className="text-white/60">process.uptime()</strong> — disponível em Node.js environments</li>
-                  <li>• Cron jobs, automações: <strong className="text-white/60">dados do audit</strong> — last updated 2026-05-06</li>
-                  <li>• Meta Ads: <strong className="text-white/60">Edge Function real</strong> — dados de 7 dias</li>
-                  <li>• GitHub deploys: <strong className="text-white/60">requer token</strong> — não disponível no frontend</li>
-                </ul>
+          {/* Data Quality Note */}
+          <Card className="border-white/5">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <Activity size={16} className="text-blue-400 mt-0.5 shrink-0" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Sobre as métricas</p>
+                  <ul className="text-xs text-muted-foreground space-y-1">
+                    <li>• CPU/RAM: <strong className="text-white/60">estimativa browser</strong> — não mede servidor</li>
+                    <li>• Uptime: <strong className="text-white/60">process.uptime()</strong> — disponível em Node.js environments</li>
+                    <li>• Cron jobs, automações: <strong className="text-white/60">dados do audit</strong> — last updated 2026-05-06</li>
+                    <li>• Meta Ads: <strong className="text-white/60">Edge Function real</strong> — dados de 7 dias</li>
+                    <li>• GitHub deploys: <strong className="text-white/60">requer token</strong> — não disponível no frontend</li>
+                  </ul>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </PageCard>
+      </AdminPageShell>
     </AdminLayout>
   );
 }

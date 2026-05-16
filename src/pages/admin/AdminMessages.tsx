@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminPageShell, AdminPageHeader, PageCard } from "@/components/admin/shared/AdminComponents";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -298,19 +299,19 @@ const AdminMessages = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Mensagens</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Envie mensagens via WhatsApp</p>
-          </div>
-          {isAdmin && (
-            <Button variant="outline" className="gap-2" onClick={openConfig}>
-              <Settings2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Configurar</span> API
-            </Button>
-          )}
-        </div>
+      <AdminPageShell>
+        <AdminPageHeader
+          title="Mensagens"
+          subtitle="Envie mensagens via WhatsApp"
+          actions={
+            isAdmin && (
+              <Button variant="outline" className="gap-2" onClick={openConfig}>
+                <Settings2 className="h-4 w-4" />
+                <span className="hidden sm:inline">Configurar</span> API
+              </Button>
+            )
+          }
+        />
 
         {/* Status banner */}
         <Card className={`flex items-center gap-3 p-4 ${isConfigured ? "border-green-500/30 bg-green-500/5" : "border-destructive/30 bg-destructive/5"}`}>
@@ -574,7 +575,7 @@ const AdminMessages = () => {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
+      </AdminPageShell>
 
       {/* Config dialog */}
       <Dialog open={configDialogOpen} onOpenChange={setConfigDialogOpen}>
