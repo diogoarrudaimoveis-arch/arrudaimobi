@@ -203,8 +203,8 @@ const AdminAIConfig = () => {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="font-display text-2xl font-bold">Configurações de IA</h1>
-          <p className="text-muted-foreground">
+          <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Configurações de IA</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             Gerencie múltiplas chaves por provedor e estratégias de resiliência automática.
           </p>
         </div>
