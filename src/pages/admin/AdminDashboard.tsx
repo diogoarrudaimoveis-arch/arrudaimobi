@@ -9,6 +9,7 @@ import {
   AlertCircle, CheckCircle2, ArrowUpRight,
   MessageSquare, Star, DollarSign, Target,
   Plus, Headset, Bell, Search, Grid3X3,
+  Clock, FileText, XCircle,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -208,132 +209,67 @@ const AdminDashboard = () => {
 
         {/* ─── Main Content ───────────────────────────────────────────────── */}
         <div className="space-y-4">
-
-          {/* ── Metric Cards Row (6 cards) ──────────────────────────────── */}
+          {activeTab === "visao-geral" && (
+          <>
+          {/* ── Metric Cards Row (6 cards) ─────────────────────────────── */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            <MetricCard
-              title="Imóveis Ativos"
-              value={MOCK_METRICS.imoveisAtivos}
-              icon={Home}
-              accentColor={CHART_COLORS.blue}
-            />
-            <MetricCard
-              title="Leads"
-              value={`${MOCK_METRICS.leads.novos}/${MOCK_METRICS.leads.total}`}
-              icon={Users}
-              accentColor={CHART_COLORS.orange}
-            />
-            <MetricCard
-              title="Vendas"
-              value={MOCK_METRICS.vendas}
-              icon={TrendingUp}
-              accentColor={CHART_COLORS.cyan}
-            />
-            <MetricCard
-              title="VGV Total"
-              value={MOCK_METRICS.vgv}
-              icon={DollarSign}
-              accentColor={CHART_COLORS.green}
-            />
-            <MetricCard
-              title="Comissão"
-              value={MOCK_METRICS.comissao}
-              icon={BarChart3}
-              accentColor={CHART_COLORS.purple}
-            />
-            <MetricCard
-              title="Clientes"
-              value={MOCK_METRICS.clientes}
-              icon={Star}
-              accentColor={CHART_COLORS.pink}
-            />
+            <MetricCard title="Imóveis Ativos" value={MOCK_METRICS.imoveisAtivos} icon={Home} accentColor={CHART_COLORS.blue} />
+            <MetricCard title="Leads" value={`${MOCK_METRICS.leads.novos}/${MOCK_METRICS.leads.total}`} icon={Users} accentColor={CHART_COLORS.orange} />
+            <MetricCard title="Vendas" value={MOCK_METRICS.vendas} icon={TrendingUp} accentColor={CHART_COLORS.cyan} />
+            <MetricCard title="VGV Total" value={MOCK_METRICS.vgv} icon={DollarSign} accentColor={CHART_COLORS.green} />
+            <MetricCard title="Comissão" value={MOCK_METRICS.comissao} icon={BarChart3} accentColor={CHART_COLORS.purple} />
+            <MetricCard title="Clientes" value={MOCK_METRICS.clientes} icon={Star} accentColor={CHART_COLORS.pink} />
           </div>
 
           {/* ── Evolução + Atenção Necessária ───────────────────────────── */}
           <div className="grid gap-4 lg:grid-cols-3">
-            {/* Evolução — area chart */}
             <div className="lg:col-span-2">
               <Card>
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <CardTitle className="flex items-center gap-2 text-sm font-bold">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
-                        <TrendingUp className="h-4 w-4 text-primary" />
-                      </div>
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10"><TrendingUp className="h-4 w-4 text-primary" /></div>
                       Evolução
                     </CardTitle>
                     <div className="flex items-center gap-3">
-                      {/* Legend toggles */}
-                      <div className="flex items-center gap-3 text-[10px]">
-                        <span className="flex items-center gap-1.5">
-                          <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS.teal }} />
-                          Leads
-                        </span>
-                        <span className="flex items-center gap-1.5">
-                          <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS.orange }} />
-                          Negócios
-                        </span>
-                      </div>
-                      {/* Chart controls */}
-                      <div className="flex items-center gap-1 text-[10px]">
-                        <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 py-0">Agrupar: Mensal</Button>
-                        <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 py-0">Origem</Button>
-                      </div>
+                      <span className="flex items-center gap-1.5 text-[10px]"><span className="h-2.5 w-2.5 rounded-full" style={{backgroundColor: CHART_COLORS.teal}} />Leads</span>
+                      <span className="flex items-center gap-1.5 text-[10px]"><span className="h-2.5 w-2.5 rounded-full" style={{backgroundColor: CHART_COLORS.orange}} />Negócios</span>
+                      <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 py-0">Agrupar: Mensal</Button>
+                      <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 py-0">Origem</Button>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={220}>
-                    <AreaChart data={MOCK_EVOLUCAO_DATA} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                    <AreaChart data={MOCK_EVOLUCAO_DATA} margin={{top:5,right:10,left:-20,bottom:0}}>
                       <defs>
-                        <linearGradient id="colorTeal" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={CHART_COLORS.teal} stopOpacity={0.3} />
-                          <stop offset="95%" stopColor={CHART_COLORS.teal} stopOpacity={0.02} />
-                        </linearGradient>
-                        <linearGradient id="colorOrange" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={CHART_COLORS.orange} stopOpacity={0.3} />
-                          <stop offset="95%" stopColor={CHART_COLORS.orange} stopOpacity={0.02} />
-                        </linearGradient>
+                        <linearGradient id="colorTeal" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={CHART_COLORS.teal} stopOpacity={0.3}/><stop offset="95%" stopColor={CHART_COLORS.teal} stopOpacity={0.02}/></linearGradient>
+                        <linearGradient id="colorOrange" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={CHART_COLORS.orange} stopOpacity={0.3}/><stop offset="95%" stopColor={CHART_COLORS.orange} stopOpacity={0.02}/></linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                      <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false} />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "hsl(var(--card))",
-                          border: "1px solid hsl(var(--border))",
-                          borderRadius: 10,
-                          fontSize: 12,
-                          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                        }}
-                      />
-                      <Area type="monotone" dataKey="leads" stroke={CHART_COLORS.teal} strokeWidth={2} fill="url(#colorTeal)" dot={false} activeDot={{ r: 5 }} />
-                      <Area type="monotone" dataKey="negocios" stroke={CHART_COLORS.orange} strokeWidth={2} fill="url(#colorOrange)" dot={false} activeDot={{ r: 5 }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false}/>
+                      <XAxis dataKey="name" tick={{fontSize:11}} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false}/>
+                      <YAxis tick={{fontSize:11}} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false}/>
+                      <Tooltip contentStyle={{backgroundColor:"hsl(var(--card))",border:"1px solid hsl(var(--border))",borderRadius:10,fontSize:12,boxShadow:"0 4px 12px rgba(0,0,0,0.1)"}}/>
+                      <Area type="monotone" dataKey="leads" stroke={CHART_COLORS.teal} strokeWidth={2} fill="url(#colorTeal)" dot={false} activeDot={{r:5}}/>
+                      <Area type="monotone" dataKey="negocios" stroke={CHART_COLORS.orange} strokeWidth={2} fill="url(#colorOrange)" dot={false} activeDot={{r:5}}/>
                     </AreaChart>
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
             </div>
-
-            {/* Atenção Necessária */}
             <div className="space-y-3">
               <Card>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2 text-sm font-bold">
-                      <AlertCircle className="h-4 w-4 text-destructive" />
-                      Atenção Necessária
+                      <AlertCircle className="h-4 w-4 text-destructive"/>Atenção Necessária
                     </CardTitle>
                     <Badge variant="destructive" className="text-[10px]">{MOCK_ALERTAS.length}</Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2.5">
-                  {MOCK_ALERTAS.map((alert, i) => (
-                    <AlertBar key={i} text={alert.text} type={alert.type} />
-                  ))}
-                  <Button variant="ghost" size="sm" className="w-full text-xs h-7 mt-1">
-                    Ver todos os alertas
-                  </Button>
+                  {MOCK_ALERTAS.map((alert,i)=>(<AlertBar key={i} text={alert.text} type={alert.type}/>))}
+                  <Button variant="ghost" size="sm" className="w-full text-xs h-7 mt-1">Ver todos os alertas</Button>
                 </CardContent>
               </Card>
             </div>
@@ -341,94 +277,56 @@ const AdminDashboard = () => {
 
           {/* ── Leads Recentes + Imóveis e Negócios ───────────────────────── */}
           <div className="grid gap-4 lg:grid-cols-2">
-            {/* Leads Recentes */}
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2 text-sm font-bold">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
-                      <Users className="h-4 w-4 text-primary" />
-                    </div>
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10"><Users className="h-4 w-4 text-primary"/></div>
                     Leads Recentes
                   </CardTitle>
-                  <Button variant="ghost" size="sm" className="text-xs gap-1 h-7 text-primary">
-                    Ver todos <ChevronRight className="h-3 w-3" />
-                  </Button>
+                  <Button variant="ghost" size="sm" className="text-xs gap-1 h-7 text-primary">Ver todos <ChevronRight className="h-3 w-3"/></Button>
                 </div>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="divide-y divide-border/50">
-                  {MOCK_LEADS.map((lead) => (
-                    <div key={lead.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors">
-                      <StatusDot status={lead.status} />
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                        <User className="h-4 w-4 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold truncate">{lead.name}</p>
-                        <p className="text-[10px] text-muted-foreground">{lead.source} · {lead.value}</p>
-                      </div>
-                      <div className="flex flex-col items-end gap-0.5">
-                        <Badge
-                          variant="secondary"
-                          className={`text-[10px] shrink-0 ${
-                            lead.status === "Quente" ? "bg-red-100 text-red-700" :
-                            lead.status === "Morno" ? "bg-yellow-100 text-yellow-700" :
-                            "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {lead.status}
-                        </Badge>
-                        <span className="text-[10px] text-muted-foreground">{lead.time}</span>
-                      </div>
+                  {MOCK_LEADS.map((lead)=>(<div key={lead.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors">
+                    <StatusDot status={lead.status}/>
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10"><User className="h-4 w-4 text-primary"/></div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold truncate">{lead.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{lead.source} · {lead.value}</p>
                     </div>
-                  ))}
+                    <div className="flex flex-col items-end gap-0.5">
+                      <Badge variant="secondary" className={`text-[10px] shrink-0 ${lead.status==="Quente"?"bg-red-100 text-red-700":lead.status==="Morno"?"bg-yellow-100 text-yellow-700":"bg-muted text-muted-foreground"}`}>{lead.status}</Badge>
+                      <span className="text-[10px] text-muted-foreground">{lead.time}</span>
+                    </div>
+                  </div>))}
                 </div>
               </CardContent>
             </Card>
-
-            {/* Imóveis e Negócios */}
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2 text-sm font-bold">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-info/10">
-                      <Home className="h-4 w-4 text-info" />
-                    </div>
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-info/10"><Home className="h-4 w-4 text-info"/></div>
                     Imóveis e Negócios
                   </CardTitle>
-                  <Button variant="ghost" size="sm" className="text-xs gap-1 h-7 text-primary">
-                    Ver imóveis <ChevronRight className="h-3 w-3" />
-                  </Button>
+                  <Button variant="ghost" size="sm" className="text-xs gap-1 h-7 text-primary">Ver imóveis <ChevronRight className="h-3 w-3"/></Button>
                 </div>
               </CardHeader>
               <CardContent className="p-0">
                 <Table>
-                  <TableHeader>
-                    <TableRow className="hover:bg-transparent">
-                      <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Imóvel</TableHead>
-                      <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Tipo</TableHead>
-                      <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground text-right">Valor</TableHead>
-                    </TableRow>
-                  </TableHeader>
+                  <TableHeader><TableRow className="hover:bg-transparent">
+                    <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Imóvel</TableHead>
+                    <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Tipo</TableHead>
+                    <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground text-right">Valor</TableHead>
+                  </TableRow></TableHeader>
                   <TableBody>
-                    {MOCK_IMOVEIS_NEGOCIOS.map((imovel) => (
-                      <TableRow key={imovel.id} className="border-border/50">
-                        <TableCell className="py-2">
-                          <div className="flex items-center gap-2">
-                            <HomeIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-                            <span className="text-[11px] font-medium line-clamp-1">{imovel.titulo}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-2">
-                          <span className={`inline-block h-2 w-2 rounded-full mr-1.5 ${imovel.statusColor}`} />
-                          <span className="text-[11px]">{imovel.tipo}</span>
-                        </TableCell>
-                        <TableCell className="py-2 text-right">
-                          <span className="text-[11px] font-semibold">{imovel.valor}</span>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {MOCK_IMOVEIS_NEGOCIOS.map((imovel)=>(<TableRow key={imovel.id} className="border-border/50">
+                      <TableCell className="py-2"><div className="flex items-center gap-2"><HomeIcon className="h-4 w-4 text-muted-foreground shrink-0"/><span className="text-[11px] font-medium line-clamp-1">{imovel.titulo}</span></div></TableCell>
+                      <TableCell className="py-2"><span className={`inline-block h-2 w-2 rounded-full mr-1.5 ${imovel.statusColor}`}/><span className="text-[11px]">{imovel.tipo}</span></TableCell>
+                      <TableCell className="py-2 text-right"><span className="text-[11px] font-semibold">{imovel.valor}</span></TableCell>
+                    </TableRow>))}
                   </TableBody>
                 </Table>
               </CardContent>
@@ -437,60 +335,41 @@ const AdminDashboard = () => {
 
           {/* ── Origens de Tráfego + Pago vs Orgânico ──────────────────── */}
           <div className="grid gap-4 lg:grid-cols-2">
-            {/* Origens de Tráfego */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-sm font-bold">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
-                    <BarChart3 className="h-4 w-4 text-primary" />
-                  </div>
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10"><BarChart3 className="h-4 w-4 text-primary"/></div>
                   Origens de Tráfego
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {MOCK_TRAFEGO.map((item) => (
-                  <div key={item.name} className="space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">{item.name}</span>
-                      <span className="font-semibold">{item.value}%</span>
-                    </div>
-                    <div className="h-2 rounded-full bg-muted overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{ width: `${item.value}%`, backgroundColor: item.color }}
-                      />
-                    </div>
+                {MOCK_TRAFEGO.map((item)=>(<div key={item.name} className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">{item.name}</span>
+                    <span className="font-semibold">{item.value}%</span>
                   </div>
-                ))}
+                  <div className="h-2 rounded-full bg-muted overflow-hidden">
+                    <div className="h-full rounded-full transition-all" style={{width:`${item.value}%`,backgroundColor:item.color}}/>
+                  </div>
+                </div>))}
               </CardContent>
             </Card>
-
-            {/* Pago vs Orgânico */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-sm font-bold">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-warning/10">
-                    <TrendingUp className="h-4 w-4 text-warning" />
-                  </div>
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-warning/10"><TrendingUp className="h-4 w-4 text-warning"/></div>
                   Pago vs Orgânico
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={160}>
-                  <BarChart data={MOCK_PAGO_VS_ORGANICO} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                    <XAxis dataKey="name" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: 8,
-                        fontSize: 11,
-                      }}
-                    />
-                    <Bar dataKey="pago" fill={CHART_COLORS.blue} name="Pago" radius={[4, 4, 0, 0]} barSize={16} />
-                    <Bar dataKey="organico" fill={CHART_COLORS.teal} name="Orgânico" radius={[4, 4, 0, 0]} barSize={16} />
+                  <BarChart data={MOCK_PAGO_VS_ORGANICO} margin={{top:5,right:10,left:-20,bottom:0}}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false}/>
+                    <XAxis dataKey="name" tick={{fontSize:10}} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false}/>
+                    <YAxis tick={{fontSize:10}} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false}/>
+                    <Tooltip contentStyle={{backgroundColor:"hsl(var(--card))",border:"1px solid hsl(var(--border))",borderRadius:8,fontSize:11}}/>
+                    <Bar dataKey="pago" fill={CHART_COLORS.blue} name="Pago" radius={[4,4,0,0]} barSize={16}/>
+                    <Bar dataKey="organico" fill={CHART_COLORS.teal} name="Orgânico" radius={[4,4,0,0]} barSize={16}/>
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -499,149 +378,233 @@ const AdminDashboard = () => {
 
           {/* ── Imóveis Mais Visitados + Performance da Equipe ─────────── */}
           <div className="grid gap-4 lg:grid-cols-2">
-            {/* Imóveis Mais Visitados */}
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2 text-sm font-bold">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-info/10">
-                      <Eye className="h-4 w-4 text-info" />
-                    </div>
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-info/10"><Eye className="h-4 w-4 text-info"/></div>
                     Imóveis Mais Visitados
                   </CardTitle>
-                  <Button variant="ghost" size="sm" className="text-xs gap-1 h-7 text-primary">
-                    Ver todos <ChevronRight className="h-3 w-3" />
-                  </Button>
+                  <Button variant="ghost" size="sm" className="text-xs gap-1 h-7 text-primary">Ver todos <ChevronRight className="h-3 w-3"/></Button>
                 </div>
               </CardHeader>
               <CardContent className="p-0">
                 <Table>
-                  <TableHeader>
-                    <TableRow className="hover:bg-transparent">
-                      <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Imóvel</TableHead>
-                      <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Visitas</TableHead>
-                    </TableRow>
-                  </TableHeader>
+                  <TableHeader><TableRow className="hover:bg-transparent">
+                    <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Imóvel</TableHead>
+                    <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Visitas</TableHead>
+                  </TableRow></TableHeader>
                   <TableBody>
-                    {[
-                      { titulo: "Casa 3qts w/ pool", visitas: 312 },
-                      { titulo: "Apto 2qts centro", visitas: 287 },
-                      { titulo: "Cobertura duplex", visitas: 241 },
-                      { titulo: "Casa 4qts Imbuí", visitas: 198 },
-                      { titulo: "Apto 1qt garagem", visitas: 156 },
-                    ].map((imovel, i) => (
-                      <TableRow key={i} className="border-border/50">
-                        <TableCell className="py-2">
-                          <div className="flex items-center gap-2">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
-                              <HomeIcon className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                            <span className="text-[11px] font-medium line-clamp-1 max-w-[180px]">{imovel.titulo}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-2 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <Eye className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span className="text-[11px] font-semibold">{imovel.visitas}</span>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {[{titulo:"Casa 3qts w/ pool",visitas:312},{titulo:"Apto 2qts centro",visitas:287},{titulo:"Cobertura duplex",visitas:241},{titulo:"Casa 4qts Imbuí",visitas:198},{titulo:"Apto 1qt garagem",visitas:156}].map((imovel,i)=>(<TableRow key={i} className="border-border/50">
+                      <TableCell className="py-2"><div className="flex items-center gap-2"><div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted"><HomeIcon className="h-4 w-4 text-muted-foreground"/></div><span className="text-[11px] font-medium line-clamp-1 max-w-[180px]">{imovel.titulo}</span></div></TableCell>
+                      <TableCell className="py-2 text-right"><div className="flex items-center justify-end gap-1.5"><Eye className="h-3.5 w-3.5 text-muted-foreground"/><span className="text-[11px] font-semibold">{imovel.visitas}</span></div></TableCell>
+                    </TableRow>))}
                   </TableBody>
                 </Table>
               </CardContent>
             </Card>
-
-            {/* Performance da Equipe */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-sm font-bold">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-success/10">
-                    <Star className="h-4 w-4 text-success" />
-                  </div>
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-success/10"><Star className="h-4 w-4 text-success"/></div>
                   Performance da Equipe
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {MOCK_EQUIPE.map((membro, i) => (
-                  <div key={membro.nome} className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold"
-                          style={{ backgroundColor: `${membro.color}20`, color: membro.color }}>
-                          {i + 1}
-                        </span>
-                        <span className="text-xs font-semibold">{membro.nome}</span>
-                      </div>
-                      <span className="text-[11px] text-muted-foreground">
-                        {membro.vendas}/{membro.meta} — {membro.pct}%
-                      </span>
+                {MOCK_EQUIPE.map((membro,i)=>(<div key={membro.nome} className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold" style={{backgroundColor:`${membro.color}20`,color:membro.color}}>{i+1}</span>
+                      <span className="text-xs font-semibold">{membro.nome}</span>
                     </div>
-                    <div className="h-2 rounded-full bg-muted overflow-hidden ml-8">
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{
-                          width: `${Math.min(membro.pct, 100)}%`,
-                          backgroundColor: membro.color,
-                        }}
-                      />
-                    </div>
+                    <span className="text-[11px] text-muted-foreground">{membro.vendas}/{membro.meta} — {membro.pct}%</span>
                   </div>
-                ))}
+                  <div className="h-2 rounded-full bg-muted overflow-hidden ml-8">
+                    <div className="h-full rounded-full transition-all" style={{width:`${Math.min(membro.pct,100)}%`,backgroundColor:membro.color}}/>
+                  </div>
+                </div>))}
               </CardContent>
             </Card>
           </div>
 
-          {/* ── Meta do Mês + Status Rápido side by side ────────────────── */}
+          {/* ── Meta do Mês + Status Rápido ────────────────────────────── */}
           <div className="grid gap-4 lg:grid-cols-2">
-            {/* Meta do Mês */}
             <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm font-bold">
-                  <Target className="h-4 w-4 text-success" />
-                  Meta do Mês
-                </CardTitle>
-              </CardHeader>
+              <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-sm font-bold"><Target className="h-4 w-4 text-success"/>Meta do Mês</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-end justify-between">
-                  <div>
-                    <p className="text-[11px] text-muted-foreground">Leads novos</p>
-                    <p className="font-display text-2xl font-bold">{MOCK_METRICS.leads.novos}</p>
-                  </div>
+                  <div><p className="text-[11px] text-muted-foreground">Leads novos</p><p className="font-display text-2xl font-bold">{MOCK_METRICS.leads.novos}</p></div>
                   <p className="text-sm font-semibold text-muted-foreground">/ {MOCK_METRICS.leads.total}</p>
                 </div>
-                <Progress value={metaPercent} className="h-2" />
+                <Progress value={metaPercent} className="h-2"/>
                 <p className="text-center text-[11px] text-muted-foreground">{metaPercent}% atingido</p>
               </CardContent>
             </Card>
-
-            {/* Status Rápido */}
             <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm font-bold">
-                  <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-                  Status Rápido
-                </CardTitle>
-              </CardHeader>
+              <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-sm font-bold"><CheckCircle2 className="h-4 w-4 text-muted-foreground"/>Status Rápido</CardTitle></CardHeader>
               <CardContent className="space-y-3">
-                {[
-                  { label: "Imóveis ativos", value: "24", ok: true },
-                  { label: "Leads pendentes", value: "8", ok: false },
-                  { label: "Visitas hoje", value: "3", ok: true },
-                  { label: "Contratos", value: "2", ok: true },
-                ].map((item) => (
-                  <div key={item.label} className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">{item.label}</span>
-                    <div className="flex items-center gap-1.5">
-                      <span className={`inline-block h-2 w-2 rounded-full ${item.ok ? "bg-success" : "bg-warning"}`} />
-                      <span className="text-xs font-semibold">{item.value}</span>
-                    </div>
+                {[{label:"Imóveis ativos",value:"24",ok:true},{label:"Leads pendentes",value:"8",ok:false},{label:"Visitas hoje",value:"3",ok:true},{label:"Contratos",value:"2",ok:true}].map((item)=>(<div key={item.label} className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">{item.label}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className={`inline-block h-2 w-2 rounded-full ${item.ok?"bg-success":"bg-warning"}`}/>
+                    <span className="text-xs font-semibold">{item.value}</span>
                   </div>
-                ))}
+                </div>))}
               </CardContent>
             </Card>
           </div>
+          </>
+          )}
 
+          {activeTab === "analytics" && (
+          <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <MetricCard title="Visitas" value="2.847" subtitle="este mês" icon={Eye} accentColor={CHART_COLORS.blue}/>
+            <MetricCard title="Páginas/Dia" value="18" subtitle="média" icon={BarChart3} accentColor={CHART_COLORS.teal}/>
+            <MetricCard title="Taxa Rejeição" value="34%" subtitle="-2% vs mês anterior" icon={TrendingUp} accentColor={CHART_COLORS.orange}/>
+            <MetricCard title="Tempo Médio" value="2m34s" subtitle="+15s vs anterior" icon={Clock} accentColor={CHART_COLORS.purple}/>
+            <MetricCard title="Novas Visitas" value="61%" subtitle="de novos visitantes" icon={Users} accentColor={CHART_COLORS.cyan}/>
+            <MetricCard title="Retorno" value="39%" subtitle="visitantes recorrentes" icon={Star} accentColor={CHART_COLORS.pink}/>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card><CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm font-bold"><div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10"><BarChart3 className="h-4 w-4 text-primary"/></div>Origens de Tráfego</CardTitle></CardHeader><CardContent className="space-y-3">{MOCK_TRAFEGO.map((item)=>(<div key={item.name} className="space-y-1"><div className="flex items-center justify-between text-xs"><span className="text-muted-foreground">{item.name}</span><span className="font-semibold">{item.value}%</span></div><div className="h-2 rounded-full bg-muted overflow-hidden"><div className="h-full rounded-full transition-all" style={{width:`${item.value}%`,backgroundColor:item.color}}/></div></div>))}</CardContent></Card>
+            <Card><CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm font-bold"><div className="flex h-7 w-7 items-center justify-center rounded-lg bg-warning/10"><TrendingUp className="h-4 w-4 text-warning"/></div>Pago vs Orgânico</CardTitle></CardHeader><CardContent><ResponsiveContainer width="100%" height={160}><BarChart data={MOCK_PAGO_VS_ORGANICO} margin={{top:5,right:10,left:-20,bottom:0}}><CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false}/><XAxis dataKey="name" tick={{fontSize:10}} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false}/><YAxis tick={{fontSize:10}} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false}/><Tooltip contentStyle={{backgroundColor:"hsl(var(--card))",border:"1px solid hsl(var(--border))",borderRadius:8,fontSize:11}}/><Bar dataKey="pago" fill={CHART_COLORS.blue} name="Pago" radius={[4,4,0,0]} barSize={16}/><Bar dataKey="organico" fill={CHART_COLORS.teal} name="Orgânico" radius={[4,4,0,0]} barSize={16}/></BarChart></ResponsiveContainer></CardContent></Card>
+          </div>
+          <Card><CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm font-bold"><div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10"><TrendingUp className="h-4 w-4 text-primary"/></div>Evolução de Visitas</CardTitle></CardHeader><CardContent><ResponsiveContainer width="100%" height={200}><AreaChart data={MOCK_EVOLUCAO_DATA} margin={{top:5,right:10,left:-20,bottom:0}}><defs><linearGradient id="colorTealAN" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={CHART_COLORS.teal} stopOpacity={0.3}/><stop offset="95%" stopColor={CHART_COLORS.teal} stopOpacity={0.02}/></linearGradient></defs><CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false}/><XAxis dataKey="name" tick={{fontSize:11}} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false}/><YAxis tick={{fontSize:11}} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false}/><Tooltip contentStyle={{backgroundColor:"hsl(var(--card))",border:"1px solid hsl(var(--border))",borderRadius:10,fontSize:12,boxShadow:"0 4px 12px rgba(0,0,0,0.1)"}}/><Area type="monotone" dataKey="leads" stroke={CHART_COLORS.teal} strokeWidth={2} fill="url(#colorTealAN)" dot={false} activeDot={{r:5}}/></AreaChart></ResponsiveContainer></CardContent></Card>
+          </>
+          )}
+
+          {activeTab === "imoveis" && (
+          <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <MetricCard title="Total Imóveis" value="87" subtitle="cadastrados" icon={Home} accentColor={CHART_COLORS.blue}/>
+            <MetricCard title="Ativos" value="41" subtitle="no ar" icon={CheckCircle2} accentColor={CHART_COLORS.green}/>
+            <MetricCard title="Proposta" value="12" subtitle="em negociação" icon={TrendingUp} accentColor={CHART_COLORS.orange}/>
+            <MetricCard title="Captado" value="8" subtitle="negociados" icon={Star} accentColor={CHART_COLORS.purple}/>
+            <MetricCard title="Vendas" value="R$ 2.1M" subtitle="VGV" icon={DollarSign} accentColor={CHART_COLORS.cyan}/>
+            <MetricCard title="Aluguel" value="R$ 28K" subtitle="mensal" icon={BarChart3} accentColor={CHART_COLORS.pink}/>
+          </div>
+          <Card><CardHeader className="pb-3"><div className="flex items-center justify-between"><CardTitle className="flex items-center gap-2 text-sm font-bold"><div className="flex h-7 w-7 items-center justify-center rounded-lg bg-info/10"><Home className="h-4 w-4 text-info"/></div>Imóveis e Negócios</CardTitle><Button variant="ghost" size="sm" className="text-xs gap-1 h-7 text-primary">Ver imóveis <ChevronRight className="h-3 w-3"/></Button></div></CardHeader><CardContent className="p-0"><Table><TableHeader><TableRow className="hover:bg-transparent"><TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Imóvel</TableHead><TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Tipo</TableHead><TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground text-right">Valor</TableHead></TableRow></TableHeader><TableBody>{MOCK_IMOVEIS_NEGOCIOS.map((imovel)=>(<TableRow key={imovel.id} className="border-border/50"><TableCell className="py-2"><div className="flex items-center gap-2"><HomeIcon className="h-4 w-4 text-muted-foreground shrink-0"/><span className="text-[11px] font-medium line-clamp-1">{imovel.titulo}</span></div></TableCell><TableCell className="py-2"><span className={`inline-block h-2 w-2 rounded-full mr-1.5 ${imovel.statusColor}`}/><span className="text-[11px]">{imovel.tipo}</span></TableCell><TableCell className="py-2 text-right"><span className="text-[11px] font-semibold">{imovel.valor}</span></TableCell></TableRow>))}</TableBody></Table></CardContent></Card>
+          <Card><CardHeader className="pb-3"><div className="flex items-center justify-between"><CardTitle className="flex items-center gap-2 text-sm font-bold"><div className="flex h-7 w-7 items-center justify-center rounded-lg bg-info/10"><Eye className="h-4 w-4 text-info"/></div>Imóveis Mais Visitados</CardTitle><Button variant="ghost" size="sm" className="text-xs gap-1 h-7 text-primary">Ver todos <ChevronRight className="h-3 w-3"/></Button></div></CardHeader><CardContent className="p-0"><Table><TableHeader><TableRow className="hover:bg-transparent"><TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Imóvel</TableHead><TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Visitas</TableHead></TableRow></TableHeader><TableBody>{[{titulo:"Casa 3qts w/ pool",visitas:312},{titulo:"Apto 2qts centro",visitas:287},{titulo:"Cobertura duplex",visitas:241},{titulo:"Casa 4qts Imbuí",visitas:198},{titulo:"Apto 1qt garagem",visitas:156}].map((imovel,i)=>(<TableRow key={i} className="border-border/50"><TableCell className="py-2"><div className="flex items-center gap-2"><div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted"><HomeIcon className="h-4 w-4 text-muted-foreground"/></div><span className="text-[11px] font-medium line-clamp-1 max-w-[180px]">{imovel.titulo}</span></div></TableCell><TableCell className="py-2 text-right"><div className="flex items-center justify-end gap-1.5"><Eye className="h-3.5 w-3.5 text-muted-foreground"/><span className="text-[11px] font-semibold">{imovel.visitas}</span></div></TableCell></TableRow>))}</TableBody></Table></CardContent></Card>
+          </>
+          )}
+
+          {activeTab === "leads" && (
+          <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <MetricCard title="Total Leads" value="80" subtitle="cadastrados" icon={Users} accentColor={CHART_COLORS.blue}/>
+            <MetricCard title="Novos" value="10" subtitle="este período" icon={Plus} accentColor={CHART_COLORS.cyan}/>
+            <MetricCard title="Quentes" value="18" subtitle="alta prioridade" icon={TrendingUp} accentColor={CHART_COLORS.red}/>
+            <MetricCard title="Mornos" value="35" subtitle="em acompanhamento" icon={Star} accentColor={CHART_COLORS.orange}/>
+            <MetricCard title="Frios" value="27" subtitle="precisam reaquecer" icon={AlertCircle} accentColor={CHART_COLORS.slate}/>
+            <MetricCard title="Convertidos" value="7" subtitle="negócios fechados" icon={CheckCircle2} accentColor={CHART_COLORS.green}/>
+          </div>
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-sm font-bold">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10"><Users className="h-4 w-4 text-primary"/></div>
+                  Leads Recentes
+                </CardTitle>
+                <Button variant="ghost" size="sm" className="text-xs gap-1 h-7 text-primary">Ver todos <ChevronRight className="h-3 w-3"/></Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y divide-border/50">
+                {MOCK_LEADS.map((lead)=>(<div key={lead.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors">
+                  <StatusDot status={lead.status}/>
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10"><User className="h-4 w-4 text-primary"/></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold truncate">{lead.name}</p>
+                    <p className="text-[10px] text-muted-foreground">{lead.source} · {lead.value}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-0.5">
+                    <Badge variant="secondary" className={`text-[10px] shrink-0 ${lead.status==="Quente"?"bg-red-100 text-red-700":lead.status==="Morno"?"bg-yellow-100 text-yellow-700":"bg-muted text-muted-foreground"}`}>{lead.status}</Badge>
+                    <span className="text-[10px] text-muted-foreground">{lead.time}</span>
+                  </div>
+                </div>))}
+              </div>
+            </CardContent>
+          </Card>
+          <Card><CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm font-bold"><div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10"><AlertCircle className="h-4 w-4 text-destructive"/>Leads Sem Atividade</CardTitle></CardHeader><CardContent className="space-y-3"><AlertBar text="15 leads sem atividade há mais de 7 dias" type="warning"/><AlertBar text="8 leads sem estágio definido" type="info"/><Button variant="ghost" size="sm" className="w-full text-xs h-7">Ver todos os leads pendentes</Button></CardContent></Card>
+          </>
+          )}
+
+          {activeTab === "propostas" && (
+          <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <MetricCard title="Propostas" value="15" subtitle="abertas" icon={FileText} accentColor={CHART_COLORS.blue}/>
+            <MetricCard title="Aceitas" value="7" subtitle="confirmadas" icon={CheckCircle2} accentColor={CHART_COLORS.green}/>
+            <MetricCard title="Recusadas" value="3" subtitle="rejeitadas" icon={XCircle} accentColor={CHART_COLORS.red}/>
+            <MetricCard title="Em Análise" value="5" subtitle="avaliação" icon={Clock} accentColor={CHART_COLORS.orange}/>
+            <MetricCard title="VGV Total" value="R$ 4.2M" subtitle="propostas ativas" icon={DollarSign} accentColor={CHART_COLORS.cyan}/>
+            <MetricCard title="Comissão" value="R$ 126K" subtitle="prevista" icon={BarChart3} accentColor={CHART_COLORS.purple}/>
+          </div>
+          <Card><CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-sm font-bold"><div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10"><FileText className="h-4 w-4 text-primary"/></div>Propostas em Andamento</CardTitle></CardHeader><CardContent className="p-0"><Table><TableHeader><TableRow className="hover:bg-transparent"><TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Imóvel</TableHead><TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Cliente</TableHead><TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Valor</TableHead><TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Status</TableHead></TableRow></TableHeader><TableBody>{[{titulo:"Casa 3qts w/ pool",cliente:"Carlos Silva",valor:"R$ 890K",status:"Aceita",statusColor:"bg-green-100 text-green-700"},{titulo:"Apto 2qts centro",cliente:"Ana Beatriz",valor:"R$ 420K",status:"Análise",statusColor:"bg-yellow-100 text-yellow-700"},{titulo:"Cobertura duplex",cliente:"Roberto Mendes",valor:"R$ 1.2M",status:"Aceita",statusColor:"bg-green-100 text-green-700"},{titulo:"Casa 4qts Imbuí",cliente:"Fernanda Costa",valor:"R$ 750K",status:"Recusada",statusColor:"bg-red-100 text-red-700"}].map((p,i)=>(<TableRow key={i} className="border-border/50"><TableCell className="py-2"><span className="text-[11px] font-medium">{p.titulo}</span></TableCell><TableCell className="py-2"><span className="text-[11px]">{p.cliente}</span></TableCell><TableCell className="py-2"><span className="text-[11px] font-semibold">{p.valor}</span></TableCell><TableCell className="py-2"><Badge className={`text-[10px] ${p.statusColor}`}>{p.status}</Badge></TableCell></TableRow>))}</TableBody></Table></CardContent></Card>
+          </>
+          )}
+
+          {activeTab === "financeiro" && (
+          <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <MetricCard title="VGV" value="R$ 2.1M" subtitle="total" icon={DollarSign} accentColor={CHART_COLORS.green}/>
+            <MetricCard title="Comissão" value="R$ 60K" subtitle="recebida" icon={BarChart3} accentColor={CHART_COLORS.cyan}/>
+            <MetricCard title="Pendente" value="R$ 35K" subtitle="a receber" icon={Clock} accentColor={CHART_COLORS.orange}/>
+            <MetricCard title="Recebido" value="R$ 25K" subtitle="este mês" icon={CheckCircle2} accentColor={CHART_COLORS.teal}/>
+            <MetricCard title="Contratos" value="12" subtitle="fechados" icon={FileText} accentColor={CHART_COLORS.purple}/>
+            <MetricCard title="Tickets" value="R$ 8.2K" subtitle="ticket médio" icon={TrendingUp} accentColor={CHART_COLORS.pink}/>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card><CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm font-bold"><div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10"><DollarSign className="h-4 w-4 text-primary"/></div>Comissão por Mês</CardTitle></CardHeader><CardContent><ResponsiveContainer width="100%" height={180}><BarChart data={[{name:"Set",comissao:12},{name:"Out",comissao:18},{name:"Nov",comissao:15},{name:"Dez",comissao:22},{name:"Jan",comissao:20},{name:"Fev",comissao:25},{name:"Mar",comissao:18}]} margin={{top:5,right:10,left:-20,bottom:0}}><CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false}/><XAxis dataKey="name" tick={{fontSize:11}} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false}/><YAxis tick={{fontSize:11}} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false}/><Tooltip contentStyle={{backgroundColor:"hsl(var(--card))",border:"1px solid hsl(var(--border))",borderRadius:8,fontSize:11}}/><Bar dataKey="comissao" fill={CHART_COLORS.teal} name="Comissão (R$ mil)" radius={[4,4,0,0]} barSize={20}/></BarChart></ResponsiveContainer></CardContent></Card>
+            <Card><CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm font-bold"><div className="flex h-7 w-7 items-center justify-center rounded-lg bg-success/10"><TrendingUp className="h-4 w-4 text-success"/></div>VGV x Meta</CardTitle></CardHeader><CardContent className="space-y-3">{[{mes:"Jan/26",vgv:85,meta:100,cor:CHART_COLORS.teal},{mes:"Fev/26",vgv:110,meta:100,cor:CHART_COLORS.green},{mes:"Mar/26",vgv:92,meta:100,cor:CHART_COLORS.orange}].map((m)=>(<div key={m.mes} className="space-y-1.5"><div className="flex items-center justify-between"><span className="text-xs font-semibold">{m.mes}</span><span className="text-[11px] text-muted-foreground">{m.vgv}% da meta</span></div><div className="h-2 rounded-full bg-muted overflow-hidden"><div className="h-full rounded-full transition-all" style={{width:`${Math.min(m.vgv,100)}%`,backgroundColor:m.cor}}/></div></div>))}</CardContent></Card>
+          </div>
+          </>
+          )}
+
+          {activeTab === "equipe" && (
+          <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <MetricCard title="Equipe" value="5" subtitle="agentes" icon={Users} accentColor={CHART_COLORS.blue}/>
+            <MetricCard title="Vendas" value="7" subtitle="este mês" icon={TrendingUp} accentColor={CHART_COLORS.green}/>
+            <MetricCard title="VGV" value="R$ 2.1M" subtitle="equipe" icon={DollarSign} accentColor={CHART_COLORS.cyan}/>
+            <MetricCard title="Comissão" value="R$ 60K" subtitle="equipe" icon={BarChart3} accentColor={CHART_COLORS.purple}/>
+            <MetricCard title="Visitas" value="23" subtitle="este mês" icon={Home} accentColor={CHART_COLORS.orange}/>
+            <MetricCard title="Propostas" value="15" subtitle="abertas" icon={FileText} accentColor={CHART_COLORS.pink}/>
+          </div>
+          <Card><CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-sm font-bold"><div className="flex h-7 w-7 items-center justify-center rounded-lg bg-success/10"><Star className="h-4 w-4 text-success"/></div>Performance da Equipe</CardTitle></CardHeader><CardContent className="space-y-4">{MOCK_EQUIPE.map((membro,i)=>(<div key={membro.nome} className="space-y-1.5"><div className="flex items-center justify-between"><div className="flex items-center gap-2"><span className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold" style={{backgroundColor:`${membro.color}20`,color:membro.color}}>{i+1}</span><span className="text-xs font-semibold">{membro.nome}</span></div><span className="text-[11px] text-muted-foreground">{membro.vendas}/{membro.meta} — {membro.pct}%</span></div><div className="h-2 rounded-full bg-muted overflow-hidden ml-8"><div className="h-full rounded-full transition-all" style={{width:`${Math.min(membro.pct,100)}%`,backgroundColor:membro.color}}/></div></div>))}</CardContent></Card>
+          </>
+          )}
+
+          {activeTab === "agenda" && (
+          <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <MetricCard title="Hoje" value="3" subtitle="compromissos" icon={Calendar} accentColor={CHART_COLORS.blue}/>
+            <MetricCard title="Esta Semana" value="12" subtitle="agendados" icon={Calendar} accentColor={CHART_COLORS.teal}/>
+            <MetricCard title="Visitas" value="8" subtitle="marcadas" icon={Home} accentColor={CHART_COLORS.cyan}/>
+            <MetricCard title="Pendentes" value="5" subtitle="sem confirmação" icon={AlertCircle} accentColor={CHART_COLORS.orange}/>
+            <MetricCard title="Concluídas" value="18" subtitle="este mês" icon={CheckCircle2} accentColor={CHART_COLORS.green}/>
+            <MetricCard title="Canceladas" value="2" subtitle="este mês" icon={XCircle} accentColor={CHART_COLORS.red}/>
+          </div>
+          <Card><CardHeader className="pb-3"><div className="flex items-center justify-between"><CardTitle className="flex items-center gap-2 text-sm font-bold"><div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10"><Calendar className="h-4 w-4 text-primary"/></div>Próximos Compromissos</CardTitle><Button variant="ghost" size="sm" className="text-xs gap-1 h-7 text-primary">Ver agenda <ChevronRight className="h-3 w-3"/></Button></div></CardHeader><CardContent className="p-0"><Table><TableHeader><TableRow className="hover:bg-transparent"><TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Horário</TableHead><TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Cliente</TableHead><TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Imóvel</TableHead><TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Tipo</TableHead></TableRow></TableHeader><TableBody>{[{hora:"09:00",cliente:"Carlos Silva",imovel:"Casa 3qts w/ pool",tipo:"Visita"},{hora:"11:30",cliente:"Ana Beatriz",imovel:"Apto 2qts centro",tipo:"Visita"},{hora:"14:00",cliente:"Roberto Mendes",imovel:"Cobertura duplex",tipo:"Negociação"},{hora:"16:00",cliente:"Fernanda Costa",imovel:"Casa 4qts Imbuí",tipo:"Visita"}].map((a,i)=>(<TableRow key={i} className="border-border/50"><TableCell className="py-2"><span className="text-[11px] font-semibold">{a.hora}</span></TableCell><TableCell className="py-2"><span className="text-[11px]">{a.cliente}</span></TableCell><TableCell className="py-2"><span className="text-[11px]">{a.imovel}</span></TableCell><TableCell className="py-2"><Badge variant="secondary" className="text-[10px]">{a.tipo}</Badge></TableCell></TableRow>))}</TableBody></Table></CardContent></Card>
+          </>
+          )}
+
+          {activeTab === "marketing" && (
+          <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <MetricCard title="Campanhas" value="3" subtitle="ativas" icon={Target} accentColor={CHART_COLORS.blue}/>
+            <MetricCard title="Spend" value="R$ 149" subtitle="últimos 7 dias" icon={TrendingUp} accentColor={CHART_COLORS.orange}/>
+            <MetricCard title="Impressões" value="8.5K" subtitle="últimos 7 dias" icon={Eye} accentColor={CHART_COLORS.cyan}/>
+            <MetricCard title="Cliques" value="368" subtitle="CTR 4.29%" icon={BarChart3} accentColor={CHART_COLORS.teal}/>
+            <MetricCard title="Mensagens" value="83" subtitle="recebidas" icon={MessageSquare} accentColor={CHART_COLORS.purple}/>
+            <MetricCard title="Leads" value="12" subtitle="conversões" icon={Users} accentColor={CHART_COLORS.green}/>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card><CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm font-bold"><div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10"><Target className="h-4 w-4 text-primary"/></div>Campanhas Ativas</CardTitle></CardHeader><CardContent className="p-0"><Table><TableHeader><TableRow className="hover:bg-transparent"><TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Campanha</TableHead><TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Status</TableHead><TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground text-right">Spend</TableHead></TableRow></TableHeader><TableBody>{[{nome:"Bonfim 13/05/26",status:"🟢 Ativa",valor:"R$ 89"},{nome:"Chác. Medeiros",status:"🟡 Pausada",valor:"R$ 35"},{nome:"Chác. MG - Bonfim",status:"🟡 Pausada",valor:"R$ 25"}].map((c,i)=>(<TableRow key={i} className="border-border/50"><TableCell className="py-2"><span className="text-[11px] font-medium">{c.nome}</span></TableCell><TableCell className="py-2"><span className="text-[11px]">{c.status}</span></TableCell><TableCell className="py-2 text-right"><span className="text-[11px] font-semibold">{c.valor}</span></TableCell></TableRow>))}</TableBody></Table></CardContent></Card>
+            <Card><CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm font-bold"><div className="flex h-7 w-7 items-center justify-center rounded-lg bg-info/10"><BarChart3 className="h-4 w-4 text-info"/></div>Portais Integrados</CardTitle></CardHeader><CardContent className="space-y-3">{[{portal:"OLX",status:"Conectado",imoveis:24},{portal:"ZAP",status:"Conectado",imoveis:18},{portal:"Viva Real",status:"Conectado",imoveis:12},{portal:"Imovelweb",status:"Conectado",imoveis:8}].map((p)=>(<div key={p.portal} className="flex items-center justify-between"><div className="flex items-center gap-2"><span className="text-xs font-semibold">{p.portal}</span><Badge variant="secondary" className="text-[10px]">{p.status}</Badge></div><span className="text-[11px] text-muted-foreground">{p.imoveis} imóveis</span></div>))}</CardContent></Card>
+          </div>
+          </>
+          )}
         </div>
 
         {/* ── FABs (Floating Action Buttons) ────────────────────────────── */}
