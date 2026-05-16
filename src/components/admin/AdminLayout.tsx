@@ -111,20 +111,19 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       <Link
         to={item.href}
         className={cn(
-          "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-all duration-200",
-          collapsed && "justify-center px-2",
+          "group relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[12px] font-medium transition-all duration-150",
+          collapsed && "justify-center px-1.5",
           active
-            ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md shadow-sidebar-primary/25"
-            : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            ? "bg-slate-800 text-white shadow-sm"
+            : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
         )}
       >
         <item.icon className={cn(
-          "h-[18px] w-[18px] shrink-0 transition-all duration-200",
-          active ? "drop-shadow-sm" : "group-hover:text-sidebar-primary"
+          "h-[15px] w-[15px] shrink-0 transition-all duration-150",
         )} />
         {!collapsed && <span className="truncate">{item.label}</span>}
         {!collapsed && active && (
-          <ChevronRight className="ml-auto h-3.5 w-3.5 opacity-60" />
+          <ChevronRight className="ml-auto h-3 w-3 opacity-50" />
         )}
       </Link>
     );
@@ -156,10 +155,10 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex flex-col bg-sidebar transition-all duration-300 ease-in-out lg:static lg:translate-x-0",
-          sidebarOpen ? "translate-x-0 w-[280px]" : "-translate-x-full w-[280px]",
-          "lg:w-[260px]",
-          collapsed && "lg:w-[72px]"
+          "fixed inset-y-0 left-0 z-50 flex flex-col transition-all duration-300 ease-in-out lg:static lg:translate-x-0",
+          sidebarOpen ? "translate-x-0 w-[260px]" : "-translate-x-full w-[260px]",
+          "lg:w-[248px] bg-slate-900 dark:bg-slate-950",
+          collapsed && "lg:w-[68px]"
         )}
       >
         {/* Header */}
@@ -191,12 +190,12 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         </div>
 
         {/* Navigation */}
-        <nav className={cn("flex-1 overflow-y-auto px-3 py-4 scrollbar-sidebar", collapsed && "px-2")}>
-          <div className="space-y-6">
+        <nav className={cn("flex-1 overflow-y-auto px-3 py-4 scrollbar-sidebar", collapsed && "px-1.5")}>
+          <div className="space-y-5">
             {navGroups.map((group) => (
-              <div key={group.label} className="space-y-1">
+              <div key={group.label} className="space-y-0.5">
                 {!collapsed && (
-                  <h3 className="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-sidebar-foreground/40">
+                  <h3 className="mb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                     {group.label}
                   </h3>
                 )}
@@ -224,136 +223,96 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
           {/* PWA Install Button */}
           {isInstallable && !isInstalled && (
-            collapsed ? (
-              <Tooltip delayDuration={0}>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="default"
-                    size="icon"
-                    onClick={installApp}
-                    className="w-full bg-[#003366] hover:bg-[#002244] text-white shadow-md shadow-[#003366]/20"
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="right" sideOffset={12}>Instalar Aplicativo</TooltipContent>
-              </Tooltip>
-            ) : (
-              <Button
-                variant="default"
-                size="sm"
-                onClick={installApp}
-                className="w-full justify-start gap-3 bg-[#003366] hover:bg-[#002244] text-white shadow-md shadow-[#003366]/20"
-              >
-                <Download className="h-4 w-4" />
-                <span>Instalar Aplicativo</span>
-              </Button>
-            )
-          )}
-
-          {/* Theme toggle */}
-          {collapsed ? (
-            <Tooltip delayDuration={0}>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                  className="flex w-full items-center justify-center rounded-lg px-3 py-2 text-[13px] text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                >
-                  <Sun className="h-4 w-4 dark:hidden" />
-                  <Moon className="hidden h-4 w-4 dark:block" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right" sideOffset={12}>Alternar Tema</TooltipContent>
-            </Tooltip>
-          ) : (
             <button
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13px] text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              onClick={installApp}
+              className={cn(
+                "flex items-center gap-2 rounded-md px-3 py-2 text-[12px] font-medium text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200",
+                collapsed && "justify-center px-1.5 w-full"
+              )}
             >
-              <Sun className="h-4 w-4 dark:hidden" />
-              <Moon className="hidden h-4 w-4 dark:block" />
-              <span>Alternar Tema</span>
+              <Download className="h-3.5 w-3.5" />
+              {!collapsed && <span>Instalar App</span>}
             </button>
           )}
 
+          {/* Theme toggle */}
+          <button
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className={cn(
+              "flex items-center gap-2 rounded-md px-3 py-2 text-[12px] text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200",
+              collapsed && "justify-center px-1.5 w-full"
+            )}
+          >
+            <Sun className="h-3.5 w-3.5 dark:hidden" />
+            <Moon className="hidden h-3.5 w-3.5 dark:block" />
+            {!collapsed && <span>{theme === "dark" ? "Claro" : "Escuro"}</span>}
+          </button>
+
+          {/* Divider */}
+          <div className="my-1 border-t border-slate-800" />
+
           {/* User info */}
           <div className={cn(
-            "flex items-center gap-3 rounded-xl bg-sidebar-accent/50 px-3 py-2.5",
-            collapsed && "justify-center px-2 bg-transparent"
+            "flex items-center gap-2.5 rounded-lg bg-slate-800/50 px-2.5 py-2",
+            collapsed && "justify-center bg-transparent p-1"
           )}>
-            <Tooltip delayDuration={0}>
-              <TooltipTrigger asChild>
-                <Avatar className="h-8 w-8 ring-2 ring-sidebar-primary/30">
-                  <AvatarImage src={profile?.avatar_url || undefined} />
-                  <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-xs font-display">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
-              </TooltipTrigger>
-              {collapsed && (
-                <TooltipContent side="right" sideOffset={12}>
-                  {profile?.full_name || "Usuário"} ({userRole || "user"})
-                </TooltipContent>
-              )}
-            </Tooltip>
+            <Avatar className="h-7 w-7 ring-1 ring-slate-700">
+              <AvatarImage src={profile?.avatar_url || undefined} />
+              <AvatarFallback className="bg-blue-600 text-white text-[10px] font-display">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
             {!collapsed && (
               <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-medium text-sidebar-foreground truncate">
+                <p className="text-[12px] font-medium text-slate-200 truncate">
                   {profile?.full_name || "Usuário"}
                 </p>
-                <p className="text-2xs text-sidebar-muted capitalize">{userRole || "user"}</p>
+                <p className="text-[10px] text-slate-500 capitalize">{userRole || "user"}</p>
               </div>
             )}
           </div>
 
           {/* Actions */}
           <div className={cn("flex gap-1", collapsed && "flex-col")}>
-            {collapsed ? (
-              <>
-                <Tooltip delayDuration={0}>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="w-full text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent" asChild>
-                      <Link to="/"><Home className="h-4 w-4" /></Link>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" sideOffset={12}>Ver Site</TooltipContent>
-                </Tooltip>
-                <Tooltip delayDuration={0}>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="w-full text-red-400/70 hover:text-red-400 hover:bg-sidebar-accent" onClick={signOut}>
-                      <LogOut className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" sideOffset={12}>Sair</TooltipContent>
-                </Tooltip>
-              </>
-            ) : (
-              <>
-                <Button variant="ghost" size="sm" className="flex-1 justify-start gap-2 text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent" asChild>
-                  <Link to="/">
-                    <Home className="h-4 w-4" />
-                    Ver Site
-                  </Link>
-                </Button>
-                <Button variant="ghost" size="sm" className="gap-2 text-red-400/70 hover:text-red-400 hover:bg-sidebar-accent" onClick={signOut}>
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </>
-            )}
+            <button
+              onClick={() => signOut()}
+              className={cn(
+                "flex items-center gap-2 rounded-md px-3 py-2 text-[12px] text-red-400/60 transition-colors hover:bg-red-500/10 hover:text-red-400",
+                collapsed && "justify-center px-1.5 w-full"
+              )}
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              {!collapsed && <span>Sair</span>}
+            </button>
           </div>
         </div>
       </aside>
 
       {/* Main content */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        <div className="flex h-14 shrink-0 items-center border-b border-border bg-card/50 backdrop-blur-lg px-4 lg:hidden">
-          <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
+        {/* Topbar */}
+        <header className="flex h-14 shrink-0 items-center gap-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 lg:px-6">
+          <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)} className="lg:hidden">
             <Menu className="h-5 w-5" />
           </Button>
-          <span className="ml-3 font-display text-sm font-semibold text-foreground">Admin Panel</span>
-        </div>
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-4 lg:p-8">{children}</div>
+          <div className="flex flex-1 items-center gap-3">
+            <span className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
+              Painel Admin
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500 hidden sm:inline">
+              {profile?.full_name || "Usuário"}
+            </span>
+            <div className="h-7 w-7 rounded-full bg-blue-600 flex items-center justify-center">
+              <span className="text-[10px] text-white font-display">{initials}</span>
+            </div>
+          </div>
+        </header>
+
+        {/* Page content */}
+        <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-950">
+          <div className="p-5 lg:p-6">{children}</div>
         </main>
       </div>
     </div>
