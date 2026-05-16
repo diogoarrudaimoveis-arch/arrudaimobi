@@ -402,5 +402,5 @@ Para desabilitar a verificação de e-mail no Supabase, siga os passos abaixo:
 Para deploy em produção, recomendamos o uso do **Deploy Manager Pro** ou a integração nativa do Supabase CLI para uma experiência simplificada e segura.
 
 <p align="center">
-  Desenvolvido por <a href="https://afcode.com.br">afcode</a> com ❤️ para otimizar a gestão de imobiliárias.
+  Desenvolvido por <a href="https://techatende.com.br">TechAtende</a> com ❤️ para otimizar a gestão de imobiliárias.
 </p>
