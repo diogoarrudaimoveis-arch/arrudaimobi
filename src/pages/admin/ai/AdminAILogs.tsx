@@ -89,7 +89,7 @@ export default function AdminAILogs() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <AdminPageShell>
         {/* Header */}
         <SectionHeader
           title="Log Center"
@@ -253,7 +253,7 @@ export default function AdminAILogs() {
             <span className="w-2 h-2 rounded-full bg-red-300" /> CRIT — impacto crítico
           </span>
         </div>
-      </div>
+      </AdminPageShell>
     </AdminLayout>
   );
 }
