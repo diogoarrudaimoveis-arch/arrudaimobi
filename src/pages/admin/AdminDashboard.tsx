@@ -139,7 +139,7 @@ const AdminDashboard = () => {
   const firstName = profile?.full_name?.split(" ")[0] || "Admin";
   const today = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
 
-  const metaPercent = Math.round((MOCK_METRICS.metaMensal.current / MOCK_METRICS.metaMensais?.target ?? MOCK_METRICS.metaMensal.target) * 100);
+  const metaPercent = Math.round((MOCK_METRICS.metaMensal.current / MOCK_METRICS.metaMensal.target) * 100);
 
   return (
     <AdminLayout>
