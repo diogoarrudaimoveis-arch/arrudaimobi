@@ -208,7 +208,14 @@ const AdminAgents = () => {
     }
   };
 
-  const getRoleLabel = (agent: any) => agent.role || "user";
+  const getRoleLabel = (agent: any) => {
+    const role = agent.role || "user";
+    if (role === "developer") return "Desenvolvedor";
+    if (role === "admin") return "Admin";
+    if (role === "agent") return "Agente";
+    if (role === "user") return "Usuário";
+    return role;
+  };
 
   return (
     <AdminLayout>
@@ -272,6 +279,7 @@ const AdminAgents = () => {
                     <SelectItem value="admin">Admin</SelectItem>
                     <SelectItem value="agent">Agente</SelectItem>
                     <SelectItem value="user">Usuário</SelectItem>
+                    <SelectItem value="developer">Desenvolvedor</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -344,13 +352,14 @@ const AdminAgents = () => {
                             <SelectItem value="admin">Admin</SelectItem>
                             <SelectItem value="agent">Agente</SelectItem>
                             <SelectItem value="user">Usuário</SelectItem>
+                            <SelectItem value="developer">Desenvolvedor</SelectItem>
                           </SelectContent>
                         </Select>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Badge variant={role === "admin" ? "default" : role === "agent" ? "secondary" : "outline"}>
-                            {role}
+                          <Badge variant={role === "admin" ? "default" : role === "agent" ? "secondary" : role === "developer" ? "secondary" : "outline"}>
+                            {role === "developer" ? "Desenvolvedor" : role}
                           </Badge>
                           <Button
                             size="icon"
