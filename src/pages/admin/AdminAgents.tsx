@@ -222,8 +222,8 @@ const AdminAgents = () => {
       <div className="space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="font-display text-2xl font-bold">Agentes & Usuários</h1>
-            <p className="text-muted-foreground">{agents?.length || 0} membros</p>
+            <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Agentes & Usuários</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Gerencie perfis, funções e acessos · {agents?.length || 0} membros</p>
           </div>
           <Button className="gap-2" onClick={() => { resetForm(); setDialogOpen(true); }}>
             <UserPlus className="h-4 w-4" /> Adicionar

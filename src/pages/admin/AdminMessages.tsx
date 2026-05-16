@@ -301,8 +301,8 @@ const AdminMessages = () => {
       <div className="space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="font-display text-2xl font-bold">Mensagens</h1>
-            <p className="text-muted-foreground">Envie mensagens via WhatsApp</p>
+            <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Mensagens</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Envie mensagens via WhatsApp</p>
           </div>
           {isAdmin && (
             <Button variant="outline" className="gap-2" onClick={openConfig}>
