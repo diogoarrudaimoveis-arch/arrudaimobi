@@ -526,7 +526,19 @@ const AdminDashboard = () => {
               </div>
             </CardContent>
           </Card>
-          <Card><CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm font-bold"><div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10"><AlertCircle className="h-4 w-4 text-destructive"/>Leads Sem Atividade</CardTitle></CardHeader><CardContent className="space-y-3"><AlertBar text="15 leads sem atividade há mais de 7 dias" type="warning"/><AlertBar text="8 leads sem estágio definido" type="info"/><Button variant="ghost" size="sm" className="w-full text-xs h-7">Ver todos os leads pendentes</Button></CardContent></Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-sm font-bold">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10"><AlertCircle className="h-4 w-4 text-destructive"/></div>
+                Leads Sem Atividade
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <AlertBar text="15 leads sem atividade há mais de 7 dias" type="warning"/>
+              <AlertBar text="8 leads sem estágio definido" type="info"/>
+              <Button variant="ghost" size="sm" className="w-full text-xs h-7">Ver todos os leads pendentes</Button>
+            </CardContent>
+          </Card>
           </>
           )}
 
