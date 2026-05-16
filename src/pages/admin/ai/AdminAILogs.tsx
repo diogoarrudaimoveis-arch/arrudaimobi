@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
+import { AdminPageShell } from '@/components/admin/shared/AdminComponents';
 import { SectionHeader } from '@/components/admin/ai/AiOpsCards';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

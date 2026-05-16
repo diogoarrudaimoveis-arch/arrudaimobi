@@ -103,14 +103,14 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       <Link
         to={item.href}
         className={cn(
-          "group relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[12px] font-medium transition-all duration-150",
+          "group relative flex items-center gap-2 rounded-sm px-2 py-1.5 text-[12px] font-medium transition-all duration-150",
           collapsed && "justify-center px-1.5",
           active
-            ? "bg-slate-800 text-white shadow-sm"
+            ? "bg-slate-800 text-white border-l-2 border-primary shadow-sm"
             : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
         )}
       >
-        <item.icon className={cn("h-[15px] w-[15px] shrink-0")} />
+        <item.icon className={cn("h-[14px] w-[14px] shrink-0")} />
         {!collapsed && <span className="truncate">{item.label}</span>}
         {!collapsed && active && <ChevronRight className="ml-auto h-3 w-3 opacity-50" />}
       </Link>
@@ -150,7 +150,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         )}
       >
         {/* Header */}
-        <div className={cn("flex h-16 shrink-0 items-center gap-3 px-5", collapsed && "justify-center px-3")}>
+        <div className={cn("flex h-14 shrink-0 items-center gap-3 px-4", collapsed && "justify-center px-2")}>
           <Link to="/admin" className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-600 shadow-lg">
               <Building2 className="h-5 w-5 text-white" />
@@ -175,14 +175,14 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         </div>
 
         {/* Navigation */}
-        <nav className={cn("flex-1 overflow-y-auto px-3 py-4 scrollbar-sidebar", collapsed && "px-1.5")}>
+        <nav className={cn("flex-1 overflow-y-auto px-2 py-3 scrollbar-sidebar", collapsed && "px-1.5")}>
           {menuSections.map((section) => {
             const sectionItems = visibleItems.filter(item => section.keys.includes(item.key));
             if (sectionItems.length === 0) return null;
             return (
-              <div key={section.label} className="space-y-0.5 mb-5">
+              <div key={section.label} className="space-y-0.5 mb-4">
                 {!collapsed && (
-                  <h3 className="mb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  <h3 className="mb-0.5 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
                     {section.label}
                   </h3>
                 )}
