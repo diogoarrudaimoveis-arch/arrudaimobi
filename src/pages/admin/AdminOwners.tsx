@@ -226,8 +226,8 @@ const AdminOwners = () => {
       <div className="space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="font-display text-2xl font-bold">Proprietários</h1>
-            <p className="text-muted-foreground">Gerenciamento de proprietários e autorizações</p>
+            <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Proprietários</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Gerenciamento de proprietários e autorizações</p>
           </div>
           <Button onClick={() => { resetForm(); setDialogOpen(true); }} className="gap-2 bg-[#003366] hover:bg-[#002244]">
             <Plus className="h-4 w-4" /> Novo Proprietário
@@ -279,17 +279,18 @@ const AdminOwners = () => {
               <TableBody>
                 {filteredOwners.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
+                    <TableCell colSpan={4} className="text-center py-16">
                       {searchQuery ? (
-                        <div className="flex flex-col items-center gap-2">
-                          <Search className="h-8 w-8 opacity-20" />
-                          <p>Nenhum proprietário encontrado para <strong>"{searchQuery}"</strong></p>
-                          <button onClick={() => setSearchQuery("")} className="text-[#003366] text-sm underline">Limpar filtro</button>
+                        <div className="flex flex-col items-center gap-3">
+                          <Search className="h-10 w-10 text-muted-foreground/30" />
+                          <p className="text-muted-foreground">Nenhum proprietário encontrado para <strong>"{searchQuery}"</strong></p>
+                          <button onClick={() => setSearchQuery("")} className="text-[#003366] text-sm underline hover:text-[#002244]">Limpar filtro</button>
                         </div>
                       ) : (
-                        <div className="flex flex-col items-center gap-2">
-                          <User className="h-8 w-8 opacity-20" />
-                          <p>Nenhum proprietário cadastrado</p>
+                        <div className="flex flex-col items-center gap-3">
+                          <User className="h-10 w-10 text-muted-foreground/30" />
+                          <p className="text-muted-foreground">Nenhum proprietário cadastrado</p>
+                          <p className="text-xs text-muted-foreground/60">Clique em "Adicionar" para criar o primeiro</p>
                         </div>
                       )}
                     </TableCell>

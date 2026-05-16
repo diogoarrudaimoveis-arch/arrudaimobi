@@ -233,8 +233,8 @@ const AdminMediaLibrary = () => {
       <div className="space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="font-display text-2xl font-bold">Biblioteca de Mídias</h1>
-            <p className="text-muted-foreground">{totalMedia} itens</p>
+            <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Biblioteca de Mídias</h1>
+            <p className="mt-1 text-sm text-muted-foreground">{totalMedia} itens</p>
           </div>
           <div className="flex gap-2">
             <Button

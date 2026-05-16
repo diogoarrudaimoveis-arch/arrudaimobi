@@ -644,8 +644,8 @@ const AdminProperties = () => {
       <div className="space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="font-display text-2xl font-bold">Imóveis</h1>
-            <p className="text-muted-foreground">{totalProperties} imóveis cadastrados</p>
+            <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Imóveis</h1>
+            <p className="mt-1 text-sm text-muted-foreground">{totalProperties} imóveis cadastrados</p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={(v) => { 
             console.log("[DEBUG] Dialog onOpenChange:", v);

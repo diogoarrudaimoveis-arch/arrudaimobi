@@ -463,8 +463,8 @@ const AdminContacts = () => {
         {/* Header */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="font-display text-2xl font-bold">Contatos / Leads</h1>
-            <p className="text-muted-foreground text-sm">
+            <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Contatos / Leads</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
               {displayTotal} leads
               {isFallbackMode && (
                 <span className="text-amber-600 ml-2">
@@ -608,8 +608,16 @@ const AdminContacts = () => {
                   ))}
                   {paginatedLeads.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
-                        {search ? "Nenhum lead encontrado para a busca." : "Nenhum lead no CRM."}
+                      <TableCell colSpan={11} className="text-center py-16">
+                        <div className="flex flex-col items-center gap-3">
+                          <MessageSquare className="h-10 w-10 text-muted-foreground/30" />
+                          <p className="text-muted-foreground">
+                            {search ? "Nenhum lead encontrado para a busca." : "Nenhum lead no CRM."}
+                          </p>
+                          <p className="text-xs text-muted-foreground/60">
+                            {search ? "Tente outro termo de busca." : "Leads aparecerão aqui quando chegarem pelo site ou integração ZPRO."}
+                          </p>
+                        </div>
                       </TableCell>
                     </TableRow>
                   )}

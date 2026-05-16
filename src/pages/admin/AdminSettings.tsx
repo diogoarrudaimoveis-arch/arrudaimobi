@@ -25,7 +25,7 @@ const AdminSettings = () => {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <h1 className="font-display text-2xl font-bold">Configurações</h1>
+        <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Configurações</h1>
 
         <RegistrationToggle />
         <TenantInfoCard />
