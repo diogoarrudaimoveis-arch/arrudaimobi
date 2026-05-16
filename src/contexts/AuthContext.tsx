@@ -1,6 +1,7 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
+import { normalizeRole, canAccessAdmin, FULL_ACCESS_ROLES, type AppRole } from "@/lib/adminPermissions";
 
 export interface UserProfile {
   id: string;
@@ -12,18 +13,25 @@ export interface UserProfile {
   bio: string | null;
   created_at: string;
   updated_at: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  role?: any;
 }
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   isReady: boolean;
+  isProfileLoading: boolean;
   tenantId: string | null;
   userRole: string | null;
+  normalizedRole: AppRole;
   profile: UserProfile | null;
   isAdmin: boolean;
+  isDeveloper: boolean;
   isAgent: boolean;
+  isUser: boolean;
   canAccessAdmin: boolean;
+  canAccessTechMenus: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -32,12 +40,17 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
   isReady: false,
+  isProfileLoading: true,
   tenantId: null,
   userRole: null,
+  normalizedRole: "user",
   profile: null,
   isAdmin: false,
+  isDeveloper: false,
   isAgent: false,
+  isUser: true,
   canAccessAdmin: false,
+  canAccessTechMenus: false,
   signOut: async () => { },
   refreshProfile: async () => { },
 });
@@ -46,15 +59,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
-  const ADMIN_ROLES = ["admin", "developer"];
-
-  const isAdmin = ADMIN_ROLES.includes(userRole || "");
-  const isAgent = userRole === "agent";
-  const canAccessAdmin = ADMIN_ROLES.includes(userRole || "");
+  // Derived role values
+  const normalizedRole = normalizeRole(userRole);
+  const isAdmin = normalizedRole === "admin";
+  const isDeveloper = normalizedRole === "developer";
+  const isAgent = normalizedRole === "agent";
+  const isUser = normalizedRole === "user";
+  const _canAccessAdmin = canAccessAdmin(userRole);
+  const _canAccessTechMenus = canAccessAdmin(userRole); // same as admin for now
 
   const seedDefaultData = async (tid: string) => {
     try {
@@ -71,6 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfile = async (userId: string) => {
     try {
+      setIsProfileLoading(true);
       const { data: profileData } = await supabase
         .from("profiles")
         .select("*")
@@ -95,9 +113,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (roleData.role === "admin" && profileData?.tenant_id) {
           seedDefaultData(profileData.tenant_id);
         }
+      } else {
+        // No role found - default to "user" instead of null
+        setUserRole("user");
       }
     } catch (err) {
       console.error("Error fetching profile:", err);
+      // On error, default to user instead of null to prevent redirect loops
+      setUserRole("user");
+    } finally {
+      setIsProfileLoading(false);
     }
   };
 
@@ -117,6 +142,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setProfile(null);
           setTenantId(null);
           setUserRole(null);
+          setIsProfileLoading(false);
         }
       }
     );
@@ -148,12 +174,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         session,
         isReady,
+        isProfileLoading,
         tenantId,
         userRole,
+        normalizedRole,
         profile,
         isAdmin,
+        isDeveloper,
         isAgent,
-        canAccessAdmin,
+        isUser,
+        canAccessAdmin: _canAccessAdmin,
+        canAccessTechMenus: _canAccessTechMenus,
         signOut,
         refreshProfile,
       }}

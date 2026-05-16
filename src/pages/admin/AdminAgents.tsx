@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Loader2, Users, UserPlus, Trash2, Pencil, Save } from "lucide-react";
+import { getRoleLabel as getRoleLabelFromLib, getRoleBadgeVariant, normalizeRole } from "@/lib/adminPermissions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PasswordInput } from "@/components/auth/PasswordInput";
@@ -209,12 +210,7 @@ const AdminAgents = () => {
   };
 
   const getRoleLabel = (agent: any) => {
-    const role = agent.role || "user";
-    if (role === "developer") return "Desenvolvedor";
-    if (role === "admin") return "Admin";
-    if (role === "agent") return "Agente";
-    if (role === "user") return "Usuário";
-    return role;
+    return getRoleLabelFromLib(agent.role || agent.userRole || "user");
   };
 
   return (
@@ -358,8 +354,8 @@ const AdminAgents = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Badge variant={role === "admin" ? "default" : role === "agent" ? "secondary" : role === "developer" ? "developer" : "outline"}>
-                            {role === "developer" ? "Desenvolvedor" : role}
+                          <Badge variant={getRoleBadgeVariant(agent.role)}>
+                            {getRoleLabel(agent)}
                           </Badge>
                           <Button
                             size="icon"
