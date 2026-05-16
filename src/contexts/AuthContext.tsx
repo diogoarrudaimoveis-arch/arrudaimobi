@@ -23,6 +23,7 @@ interface AuthContextType {
   profile: UserProfile | null;
   isAdmin: boolean;
   isAgent: boolean;
+  canAccessAdmin: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -36,6 +37,7 @@ const AuthContext = createContext<AuthContextType>({
   profile: null,
   isAdmin: false,
   isAgent: false,
+  canAccessAdmin: false,
   signOut: async () => { },
   refreshProfile: async () => { },
 });
@@ -47,6 +49,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+
+  const ADMIN_ROLES = ["admin", "developer"];
+
+  const isAdmin = ADMIN_ROLES.includes(userRole || "");
+  const isAgent = userRole === "agent";
+  const canAccessAdmin = ADMIN_ROLES.includes(userRole || "");
 
   const seedDefaultData = async (tid: string) => {
     try {
@@ -143,8 +151,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         tenantId,
         userRole,
         profile,
-        isAdmin: userRole === "admin",
-        isAgent: userRole === "agent",
+        isAdmin,
+        isAgent,
+        canAccessAdmin,
         signOut,
         refreshProfile,
       }}
