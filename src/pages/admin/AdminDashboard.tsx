@@ -1,28 +1,22 @@
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useLeadMetrics } from "@/hooks/use-contacts";
 import {
-  Activity, AlertCircle, ArrowUpRight, BarChart3, Building2,
-  CheckCircle2, Clock, Eye, Home, LucideIcon, MessageSquare,
-  MoreHorizontal, Plus, Search, Send, TrendingUp, Users, Zap,
-  ChevronRight, User, Phone, Mail, Calendar, HomeIcon
+  BarChart3, Building2, Eye, Home, LucideIcon,
+  MoreHorizontal, Phone, TrendingUp, Users,
+  ChevronRight, User, Calendar, HomeIcon,
+  AlertCircle, CheckCircle2, ArrowUpRight,
+  MessageSquare, Star, DollarSign, Target,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area,
-  Legend, LineChart, Line
+  ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line,
+  Legend,
 } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuSeparator, DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
+import { Progress } from "@/components/ui/progress";
 
 const CHART_COLORS = [
   "hsl(var(--primary))",
@@ -35,7 +29,74 @@ const CHART_COLORS = [
   "#06b6d4",
 ];
 
-// ─── Metric Card Component ───────────────────────────────────────────────
+// ─── Mock Data ────────────────────────────────────────────────────────────
+const MOCK_METRICS = {
+  leadsAtivos: 41,
+  metaMensal: { current: 10, target: 80 },
+  novosNegocios: 7,
+  valorCarteira: "R$ 2.1M",
+  receitaPrevista: "R$ 60K",
+  atendimentos: 128,
+};
+
+const MOCK_EVOLUCAO_DATA = [
+  { name: "Jan", leads: 12, negocios: 3 },
+  { name: "Fev", leads: 19, negocios: 5 },
+  { name: "Mar", leads: 15, negocios: 4 },
+  { name: "Abr", leads: 28, negocios: 6 },
+  { name: "Mai", leads: 35, negocios: 8 },
+  { name: "Jun", leads: 41, negocios: 7 },
+];
+
+const MOCK_ALERTAS = [
+  { p: "P0" as const, text: "5 leads sem resposta há +72h", time: "agora" },
+  { p: "P1" as const, text: "Meta de junho 12% abaixo do esperado", time: "2h" },
+  { p: "P2" as const, text: "3 visitas marcadas sem confirmação", time: "4h" },
+  { p: "P2" as const, text: "2 contratos pendentes de assinatura", time: "1d" },
+];
+
+const MOCK_LEADS = [
+  { id: "1", name: "Carlos Silva", source: "Orgânico", status: "Quente", value: "R$ 450K" },
+  { id: "2", name: "Ana Beatriz", source: "Instagram", status: "Morno", value: "R$ 320K" },
+  { id: "3", name: "Roberto Mendes", source: "Indicação", status: "Quente", value: "R$ 890K" },
+  { id: "4", name: "Fernanda Costa", source: "ZAP", status: "Frio", value: "R$ 210K" },
+  { id: "5", name: "Pedro Henrique", source: "Orgânico", status: "Quente", value: "R$ 560K" },
+];
+
+const MOCK_IMOVEIS = [
+  { id: "1", titulo: "Casa 3qts with pool", visitas: 312, tipo: "Casa" },
+  { id: "2", titulo: "Apto 2qts centro", visitas: 287, tipo: "Apartamento" },
+  { id: "3", titulo: "Cobertura duplex", visitas: 241, tipo: "Cobertura" },
+  { id: "4", titulo: "Casa 4qts Imbuí", visitas: 198, tipo: "Casa" },
+  { id: "5", titulo: "Apto 1qt garagem", visitas: 156, tipo: "Apartamento" },
+];
+
+const MOCK_TRAFEGO = [
+  { name: "Orgânico", value: 38, color: CHART_COLORS[0] },
+  { name: "Pago", value: 27, color: CHART_COLORS[1] },
+  { name: "Instagram", value: 18, color: CHART_COLORS[2] },
+  { name: "Portais", value: 12, color: CHART_COLORS[3] },
+  { name: "Indicação", value: 5, color: CHART_COLORS[4] },
+];
+
+const MOCK_PAGO_VS_ORGANICO = [
+  { name: "Jan", pago: 2400, organico: 1800 },
+  { name: "Fev", pago: 3200, organico: 2100 },
+  { name: "Mar", pago: 2800, organico: 2600 },
+  { name: "Abr", pago: 4100, organico: 3200 },
+  { name: "Mai", pago: 3800, organico: 3400 },
+  { name: "Jun", pago: 4600, organico: 3900 },
+];
+
+const MOCK_EQUIPE = [
+  { nome: "Marcos", vendas: 8, meta: 10, fill: CHART_COLORS[0] },
+  { nome: "Juliana", vendas: 6, meta: 10, fill: CHART_COLORS[1] },
+  { nome: "Ricardo", vendas: 5, meta: 8, fill: CHART_COLORS[2] },
+  { nome: "Patrícia", vendas: 4, meta: 8, fill: CHART_COLORS[3] },
+  { nome: "Thiago", vendas: 3, meta: 6, fill: CHART_COLORS[4] },
+];
+
+// ─── Metric Card ──────────────────────────────────────────────────────────
 interface MetricCardProps {
   title: string;
   value: string | number;
@@ -43,24 +104,15 @@ interface MetricCardProps {
   icon: LucideIcon;
   iconBg: string;
   iconColor: string;
-  trend?: { value: string; positive: boolean };
 }
 
-const MetricCard = ({ title, value, subtitle, icon: Icon, iconBg, iconColor, trend }: MetricCardProps) => (
+const MetricCard = ({ title, value, subtitle, icon: Icon, iconBg, iconColor }: MetricCardProps) => (
   <Card className="hover:shadow-card-hover transition-shadow">
     <CardContent className="p-4">
       <div className="flex items-center justify-between">
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-medium text-muted-foreground truncate">{title}</p>
-          <div className="flex items-baseline gap-1.5 mt-1">
-            <span className="font-display text-2xl font-bold truncate">{value}</span>
-            {trend && (
-              <span className={`text-[10px] font-semibold flex items-center gap-0.5 ${trend.positive ? "text-success" : "text-destructive"}`}>
-                <ArrowUpRight className="h-3 w-3" />
-                {trend.value}
-              </span>
-            )}
-          </div>
+          <p className="font-display text-2xl font-bold truncate mt-1">{value}</p>
           {subtitle && <p className="text-[10px] text-muted-foreground mt-0.5">{subtitle}</p>}
         </div>
         <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconBg}`}>
@@ -82,177 +134,12 @@ const PriorityBadge = ({ p }: { p: "P0" | "P1" | "P2" | "P3" }) => {
   return <Badge variant="outline" className={`text-[10px] font-bold ${styles[p]}`}>{p}</Badge>;
 };
 
-// ─── Status Dot ───────────────────────────────────────────────────────────
-const StatusDot = ({ status }: { status: "online" | "warning" | "offline" }) => {
-  const colors = { online: "bg-success", warning: "bg-warning", offline: "bg-destructive" };
-  return <span className={`inline-block h-2 w-2 rounded-full ${colors[status]}`} />;
-};
-
 const AdminDashboard = () => {
-  const { tenantId, isReady, profile } = useAuth();
-  const { data: leadMetrics } = useLeadMetrics();
+  const { profile } = useAuth();
+  const firstName = profile?.full_name?.split(" ")[0] || "Admin";
   const today = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
 
-  // ─── Queries ───────────────────────────────────────────────────────────────
-  const { data: stats } = useQuery({
-    queryKey: ["admin-dashboard-stats", tenantId],
-    queryFn: async () => {
-      const [props, agents, newContacts, totalContacts, types, visits] = await Promise.all([
-        supabase.from("properties").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId!),
-        supabase.from("user_roles").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId!).in("role", ["agent", "admin"]),
-        supabase.from("contacts").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId!).eq("status", "new"),
-        supabase.from("contacts").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId!),
-        supabase.from("property_types").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId!),
-        supabase.from("property_visits").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId!),
-      ]);
-      return {
-        properties: props.count || 0,
-        agents: agents.count || 0,
-        newContacts: newContacts.count || 0,
-        totalContacts: totalContacts.count || 0,
-        types: types.count || 0,
-        visits: visits.count || 0,
-      };
-    },
-    enabled: isReady && !!tenantId,
-  });
-
-  const { data: byType } = useQuery({
-    queryKey: ["admin-chart-by-type", tenantId],
-    queryFn: async () => {
-      const { data } = await supabase.from("properties").select("type_id, property_types(name)").eq("tenant_id", tenantId!);
-      const counts: Record<string, number> = {};
-      data?.forEach((p: { type_id: number; property_types?: { name: string } | null }) => {
-        const name = p.property_types?.name || "Sem tipo";
-        counts[name] = (counts[name] || 0) + 1;
-      });
-      return Object.entries(counts).map(([name, value]) => ({ name, value }));
-    },
-    enabled: isReady && !!tenantId,
-  });
-
-  const { data: byPurpose } = useQuery({
-    queryKey: ["admin-chart-by-purpose", tenantId],
-    queryFn: async () => {
-      const { data } = await supabase.from("properties").select("purpose").eq("tenant_id", tenantId!);
-      const counts: Record<string, number> = {};
-      data?.forEach((p: { purpose: string }) => {
-        const label = p.purpose === "sale" ? "Venda" : "Aluguel";
-        counts[label] = (counts[label] || 0) + 1;
-      });
-      return Object.entries(counts).map(([name, value]) => ({ name, value }));
-    },
-    enabled: isReady && !!tenantId,
-  });
-
-  const { data: byStatus } = useQuery({
-    queryKey: ["admin-chart-by-status", tenantId],
-    queryFn: async () => {
-      const { data } = await supabase.from("properties").select("status").eq("tenant_id", tenantId!);
-      const statusLabels: Record<string, string> = {
-        available: "Disponível", sold: "Vendido", rented: "Alugado", pending: "Pendente",
-      };
-      const counts: Record<string, number> = {};
-      data?.forEach((p: { status: string }) => {
-        const label = statusLabels[p.status] || p.status;
-        counts[label] = (counts[label] || 0) + 1;
-      });
-      return Object.entries(counts).map(([name, value]) => ({ name, value }));
-    },
-    enabled: isReady && !!tenantId,
-  });
-
-  const { data: recentContacts } = useQuery({
-    queryKey: ["admin-dashboard-recent-contacts", tenantId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("contacts")
-        .select("id, name, email, phone, status, created_at")
-        .eq("tenant_id", tenantId!)
-        .order("created_at", { ascending: false })
-        .limit(8);
-      return data || [];
-    },
-    enabled: isReady && !!tenantId,
-  });
-
-  const { data: recentProperties } = useQuery({
-    queryKey: ["admin-dashboard-recent-properties", tenantId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("properties")
-        .select("id, title, price, status, created_at, property_types(name)")
-        .eq("tenant_id", tenantId!)
-        .order("created_at", { ascending: false })
-        .limit(6);
-      return data || [];
-    },
-    enabled: isReady && !!tenantId,
-  });
-
-  const { data: contactsByMonth } = useQuery({
-    queryKey: ["admin-chart-contacts-month", tenantId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("contacts")
-        .select("created_at")
-        .eq("tenant_id", tenantId!)
-        .gte("created_at", new Date(Date.now() - 180 * 86400000).toISOString())
-        .order("created_at", { ascending: true });
-      const months: Record<string, number> = {};
-      const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-      for (let i = 5; i >= 0; i--) {
-        const d = new Date();
-        d.setMonth(d.getMonth() - i);
-        const key = `${monthNames[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`;
-        months[key] = 0;
-      }
-      data?.forEach((c: { created_at: string }) => {
-        const d = new Date(c.created_at);
-        const key = `${monthNames[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`;
-        if (key in months) months[key]++;
-      });
-      return Object.entries(months).map(([name, leads]) => ({ name, leads }));
-    },
-    enabled: isReady && !!tenantId,
-  });
-
-  const firstName = profile?.full_name?.split(" ")[0] || "Admin";
-
-  // ─── Metric Cards Data ──────────────────────────────────────────────────────
-  const metricCards = [
-    { title: "Imóveis Ativos", value: stats?.properties ?? 0, icon: Home, iconBg: "bg-primary/10", iconColor: "text-primary", subtitle: `${stats?.types ?? 0} tipos` },
-    { title: "Total Leads", value: stats?.totalContacts ?? 0, icon: Users, iconBg: "bg-success/10", iconColor: "text-success", subtitle: `${stats?.newContacts ?? 0} novos`, trend: { value: "+12%", positive: true } },
-    { title: "Mensagens", value: "47", icon: MessageSquare, iconBg: "bg-warning/10", iconColor: "text-warning", subtitle: "28 hoje", trend: { value: "+8%", positive: true } },
-    { title: "Taxa Resposta", value: "28%", icon: CheckCircle2, iconBg: "bg-info/10", iconColor: "text-info", subtitle: "janela 24h" },
-    { title: "Visitas", value: stats?.visits ?? 0, icon: Eye, iconBg: "bg-purple-500/10", iconColor: "text-purple-500", subtitle: "este mês" },
-    { title: "Receita Mês", value: "R$ 0", icon: TrendingUp, iconBg: "bg-emerald-500/10", iconColor: "text-emerald-500", subtitle: "sem dados" },
-  ];
-
-  // ─── Integration Status ─────────────────────────────────────────────────────
-  const integrations = [
-    { name: "Supabase", status: "online" as const, detail: "Conexão OK" },
-    { name: "ZPRO", status: "online" as const, detail: "Modo leitura" },
-    { name: "n8n", status: "warning" as const, detail: "Pendente" },
-    { name: "MiniMax", status: "warning" as const, detail: "Monitorar" },
-    { name: "Meta Ads", status: "online" as const, detail: "Read-only" },
-  ];
-
-  // ─── Quick Actions ─────────────────────────────────────────────────────────
-  const quickActions = [
-    { label: "Novo Imóvel", icon: Plus, href: "/admin/imoveis", color: "text-primary" },
-    { label: "Ver Leads", icon: Users, href: "/admin/contatos", color: "text-success" },
-    { label: "Agendar", icon: Calendar, href: "/admin/agenda", color: "text-warning" },
-    { label: "Mensagens", icon: MessageSquare, href: "/admin/mensagens", color: "text-info" },
-  ];
-
-  const formatCurrency = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 }).format(v);
-  const statusColors: Record<string, string> = {
-    available: "bg-success/10 text-success",
-    sold: "bg-destructive/10 text-destructive",
-    rented: "bg-info/10 text-info",
-    pending: "bg-warning/10 text-warning",
-  };
+  const metaPercent = Math.round((MOCK_METRICS.metaMensal.current / MOCK_METRICS.metaMensais?.target ?? MOCK_METRICS.metaMensal.target) * 100);
 
   return (
     <AdminLayout>
@@ -261,37 +148,76 @@ const AdminDashboard = () => {
         {/* ─── Header ──────────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="font-display text-xl font-bold text-foreground">
-              Bom dia, {firstName}
-            </h1>
-            <p className="text-xs text-muted-foreground capitalize mt-0.5">{today}</p>
+            <h1 className="font-display text-xl font-bold text-foreground">Painel da Imobiliária</h1>
+            <p className="text-xs text-muted-foreground mt-0.5 capitalize">{today} · Bem-vindo, {firstName}</p>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" className="gap-1.5 text-xs h-8">
               <Calendar className="h-3.5 w-3.5" />
-              Mai 2026
-            </Button>
-            <Button size="sm" className="gap-1.5 text-xs h-8">
-              <Plus className="h-3.5 w-3.5" />
-              Novo
+              Jun 2026
             </Button>
           </div>
         </div>
 
         {/* ─── Metric Cards Row (6 cards) ─────────────────────────────────── */}
-        <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {metricCards.map((card) => (
-            <MetricCard key={card.title} {...card} />
-          ))}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <MetricCard
+            title="Leads Ativos"
+            value={MOCK_METRICS.leadsAtivos}
+            icon={Users}
+            iconBg="bg-primary/10"
+            iconColor="text-primary"
+            subtitle="Total em pipeline"
+          />
+          <MetricCard
+            title="Meta Mensal"
+            value={`${MOCK_METRICS.metaMensal.current}/${MOCK_METRICS.metaMensal.target}`}
+            icon={Target}
+            iconBg="bg-success/10"
+            iconColor="text-success"
+            subtitle={`${metaPercent}% atingido`}
+          />
+          <MetricCard
+            title="Novos Negócios"
+            value={MOCK_METRICS.novosNegocios}
+            icon={TrendingUp}
+            iconBg="bg-warning/10"
+            iconColor="text-warning"
+            subtitle="Este mês"
+          />
+          <MetricCard
+            title="Valor em Carteira"
+            value={MOCK_METRICS.valorCarteira}
+            icon={DollarSign}
+            iconBg="bg-emerald-500/10"
+            iconColor="text-emerald-500"
+            subtitle="Pipeline ativo"
+          />
+          <MetricCard
+            title="Receita Prevista"
+            value={MOCK_METRICS.receitaPrevista}
+            icon={BarChart3}
+            iconBg="bg-purple-500/10"
+            iconColor="text-purple-500"
+            subtitle="Comissão estimada"
+          />
+          <MetricCard
+            title="Atendimentos"
+            value={MOCK_METRICS.atendimentos}
+            icon={MessageSquare}
+            iconBg="bg-info/10"
+            iconColor="text-info"
+            subtitle="Junho 2026"
+          />
         </div>
 
-        {/* ─── Main Grid: Charts (2/3) + Sidebar (1/3) ────────────────────── */}
+        {/* ─── Main Grid ───────────────────────────────────────────────────── */}
         <div className="grid gap-5 lg:grid-cols-3">
 
-          {/* Left column: charts */}
+          {/* ── Left Column ── */}
           <div className="lg:col-span-2 space-y-5">
 
-            {/* Primary Chart: Leads Area */}
+            {/* Evolução */}
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
@@ -299,132 +225,206 @@ const AdminDashboard = () => {
                     <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
                       <TrendingUp className="h-4 w-4 text-primary" />
                     </div>
-                    Leads dos Últimos 6 Meses
+                    Evolução
                   </CardTitle>
-                  <Badge variant="secondary" className="text-[10px] font-medium">
-                    {stats?.newContacts ?? 0} novos
-                  </Badge>
+                  <div className="flex gap-4 text-[11px]">
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-primary" />
+                      Leads
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-success" />
+                      Negócios
+                    </span>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
-                {contactsByMonth && contactsByMonth.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={240}>
-                    <AreaChart data={contactsByMonth} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="leadGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                          <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                      <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false} />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false} />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "hsl(var(--card))",
-                          border: "1px solid hsl(var(--border))",
-                          borderRadius: 10,
-                          fontSize: 12,
-                          boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
-                        }}
-                      />
-                      <Area type="monotone" dataKey="leads" stroke="hsl(var(--primary))" strokeWidth={2.5} fill="url(#leadGradient)" dot={false} activeDot={{ r: 5 }} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex h-[240px] items-center justify-center text-sm text-muted-foreground">
-                    Sem dados de leads ainda
-                  </div>
-                )}
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart data={MOCK_EVOLUCAO_DATA} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: 10,
+                        fontSize: 12,
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
+                      }}
+                    />
+                    <Line type="monotone" dataKey="leads" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
+                    <Line type="monotone" dataKey="negocios" stroke="hsl(var(--success))" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
+                  </LineChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
 
-            {/* Secondary Charts: Bar (Imóveis por tipo) + Pie (Status) */}
+            {/* Leads Recentes + Imóveis e Negócios side by side */}
             <div className="grid gap-5 sm:grid-cols-2">
+              {/* Leads Recentes */}
               <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-success/10">
-                      <BarChart3 className="h-4 w-4 text-success" />
-                    </div>
-                    Imóveis por Tipo
-                  </CardTitle>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-success/10">
+                        <Users className="h-4 w-4 text-success" />
+                      </div>
+                      Leads Recentes
+                    </CardTitle>
+                    <Button variant="ghost" size="sm" className="text-xs gap-1 h-7">
+                      Ver todos <ChevronRight className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </CardHeader>
-                <CardContent>
-                  {byType && byType.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={200}>
-                      <BarChart data={byType} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
-                        <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false} />
-                        <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false} width={80} />
-                        <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 10, fontSize: 12 }} />
-                        <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} barSize={18} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
-                      Sem dados
-                    </div>
-                  )}
+                <CardContent className="p-0">
+                  <div className="divide-y divide-border/50">
+                    {MOCK_LEADS.map((lead) => (
+                      <div key={lead.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                          <User className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium truncate">{lead.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{lead.source} · {lead.value}</p>
+                        </div>
+                        <Badge
+                          variant="secondary"
+                          className={`text-[10px] shrink-0 ${
+                            lead.status === "Quente" ? "bg-destructive/10 text-destructive" :
+                            lead.status === "Morno" ? "bg-warning/10 text-warning" :
+                            "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {lead.status}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
 
+              {/* Imóveis e Negócios */}
               <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-warning/10">
-                      <Home className="h-4 w-4 text-warning" />
-                    </div>
-                    Status dos Imóveis
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {byStatus && byStatus.length > 0 ? (
-                    <div className="flex items-center gap-4">
-                      <ResponsiveContainer width={120} height={120}>
-                        <PieChart>
-                          <Pie data={byStatus} cx="50%" cy="50%" innerRadius={40} outerRadius={58} dataKey="value" nameKey="name" strokeWidth={3} stroke="hsl(var(--card))">
-                            {byStatus.map((_, i) => (
-                              <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                            ))}
-                          </Pie>
-                          <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 10, fontSize: 12 }} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                      <div className="flex-1 space-y-1.5">
-                        {byStatus.map((item, i) => (
-                          <div key={item.name} className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
-                              <span className="text-[11px] text-muted-foreground">{item.name}</span>
-                            </div>
-                            <span className="text-[11px] font-semibold">{item.value}</span>
-                          </div>
-                        ))}
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-info/10">
+                        <Home className="h-4 w-4 text-info" />
                       </div>
-                    </div>
-                  ) : (
-                    <div className="flex h-[120px] items-center justify-center text-sm text-muted-foreground">
-                      Sem dados
-                    </div>
-                  )}
+                      Imóveis e Negócios
+                    </CardTitle>
+                    <Button variant="ghost" size="sm" className="text-xs gap-1 h-7">
+                      Ver todos <ChevronRight className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Imóvel</TableHead>
+                        <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground text-right">Visitas</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {MOCK_IMOVEIS.map((imovel) => (
+                        <TableRow key={imovel.id} className="border-border/50">
+                          <TableCell className="py-2">
+                            <div className="flex items-center gap-2">
+                              <HomeIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                              <div>
+                                <p className="text-[11px] font-medium line-clamp-1">{imovel.titulo}</p>
+                                <p className="text-[10px] text-muted-foreground">{imovel.tipo}</p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-2 text-right">
+                            <span className="text-[11px] font-semibold">{imovel.visitas}</span>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Recent Properties Table */}
+            {/* Origens de Tráfego + Pago vs Orgânico */}
+            <div className="grid gap-5 sm:grid-cols-2">
+              {/* Origens de Tráfego */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-warning/10">
+                      <BarChart3 className="h-4 w-4 text-warning" />
+                    </div>
+                    Origens de Tráfego
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {MOCK_TRAFEGO.map((item) => (
+                    <div key={item.name} className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">{item.name}</span>
+                        <span className="font-semibold">{item.value}%</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{ width: `${item.value}%`, backgroundColor: item.color }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              {/* Pago vs Orgânico */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-500/10">
+                      <TrendingUp className="h-4 w-4 text-purple-500" />
+                    </div>
+                    Pago vs Orgânico
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={160}>
+                    <BarChart data={MOCK_PAGO_VS_ORGANICO} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                      <XAxis dataKey="name" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "hsl(var(--card))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: 8,
+                          fontSize: 11,
+                        }}
+                      />
+                      <Bar dataKey="pago" fill="hsl(var(--primary))" name="Pago" radius={[3, 3, 0, 0]} barSize={14} />
+                      <Bar dataKey="organico" fill="hsl(var(--success))" name="Orgânico" radius={[3, 3, 0, 0]} barSize={14} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Imóveis Mais Visitados */}
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2 text-sm font-semibold">
                     <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-info/10">
-                      <HomeIcon className="h-4 w-4 text-info" />
+                      <Eye className="h-4 w-4 text-info" />
                     </div>
-                    Imóveis Recentes
+                    Imóveis Mais Visitados
                   </CardTitle>
                   <Button variant="ghost" size="sm" className="text-xs gap-1 h-7">
-                    Ver todos
-                    <ChevronRight className="h-3 w-3" />
+                    Ver todos <ChevronRight className="h-3 w-3" />
                   </Button>
                 </div>
               </CardHeader>
@@ -432,106 +432,104 @@ const AdminDashboard = () => {
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Título</TableHead>
-                      <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Preço</TableHead>
-                      <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Status</TableHead>
-                      <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground hidden sm:table-cell">Tipo</TableHead>
+                      <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Imóvel</TableHead>
+                      <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Tipo</TableHead>
+                      <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground text-right">Visitas</TableHead>
                       <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {recentProperties && recentProperties.length > 0 ? (
-                      recentProperties.slice(0, 5).map((prop) => (
-                        <TableRow key={prop.id} className="border-border/50">
-                          <TableCell className="py-2.5">
-                            <div className="flex items-center gap-2">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
-                                <HomeIcon className="h-4 w-4 text-muted-foreground" />
-                              </div>
-                              <span className="text-xs font-medium line-clamp-1 max-w-[140px]">{prop.title}</span>
+                    {MOCK_IMOVEIS.map((imovel, i) => (
+                      <TableRow key={imovel.id} className="border-border/50">
+                        <TableCell className="py-2">
+                          <div className="flex items-center gap-2">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
+                              <HomeIcon className="h-4 w-4 text-muted-foreground" />
                             </div>
-                          </TableCell>
-                          <TableCell className="py-2.5">
-                            <span className="text-xs font-semibold">{formatCurrency(prop.price)}</span>
-                          </TableCell>
-                          <TableCell className="py-2.5">
-                            <Badge variant="secondary" className={`text-[10px] ${statusColors[prop.status] || "bg-muted"}`}>
-                              {prop.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="py-2.5 hidden sm:table-cell">
-                            <span className="text-[11px] text-muted-foreground">
-                              {(prop as { property_types?: { name: string } }).property_types?.name || "-"}
-                            </span>
-                          </TableCell>
-                          <TableCell className="py-2.5 text-right">
-                            <Button size="icon" variant="ghost" className="h-7 w-7">
-                              <MoreHorizontal className="h-3.5 w-3.5" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center py-8 text-xs text-muted-foreground">
-                          Nenhum imóvel cadastrado
+                            <span className="text-[11px] font-medium line-clamp-1 max-w-[160px]">{imovel.titulo}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-2">
+                          <Badge variant="secondary" className="text-[10px]">{imovel.tipo}</Badge>
+                        </TableCell>
+                        <TableCell className="py-2 text-right">
+                          <span className="text-[11px] font-semibold">{imovel.visitas}</span>
+                        </TableCell>
+                        <TableCell className="py-2 text-right">
+                          <Button size="icon" variant="ghost" className="h-7 w-7">
+                            <MoreHorizontal className="h-3.5 w-3.5" />
+                          </Button>
                         </TableCell>
                       </TableRow>
-                    )}
+                    ))}
                   </TableBody>
                 </Table>
               </CardContent>
             </Card>
-          </div>
 
-          {/* Right column: sidebar widgets */}
-          <div className="space-y-5">
-
-            {/* Quick Actions */}
+            {/* Performance da Equipe */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                  <Zap className="h-4 w-4 text-primary" />
-                  Ações Rápidas
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-success/10">
+                    <Star className="h-4 w-4 text-success" />
+                  </div>
+                  Performance da Equipe
                 </CardTitle>
               </CardHeader>
-              <CardContent className="grid grid-cols-2 gap-2">
-                {quickActions.map((action) => (
-                  <Button
-                    key={action.label}
-                    variant="outline"
-                    size="sm"
-                    className="justify-start gap-2 h-9 text-xs font-medium"
-                  >
-                    <action.icon className={`h-4 w-4 ${action.color}`} />
-                    {action.label}
-                  </Button>
-                ))}
+              <CardContent className="space-y-4">
+                {MOCK_EQUIPE.map((membro, i) => {
+                  const pct = Math.round((membro.vendas / membro.meta) * 100);
+                  return (
+                    <div key={membro.nome} className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-[10px] font-bold">
+                            {i + 1}
+                          </span>
+                          <span className="text-xs font-semibold">{membro.nome}</span>
+                        </div>
+                        <span className="text-[11px] text-muted-foreground">
+                          {membro.vendas}/{membro.meta} — {pct}%
+                        </span>
+                      </div>
+                      <div className="h-2 rounded-full bg-muted overflow-hidden ml-8">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{
+                            width: `${Math.min(pct, 100)}%`,
+                            backgroundColor: membro.fill,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </CardContent>
             </Card>
+          </div>
 
-            {/* Priority Alerts */}
+          {/* ── Right Column ── */}
+          <div className="space-y-5">
+
+            {/* Atenção Necessária */}
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2 text-sm font-semibold">
                     <AlertCircle className="h-4 w-4 text-destructive" />
-                    Alertas
+                    Atenção Necessária
                   </CardTitle>
-                  <Badge variant="destructive" className="text-[10px]">2</Badge>
+                  <Badge variant="destructive" className="text-[10px]">{MOCK_ALERTAS.length}</Badge>
                 </div>
               </CardHeader>
               <CardContent className="space-y-2.5">
-                {[
-                  { p: "P0" as const, text: "3 leads sem resposta há +48h", time: "2h" },
-                  { p: "P1" as const, text: "Meta Ads token precisa renovação", time: "6h" },
-                  { p: "P2" as const, text: "7 imóveis sem fotos atualizadas", time: "1d" },
-                ].map((alert, i) => (
+                {MOCK_ALERTAS.map((alert, i) => (
                   <div key={i} className="flex items-start gap-2.5 rounded-lg border border-border/50 bg-muted/30 p-2.5 hover:bg-muted/50 transition-colors">
                     <PriorityBadge p={alert.p} />
                     <div className="flex-1 min-w-0">
                       <p className="text-[11px] leading-relaxed">{alert.text}</p>
-                      </div>
+                    </div>
                     <span className="text-[10px] text-muted-foreground shrink-0">{alert.time}</span>
                   </div>
                 ))}
@@ -541,99 +539,59 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
 
-            {/* Recent Leads */}
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                    <Users className="h-4 w-4 text-success" />
-                    Leads Recentes
-                  </CardTitle>
-                  <Badge variant="secondary" className="text-[10px]">{recentContacts?.length ?? 0}</Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="divide-y divide-border/50">
-                  {(recentContacts || []).slice(0, 5).map((contact) => (
-                    <div key={contact.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                        <User className="h-4 w-4 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium truncate">{contact.name || "Sem nome"}</p>
-                        <p className="text-[10px] text-muted-foreground truncate">{contact.email || contact.phone || "-"}</p>
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <PriorityBadge p={(contact.status === "new" ? "P1" : contact.status === "contacted" ? "P2" : "P3") as "P0" | "P1" | "P2" | "P3"} />
-                      </div>
-                    </div>
-                  ))}
-                  {(!recentContacts || recentContacts.length === 0) && (
-                    <div className="py-6 text-center text-xs text-muted-foreground">
-                      Nenhum lead ainda
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Integration Status */}
+            {/* Meta do Mês */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                  <Activity className="h-4 w-4 text-muted-foreground" />
-                  Status Sistema
+                  <Target className="h-4 w-4 text-success" />
+                  Meta do Mês
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2.5">
-                {integrations.map((item) => (
-                  <div key={item.name} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <StatusDot status={item.status} />
-                      <span className="text-xs font-medium">{item.name}</span>
+              <CardContent className="space-y-3">
+                <div className="flex items-end justify-between">
+                  <div>
+                    <p className="text-[11px] text-muted-foreground">Leads novos</p>
+                    <p className="font-display text-2xl font-bold">{MOCK_METRICS.metaMensal.current}</p>
+                  </div>
+                  <p className="text-sm font-semibold text-muted-foreground">/ {MOCK_METRICS.metaMensal.target}</p>
+                </div>
+                <Progress value={metaPercent} className="h-2" />
+                <p className="text-center text-[11px] text-muted-foreground">{metaPercent}% atingido</p>
+              </CardContent>
+            </Card>
+
+            {/* Status Rápido */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                  <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                  Status Rápido
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {[
+                  { label: "Imóveis ativos", value: "24", ok: true },
+                  { label: "Leads pendentes", value: "8", ok: false },
+                  { label: "Visitas hoje", value: "3", ok: true },
+                  { label: "Contratos", value: "2", ok: true },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">{item.label}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`inline-block h-2 w-2 rounded-full ${item.ok ? "bg-success" : "bg-warning"}`} />
+                      <span className="text-xs font-semibold">{item.value}</span>
                     </div>
-                    <span className="text-[10px] text-muted-foreground">{item.detail}</span>
                   </div>
                 ))}
               </CardContent>
             </Card>
 
-            {/* Properties by Purpose */}
-            {byPurpose && byPurpose.length > 0 && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                    <BarChart3 className="h-4 w-4 text-warning" />
-                    Venda vs Aluguel
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {byPurpose.map((item, i) => (
-                    <div key={item.name} className="space-y-1">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">{item.name}</span>
-                        <span className="font-semibold">{item.value}</span>
-                      </div>
-                      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all"
-                          style={{
-                            width: `${(item.value / (byPurpose.reduce((s, x) => s + x.value, 0) || 1)) * 100}%`,
-                            backgroundColor: CHART_COLORS[i % CHART_COLORS.length],
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
           </div>
         </div>
 
-        {/* Footer note */}
+        {/* Footer */}
         <p className="text-center text-[10px] text-muted-foreground">
-          Arruda Imobi Admin · Atualizado {new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+          Arruda Imobi Admin · Painel atualizado {new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
         </p>
       </div>
     </AdminLayout>
