@@ -39,29 +39,7 @@ const AdminAgents = () => {
   const currentUserRole = session?.user?.role || user?.user_metadata?.role || 'user';
 
   // Filter users list: non-developer users don't see developers
-  const visibleAgents = filterUsersForRole(agents ?? [], currentUserRole);
-
-  // Get available roles for the role selector based on current user role
-  const availableRoles = getAvailableRolesForSelector(currentUserRole);
-
-  // Check if current user can manage roles at all
-  const canManageRoles = availableRoles.length > 0;
-
-  // For the create/edit dialog: filter out developer option if not developer
-  const createDialogRoles = getAvailableRolesForSelector(currentUserRole);
-  const [newEmail, setNewEmail] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [newName, setNewName] = useState("");
-  const [newPhone, setNewPhone] = useState("");
-  const [newRole, setNewRole] = useState("agent");
-  const [newAvatarUrl, setNewAvatarUrl] = useState("");
-  const [showOnPublicPage, setShowOnPublicPage] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [editingAgent, setEditingAgent] = useState<any>(null);
-  const [isCropperOpen, setIsCropperOpen] = useState(false);
-  const [deleteConfirmAgent, setDeleteConfirmAgent] = useState<{ userId: string; name: string } | null>(null);
-
-  const { data: agents, isLoading } = useQuery({
+  const { data: allAgents = [], isLoading } = useQuery({
     queryKey: ["admin-agents", tenantId],
     queryFn: async () => {
       const { data: profiles, error: profErr } = await supabase
@@ -86,6 +64,28 @@ const AdminAgents = () => {
     },
     enabled: isReady && !!tenantId,
   });
+
+  const visibleAgents = filterUsersForRole(allAgents ?? [], currentUserRole);
+
+  // Get available roles for the role selector based on current user role
+  const availableRoles = getAvailableRolesForSelector(currentUserRole);
+
+  // Check if current user can manage roles at all
+  const canManageRoles = availableRoles.length > 0;
+
+  // For the create/edit dialog: filter out developer option if not developer
+  const createDialogRoles = getAvailableRolesForSelector(currentUserRole);
+  const [newEmail, setNewEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newName, setNewName] = useState("");
+  const [newPhone, setNewPhone] = useState("");
+  const [newRole, setNewRole] = useState("agent");
+  const [newAvatarUrl, setNewAvatarUrl] = useState("");
+  const [showOnPublicPage, setShowOnPublicPage] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [editingAgent, setEditingAgent] = useState<any>(null);
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [deleteConfirmAgent, setDeleteConfirmAgent] = useState<{ userId: string; name: string } | null>(null);
 
   const updateRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
@@ -253,7 +253,7 @@ const AdminAgents = () => {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Agentes & Usuários</h1>
-                <p className="mt-1 text-sm text-muted-foreground">Gerencie perfis, funções e acessos · {agents?.length || 0} membros</p>
+                <p className="mt-1 text-sm text-muted-foreground">Gerencie perfis, funções e acessos · {allAgents?.length || 0} membros</p>
               </div>
           <Button className="gap-2" onClick={() => { resetForm(); setDialogOpen(true); }}>
             <UserPlus className="h-4 w-4" /> Adicionar
