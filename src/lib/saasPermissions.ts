@@ -52,6 +52,7 @@ export function isUser(role?: string | null): boolean {
  * Same as canAccessAdmin() in adminPermissions.ts
  */
 export function canAccessAdmin(role?: string | null): boolean {
+  const normalized = normalizeRole(role);
   return normalized === "developer" || normalized === "admin";
 }
 
@@ -227,4 +228,4 @@ export function canPerformAction(
     default:
       return false;
   }
-}
+}// trigger deploy
