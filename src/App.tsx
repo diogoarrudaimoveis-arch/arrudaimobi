@@ -122,11 +122,11 @@ const App = () => (
                         <Route path="/termos" element={<TermsOfService />} />
                         <Route path="/privacidade" element={<PrivacyPolicy />} />
                         <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-                        <Route path="/admin/proprietarios" element={<ProtectedRoute requireAdmin><AdminOwners /></ProtectedRoute>} />
+                        <Route path="/admin/proprietarios" element={<ProtectedRoute><AdminOwners /></ProtectedRoute>} />
                         <Route path="/admin/configuracoes-ia" element={<ProtectedRoute requireAdmin><AdminAIConfig /></ProtectedRoute>} />
                         <Route path="/admin/imoveis" element={<ProtectedRoute><AdminProperties /></ProtectedRoute>} />
-                        <Route path="/admin/agentes" element={<ProtectedRoute requireAdmin><AdminAgents /></ProtectedRoute>} />
-                        <Route path="/admin/tipos" element={<ProtectedRoute requireAdmin><AdminPropertyTypes /></ProtectedRoute>} />
+                        <Route path="/admin/agentes" element={<ProtectedRoute><AdminAgents /></ProtectedRoute>} />
+                        <Route path="/admin/tipos" element={<ProtectedRoute><AdminPropertyTypes /></ProtectedRoute>} />
                         <Route path="/admin/comodidades" element={<ProtectedRoute><AdminAmenities /></ProtectedRoute>} />
                         <Route path="/admin/midias" element={<ProtectedRoute><AdminMediaLibrary /></ProtectedRoute>} />
                         <Route path="/admin/blog" element={<ProtectedRoute><AdminBlog /></ProtectedRoute>} />
