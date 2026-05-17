@@ -16,13 +16,6 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Loader2, Users, UserPlus, Trash2, Pencil, Save } from "lucide-react";
 import { getRoleLabel as getRoleLabelFromLib, getRoleBadgeVariant, normalizeRole } from "@/lib/adminPermissions";
-import {
-  isDeveloper,
-  canEditUserRole,
-  canDeleteUser,
-  getAvailableRolesForSelector,
-  filterUsersForRole,
-} from "@/lib/saasPermissions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PasswordInput } from "@/components/auth/PasswordInput";
@@ -35,20 +28,7 @@ const AdminAgents = () => {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  // Get current user role from AuthContext
-  const currentUserRole = session?.user?.role || user?.user_metadata?.role || 'user';
-
-  // Filter users list: non-developer users don't see developers
-  const visibleAgents = filterUsersForRole(agents || [], currentUserRole);
-
-  // Get available roles for the role selector based on current user role
-  const availableRoles = getAvailableRolesForSelector(currentUserRole);
-
-  // Check if current user can manage roles at all
-  const canManageRoles = availableRoles.length > 0;
-
-  // For the create/edit dialog: filter out developer option if not developer
-  const createDialogRoles = getAvailableRolesForSelector(currentUserRole);
+  // New agent form state
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newName, setNewName] = useState("");
@@ -306,16 +286,12 @@ const AdminAgents = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {createDialogRoles.map((r) => (
-                      <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
-                    ))}
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="agent">Agente</SelectItem>
+                    <SelectItem value="user">Usuário</SelectItem>
+                    <SelectItem value="developer">Desenvolvedor</SelectItem>
                   </SelectContent>
                 </Select>
-                {!isDeveloper(currentUserRole) && (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Apenas Desenvolvedor pode atribuir o papel Desenvolvedor.
-                  </p>
-                )}
               </div>
               <div className="flex items-center justify-between gap-3 rounded-lg border border-border p-4">
                 <div>
@@ -341,7 +317,7 @@ const AdminAgents = () => {
 
         {isLoading ? (
           <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
-        ) : !visibleAgents?.length ? (
+        ) : !agents?.length ? (
           <Card className="flex flex-col items-center py-12 text-center">
             <Users className="h-10 w-10 text-muted-foreground/40" />
             <p className="mt-3 font-display font-semibold">Nenhum membro encontrado</p>
@@ -358,7 +334,7 @@ const AdminAgents = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {visibleAgents.map((agent: any) => {
+                {agents.map((agent: any) => {
                   const role = getRoleLabel(agent);
                   return (
                     <TableRow key={agent.id}>
@@ -377,22 +353,16 @@ const AdminAgents = () => {
                       <TableCell>
                         <Select
                           value={role}
-                          disabled={!canManageRoles || !canEditUserRole(currentUserRole, agent.role)}
-                          onValueChange={(v) => {
-                            if (!canEditUserRole(currentUserRole, agent.role)) {
-                              toast({ title: "Sem permissão", description: "Apenas Desenvolvedor pode alterar o papel Desenvolvedor.", variant: "destructive" });
-                              return;
-                            }
-                            updateRoleMutation.mutate({ userId: agent.user_id, role: v });
-                          }}
+                          onValueChange={(v) => updateRoleMutation.mutate({ userId: agent.user_id, role: v })}
                         >
                           <SelectTrigger className="w-28">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {availableRoles.map((r) => (
-                              <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
-                            ))}
+                            <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="agent">Agente</SelectItem>
+                            <SelectItem value="user">Usuário</SelectItem>
+                            <SelectItem value="developer">Desenvolvedor</SelectItem>
                           </SelectContent>
                         </Select>
                       </TableCell>
@@ -401,17 +371,15 @@ const AdminAgents = () => {
                           <Badge variant={getRoleBadgeVariant(agent.role)}>
                             {getRoleLabel(agent)}
                           </Badge>
-                          {canEditUserRole(currentUserRole, agent.role) && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="text-muted-foreground hover:text-primary"
-                              onClick={() => openEditDialog(agent)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {agent.user_id !== user?.id && canDeleteUser(currentUserRole, agent.role) && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="text-muted-foreground hover:text-primary"
+                            onClick={() => openEditDialog(agent)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          {agent.user_id !== user?.id && (
                             <Button
                               size="icon"
                               variant="ghost"
