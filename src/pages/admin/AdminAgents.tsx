@@ -39,7 +39,7 @@ const AdminAgents = () => {
   const currentUserRole = session?.user?.role || user?.user_metadata?.role || 'user';
 
   // Filter users list: non-developer users don't see developers
-  const visibleAgents = filterUsersForRole(agents || [], currentUserRole);
+  const visibleAgents = filterUsersForRole(agents ?? [], currentUserRole);
 
   // Get available roles for the role selector based on current user role
   const availableRoles = getAvailableRolesForSelector(currentUserRole);
