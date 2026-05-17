@@ -111,6 +111,8 @@ export interface AdminMenuItem {
   techOnly?: boolean;
   /** If true, only admin can see this menu */
   adminOnly?: boolean;
+  /** If true, only developer can see this menu */
+  developerOnly?: boolean;
 }
 
 /**
@@ -129,6 +131,9 @@ export function canSeeMenuItem(
 
   // Admin and developer see everything
   if (FULL_ACCESS_ROLES.includes(normalized)) return true;
+
+  // Developer-only menus
+  if (item.developerOnly) return normalized === "developer";
 
   // Tech-only menus are hidden for agent/user
   if (item.techOnly || item.adminOnly) return false;

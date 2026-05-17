@@ -59,6 +59,7 @@ const AdminAITelemetry = lazy(() => import("./pages/admin/ai/AdminAITelemetry"))
 const AdminDevOps = lazy(() => import("./pages/admin/ai/AdminDevOps"));
 const AdminMetaAds = lazy(() => import("./pages/admin/ai/AdminMetaAds"));
 const AdminSupabaseMonitor = lazy(() => import("./pages/admin/ai/AdminSupabaseMonitor"));
+const AdminMostruario = lazy(() => import("./pages/admin/AdminMostruario"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -143,6 +144,7 @@ const App = () => (
                         <Route path="/admin/devops" element={<ProtectedRoute requireAdmin><AdminDevOps /></ProtectedRoute>} />
                         <Route path="/admin/meta-ads" element={<ProtectedRoute requireAdmin><AdminMetaAds /></ProtectedRoute>} />
                         <Route path="/admin/supabase-monitor" element={<ProtectedRoute requireAdmin><AdminSupabaseMonitor /></ProtectedRoute>} />
+                        <Route path="/admin/mostruario" element={<ProtectedRoute requireAdmin><AdminMostruario /></ProtectedRoute>} />
                         <Route path="/admin/agenda" element={<ProtectedRoute><AdminAgenda /></ProtectedRoute>} />
                         <Route path="/admin/contatos" element={<ProtectedRoute><AdminContacts /></ProtectedRoute>} />
                         <Route path="/admin/mensagens" element={<ProtectedRoute><AdminMessages /></ProtectedRoute>} />
