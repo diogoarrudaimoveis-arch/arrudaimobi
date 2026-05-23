@@ -64,6 +64,7 @@ const AdminN8NWorkflows = lazy(() => import("./pages/admin/AdminN8NWorkflows"));
 const AdminMetaAds = lazy(() => import("./pages/admin/ai/AdminMetaAds"));
 const AdminSupabaseMonitor = lazy(() => import("./pages/admin/ai/AdminSupabaseMonitor"));
 const AdminMostruario = lazy(() => import("./pages/admin/AdminMostruario"));
+const AdminCreativeStudio = lazy(() => import("./pages/admin/AdminCreativeStudio"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -77,27 +78,25 @@ const PageLoader = () => (
   </div>
 );
 
-// ChatWidgetWrapper — calls useAISettings() inside QueryClientProvider tree to avoid
-// "No QueryClient set" error. Previously useAISettings was called in App() function body,
-// which caused a runtime error because useQuery was invoked outside the context tree.
-const ChatWidgetWrapper = () => {
+function App() {
   const { data: aiSettings } = useAISettings();
   const { user } = useAuth();
+
+  // Determine OmniRoute API key from AI settings
   const omnirouteKey = (() => {
     if (!aiSettings) return "";
+    // Use primary provider key if set
     const primary = aiSettings.primary_provider;
     if (primary === "openai" && aiSettings.openai_keys?.[0]) return aiSettings.openai_keys[0];
     if (primary === "gemini" && aiSettings.gemini_keys?.[0]) return aiSettings.gemini_keys[0];
     if (primary === "groq" && aiSettings.groq_keys?.[0]) return aiSettings.groq_keys[0];
+    // Fallback to first available key
     if (aiSettings.openai_keys?.[0]) return aiSettings.openai_keys[0];
     if (aiSettings.gemini_keys?.[0]) return aiSettings.gemini_keys[0];
     if (aiSettings.groq_keys?.[0]) return aiSettings.groq_keys[0];
     return "";
   })();
-  return omnirouteKey ? <ChatWidget apiKey={omnirouteKey} tenantName="Arruda Imobi" position="bottom-right" /> : null;
-};
 
-function App() {
   return (
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
@@ -148,6 +147,7 @@ function App() {
                           <Route path="/admin/devops" element={<ProtectedRoute requireAdmin><AdminDevOps /></ProtectedRoute>} />
                           <Route path="/admin/n8n-workflows" element={<ProtectedRoute requireAdmin><AdminN8NWorkflows /></ProtectedRoute>} />
                           <Route path="/admin/meta-ads" element={<ProtectedRoute requireAdmin><AdminMetaAds /></ProtectedRoute>} />
+                          <Route path="/admin/creative-studio" element={<ProtectedRoute requireAdmin><AdminCreativeStudio /></ProtectedRoute>} />
                           <Route path="/admin/supabase-monitor" element={<ProtectedRoute requireAdmin><AdminSupabaseMonitor /></ProtectedRoute>} />
                           <Route path="/admin/agenda" element={<ProtectedRoute><AdminAgenda /></ProtectedRoute>} />
                           <Route path="/admin/contatos" element={<ProtectedRoute><AdminContacts /></ProtectedRoute>} />
@@ -171,7 +171,7 @@ function App() {
           </AuthProvider>
         </ThemeProvider>
         {/* OmniRoute Chat Widget — available on all public pages */}
-        <ChatWidgetWrapper />
+        {omnirouteKey && <ChatWidget apiKey={omnirouteKey} tenantName="Arruda Imobi" position="bottom-right" />}
       </QueryClientProvider>
     </HelmetProvider>
   );
