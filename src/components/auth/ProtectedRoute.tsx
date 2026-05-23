@@ -35,12 +35,12 @@ export function ProtectedRoute({ children, requireAdmin, requireAgent }: Protect
 
   // Admin required but user is not admin/developer → redirect to /admin (safe hub), not to public site
   if (requireAdmin && !canAccessAdmin(normalizedRole)) {
-    return <Navigate to="/admin" replace />;
+    return <Navigate to="/" replace />;
   }
 
   // Agent required but user is not agent/admin → redirect to /admin safe hub
   if (requireAgent && !isAgent && !isAdmin) {
-    return <Navigate to="/admin" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

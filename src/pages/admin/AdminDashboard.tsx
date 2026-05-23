@@ -447,6 +447,8 @@ const AdminDashboard = () => {
   const { metrics, recentProperties, recentContacts, recentAppointments, loading, error } = useAdminDashboardData();
   const firstName = profile?.full_name?.split(" ")[0] || "Admin";
 
+  console.log("[DEBUG] AdminDashboard render → profile:", profile?.id, "role:", profile?.role);
+
   return (
     <AdminLayout>
       <div className="space-y-4">

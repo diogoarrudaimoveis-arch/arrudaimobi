@@ -183,6 +183,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isDeveloper,
         isAgent,
         isUser,
+        canAccessAdmin: _canAccessAdmin,
+        canAccessTechMenus: _canAccessTechMenus,
         signOut,
         refreshProfile,
       }}
