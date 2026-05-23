@@ -1,3 +1,4 @@
+// MARKER_UNIQUE_12345_DO_NOT_REMOVE
 import { useEffect, lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HashRouter, Route, Routes } from "react-router-dom";
@@ -97,7 +98,7 @@ const ChatWidgetWrapper = () => {
   return omnirouteKey ? <ChatWidget apiKey={omnirouteKey} tenantName="Arruda Imobi" position="bottom-right" /> : null;
 };
 
-function App() {
+export function App() {
   return (
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
@@ -177,4 +178,3 @@ function App() {
   );
 }
 
-export default App;

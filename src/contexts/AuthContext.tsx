@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext } from "react";
+import { useState, useEffect, createContext, useContext, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import { normalizeRole, canAccessAdmin, FULL_ACCESS_ROLES, type AppRole } from "@/lib/adminPermissions";
@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
   // Derived role values
-  const normalizedRole = normalizeRole(userRole);
+  const normalizedRole = useMemo(() => normalizeRole(userRole), [userRole]);
   const isAdmin = normalizedRole === "admin";
   const isDeveloper = normalizedRole === "developer";
   const isAgent = normalizedRole === "agent";
@@ -183,8 +183,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isDeveloper,
         isAgent,
         isUser,
-        canAccessAdmin: _canAccessAdmin,
-        canAccessTechMenus: _canAccessTechMenus,
         signOut,
         refreshProfile,
       }}

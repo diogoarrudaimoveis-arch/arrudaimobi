@@ -1,5 +1,6 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { canAccessAdmin } from "@/lib/adminPermissions";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -17,7 +18,7 @@ interface ProtectedRouteProps {
  * - Developer role has full admin access (same as admin)
  */
 export function ProtectedRoute({ children, requireAdmin, requireAgent }: ProtectedRouteProps) {
-  const { user, isReady, isProfileLoading, isAdmin, isDeveloper, isAgent, canAccessAdmin } = useAuth();
+  const { user, isReady, isProfileLoading, normalizedRole } = useAuth();
 
   // Show loading while auth is initializing or profile/role is being fetched
   // Do NOT redirect during loading — this prevents logout loops for developer
@@ -33,7 +34,7 @@ export function ProtectedRoute({ children, requireAdmin, requireAgent }: Protect
   if (!user) return <Navigate to="/login" replace />;
 
   // Admin required but user is not admin/developer → redirect to /admin (safe hub), not to public site
-  if (requireAdmin && !canAccessAdmin) {
+  if (requireAdmin && !canAccessAdmin(normalizedRole)) {
     return <Navigate to="/admin" replace />;
   }
 
