@@ -64,7 +64,6 @@ const AdminN8NWorkflows = lazy(() => import("./pages/admin/AdminN8NWorkflows"));
 const AdminMetaAds = lazy(() => import("./pages/admin/ai/AdminMetaAds"));
 const AdminSupabaseMonitor = lazy(() => import("./pages/admin/ai/AdminSupabaseMonitor"));
 const AdminMostruario = lazy(() => import("./pages/admin/AdminMostruario"));
-const AdminCreativeStudio = lazy(() => import("./pages/admin/AdminCreativeStudio"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -147,7 +146,6 @@ function App() {
                           <Route path="/admin/devops" element={<ProtectedRoute requireAdmin><AdminDevOps /></ProtectedRoute>} />
                           <Route path="/admin/n8n-workflows" element={<ProtectedRoute requireAdmin><AdminN8NWorkflows /></ProtectedRoute>} />
                           <Route path="/admin/meta-ads" element={<ProtectedRoute requireAdmin><AdminMetaAds /></ProtectedRoute>} />
-                          <Route path="/admin/creative-studio" element={<ProtectedRoute requireAdmin><AdminCreativeStudio /></ProtectedRoute>} />
                           <Route path="/admin/supabase-monitor" element={<ProtectedRoute requireAdmin><AdminSupabaseMonitor /></ProtectedRoute>} />
                           <Route path="/admin/agenda" element={<ProtectedRoute><AdminAgenda /></ProtectedRoute>} />
                           <Route path="/admin/contatos" element={<ProtectedRoute><AdminContacts /></ProtectedRoute>} />
