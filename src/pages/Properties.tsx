@@ -6,6 +6,7 @@ import { SearchBar } from "@/components/properties/SearchBar";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyProperties } from "@/components/ui/empty-state";
 import { usePublicProperties } from "@/hooks/use-properties";
 import { useDebounce } from "@/hooks/use-debounce";
 import { SearchFilters, ViewMode } from "@/types/property";
@@ -19,14 +20,14 @@ function parseFiltersFromParams(sp: URLSearchParams): SearchFilters {
   return {
     query: sp.get("q") || "",
     type: sp.get("type") || "",
-    purpose: (sp.get("purpose") as any) || "",
+    purpose: (sp.get("purpose") as SearchFilters["purpose"]) || "",
     minPrice: Number(sp.get("minPrice") || 0),
     maxPrice: Number(sp.get("maxPrice") || 0),
     bedrooms: Number(sp.get("bedrooms") || 0),
     bathrooms: Number(sp.get("bathrooms") || 0),
     garages: Number(sp.get("garages") || 0),
     city: sp.get("city") || "",
-    sortBy: (sp.get("sortBy") as any) || "newest",
+    sortBy: (sp.get("sortBy") as SearchFilters["sortBy"]) || "newest",
   };
 }
 
@@ -79,15 +80,20 @@ const Properties = () => {
     if (filters.bathrooms) f.bathrooms = String(filters.bathrooms);
     if (filters.garages) f.garages = String(filters.garages);
     if (filters.sortBy) f.sortBy = filters.sortBy;
-    f.page = String(page);
-    f.pageSize = String(PAGE_SIZE);
     return f;
-  }, [debouncedQuery, filters.type, filters.purpose, filters.city, filters.minPrice, filters.maxPrice, filters.bedrooms, filters.bathrooms, filters.garages, filters.sortBy, page]);
+  }, [debouncedQuery, filters]);
 
-  const { data: response, isLoading } = usePublicProperties(apiFilters);
-  const properties = response?.data || [];
-  const totalPages = response?.totalPages || 0;
-  const total = response?.total || 0;
+  const { data, isLoading } = usePublicProperties({ ...apiFilters, page: String(page), pageSize: String(PAGE_SIZE) });
+  const properties = data?.data || [];
+  const total = data?.total || 0;
+  const totalPages = data?.totalPages || 0;
+
+  const resetFilters = useCallback(() => {
+    handleFiltersChange({
+      query: "", type: "", purpose: "", minPrice: 0, maxPrice: 0,
+      bedrooms: 0, bathrooms: 0, garages: 0, city: "", sortBy: "newest",
+    });
+  }, [handleFiltersChange]);
 
   return (
     <Layout>
@@ -109,7 +115,7 @@ const Properties = () => {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <Select
               value={filters.sortBy}
-              onValueChange={(v: any) => handleFiltersChange({ ...filters, sortBy: v })}
+              onValueChange={(v: SearchFilters["sortBy"]) => handleFiltersChange({ ...filters, sortBy: v })}
             >
               <SelectTrigger className="w-full sm:w-48">
                 <SelectValue placeholder="Ordenar por" />
@@ -137,44 +143,35 @@ const Properties = () => {
           </div>
 
           {isLoading ? (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 stagger-children">
               {Array.from({ length: PAGE_SIZE }, (_, i) => (
-                <div key={i} className="space-y-3">
-                  <Skeleton className="aspect-[4/3] w-full rounded-lg" />
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-3 w-1/2" />
+                <div key={i} className="animate-fade-in-up">
+                  <Skeleton variant="card" className="w-full" />
+                  <div className="mt-3 space-y-2 p-4">
+                    <Skeleton variant="text" className="w-3/4" />
+                    <Skeleton variant="text" className="w-1/2" />
+                  </div>
                 </div>
               ))}
             </div>
           ) : !properties.length ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <MapPin className="h-12 w-12 text-muted-foreground/40" />
-              <h3 className="mt-4 font-display text-lg font-semibold text-foreground">Nenhum imóvel encontrado</h3>
-              <p className="mt-1 text-sm text-muted-foreground">Tente ajustar os filtros de busca</p>
-            </div>
+            <EmptyProperties onReset={resetFilters} />
           ) : viewMode === "grid" ? (
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 stagger-children">
               {properties.map((p) => <PropertyCardDb key={p.id} property={p} />)}
             </div>
           ) : viewMode === "list" ? (
-            <div className="space-y-4">
+            <div className="space-y-4 stagger-children">
               {properties.map((p) => <PropertyListItemDb key={p.id} property={p} />)}
             </div>
           ) : (
             <div className="space-y-4">
               {properties.filter(p => p.latitude && p.longitude).length === 0 ? (
-                <div className="flex h-[500px] items-center justify-center rounded-xl border border-border bg-card">
-                  <div className="text-center">
-                    <MapPin className="mx-auto h-10 w-10 text-muted-foreground/50" />
-                    <p className="mt-3 font-display text-sm font-medium text-muted-foreground">
-                      Nenhum imóvel com localização disponível
-                    </p>
-                  </div>
-                </div>
+                <EmptyProperties onReset={resetFilters} />
               ) : (
                 <div className="grid gap-4 lg:grid-cols-2">
                   {properties.filter(p => p.latitude && p.longitude).map((p) => (
-                    <div key={p.id} className="overflow-hidden rounded-xl border border-border bg-card min-h-[300px]">
+                    <div key={p.id} className="overflow-hidden rounded-xl border border-border bg-card min-h-[300px] animate-fade-in-up">
                       <div className="aspect-video w-full min-h-[220px]">
                         <iframe
                           title={`Mapa - ${p.title}`}
