@@ -12,6 +12,9 @@ import { BrandProvider } from "@/components/BrandProvider";
 import { FavoritesProvider } from "@/contexts/FavoritesContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { Loader2 } from "lucide-react";
+import { ChatWidget } from "@/components/chat/ChatWidget";
+import { useAISettings } from "@/hooks/use-ai-settings";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Lazy loading components
 const Index = lazy(() => import("./pages/Index"));
@@ -68,106 +71,106 @@ const queryClient = new QueryClient();
 
 // Loading component for Suspense fallback
 const PageLoader = () => (
-  <div className="flex items-center justify-center min-h-[60vh] w-full">
-    <Loader2 className="h-8 w-8 animate-spin text-[#003366]" />
+  <div className="flex items-center justify-center min-h-[60vh]">
+    <Loader2 className="h-10 w-10 animate-spin text-primary" />
   </div>
 );
 
-const DynamicManifest = () => {
-  useEffect(() => {
-    const PROJECT_ID = "udutxbyzrdwucabxqvgg";
-    const manifestUrl = `https://${PROJECT_ID}.supabase.co/functions/v1/public-api?action=get-manifest&slug=default`;
+function App() {
+  const { data: aiSettings } = useAISettings();
+  const { user } = useAuth();
 
-    // Remove existing manifest links
-    const existingLinks = document.querySelectorAll('link[rel="manifest"]');
-    existingLinks.forEach(link => link.remove());
+  // Determine OmniRoute API key from AI settings
+  const omnirouteKey = (() => {
+    if (!aiSettings) return "";
+    // Use primary provider key if set
+    const primary = aiSettings.primary_provider;
+    if (primary === "openai" && aiSettings.openai_keys?.[0]) return aiSettings.openai_keys[0];
+    if (primary === "gemini" && aiSettings.gemini_keys?.[0]) return aiSettings.gemini_keys[0];
+    if (primary === "groq" && aiSettings.groq_keys?.[0]) return aiSettings.groq_keys[0];
+    // Fallback to first available key
+    if (aiSettings.openai_keys?.[0]) return aiSettings.openai_keys[0];
+    if (aiSettings.gemini_keys?.[0]) return aiSettings.gemini_keys[0];
+    if (aiSettings.groq_keys?.[0]) return aiSettings.groq_keys[0];
+    return "";
+  })();
 
-    // Create new dynamic manifest link
-    const newLink = document.createElement("link");
-    newLink.rel = "manifest";
-    newLink.href = manifestUrl;
-    
-    // Set crossOrigin if manifest is on a different domain
-    newLink.crossOrigin = "use-credentials";
-    
-    document.head.appendChild(newLink);
-  }, []);
+  return (
+    <HelmetProvider>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider attribute="class" defaultTheme="light">
+          <AuthProvider>
+            <BrandProvider>
+              <FavoritesProvider>
+                <CookieConsentProvider>
+                  <TooltipProvider>
+                    <HashRouter>
+                      <Suspense fallback={<PageLoader />}>
+                        <Routes>
+                          {/* Public routes */}
+                          <Route path="/" element={<Index />} />
+                          <Route path="/imoveis" element={<Properties />} />
+                          <Route path="/imovel/:id" element={<PropertyDetail />} />
+                          <Route path="/corretores" element={<Agents />} />
+                          <Route path="/corretor/:id" element={<AgentDetail />} />
+                          <Route path="/contato" element={<Contact />} />
+                          <Route path="/login" element={<Login />} />
+                          <Route path="/reset-password" element={<ResetPassword />} />
+                          <Route path="/termos" element={<TermsOfService />} />
+                          <Route path="/privacidade" element={<PrivacyPolicy />} />
+                          <Route path="/captar" element={<CaptarImovel />} />
 
-  return null;
-};
+                          {/* Proprietário portal */}
+                          <Route path="/proprietario" element={<ProtectedRoute requireOwner><ProprietarioDashboard /></ProtectedRoute>} />
+                          <Route path="/proprietario/novo-imovel" element={<ProtectedRoute requireOwner><ProprietarioPropertyNew /></ProtectedRoute>} />
 
-const App = () => (
-  <HelmetProvider>
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <AuthProvider>
-          <BrandProvider>
-            <FavoritesProvider>
-              <CookieConsentProvider>
-                <TooltipProvider>
-                  <DynamicManifest />
-                  <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-                    <Suspense fallback={<PageLoader />}>
-                      <Routes>
-                        <Route path="/" element={<Index />} />
-                        <Route path="/imoveis" element={<Properties />} />
-                        <Route path="/imoveis/:id" element={<PropertyDetail />} />
-                        <Route path="/agentes" element={<Agents />} />
-                        <Route path="/agentes/:id" element={<AgentDetail />} />
-                        <Route path="/captar-imovel" element={<CaptarImovel />} />
-                        <Route path="/proprietario" element={<ProprietarioDashboard />} />
-                        <Route path="/proprietario/imoveis/novo" element={<ProprietarioPropertyNew />} />
-                        <Route path="/contato" element={<Contact />} />
-                        <Route path="/login" element={<Login />} />
-                        <Route path="/reset-password" element={<ResetPassword />} />
-                        <Route path="/termos" element={<TermsOfService />} />
-                        <Route path="/privacidade" element={<PrivacyPolicy />} />
-                        <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-                        <Route path="/admin/proprietarios" element={<ProtectedRoute><AdminOwners /></ProtectedRoute>} />
-                        <Route path="/admin/configuracoes-ia" element={<ProtectedRoute requireAdmin><AdminAIConfig /></ProtectedRoute>} />
-                        <Route path="/admin/imoveis" element={<ProtectedRoute><AdminProperties /></ProtectedRoute>} />
-                        <Route path="/admin/agentes" element={<ProtectedRoute><AdminAgents /></ProtectedRoute>} />
-                        <Route path="/admin/tipos" element={<ProtectedRoute><AdminPropertyTypes /></ProtectedRoute>} />
-                        <Route path="/admin/comodidades" element={<ProtectedRoute><AdminAmenities /></ProtectedRoute>} />
-                        <Route path="/admin/midias" element={<ProtectedRoute><AdminMediaLibrary /></ProtectedRoute>} />
-                        <Route path="/admin/blog" element={<ProtectedRoute><AdminBlog /></ProtectedRoute>} />
-                        <Route path="/admin/portais" element={<ProtectedRoute requireAdmin><AdminPortals /></ProtectedRoute>} />
-                        <Route path="/admin/marketing-portal" element={<ProtectedRoute requireAdmin><AdminPortalMarketing /></ProtectedRoute>} />
-                        <Route path="/admin/performance" element={<ProtectedRoute requireAdmin><AdminPropertyPerformance /></ProtectedRoute>} />
-                        <Route path="/admin/ia-operacional" element={<ProtectedRoute requireAdmin><AdminAIOperational /></ProtectedRoute>} />
-                        <Route path="/admin/ia-agentes" element={<ProtectedRoute requireAdmin><AdminAIAgents /></ProtectedRoute>} />
-                        <Route path="/admin/ia-automacoes" element={<ProtectedRoute requireAdmin><AdminAIAutomations /></ProtectedRoute>} />
-                        <Route path="/admin/ia-logs" element={<ProtectedRoute requireAdmin><AdminAILogs /></ProtectedRoute>} />
-                        <Route path="/admin/ia-health" element={<ProtectedRoute requireAdmin><AdminAIHealth /></ProtectedRoute>} />
-                        <Route path="/admin/ia-alertas" element={<ProtectedRoute requireAdmin><AdminAIAlerts /></ProtectedRoute>} />
-                        <Route path="/admin/ia-telemetria" element={<ProtectedRoute requireAdmin><AdminAITelemetry /></ProtectedRoute>} />
-                        <Route path="/admin/devops" element={<ProtectedRoute requireAdmin><AdminDevOps /></ProtectedRoute>} />
-                        <Route path="/admin/meta-ads" element={<ProtectedRoute requireAdmin><AdminMetaAds /></ProtectedRoute>} />
-                        <Route path="/admin/supabase-monitor" element={<ProtectedRoute requireAdmin><AdminSupabaseMonitor /></ProtectedRoute>} />
-                        <Route path="/admin/mostruario" element={<ProtectedRoute requireAdmin><AdminMostruario /></ProtectedRoute>} />
-                        <Route path="/admin/agenda" element={<ProtectedRoute><AdminAgenda /></ProtectedRoute>} />
-                        <Route path="/admin/contatos" element={<ProtectedRoute><AdminContacts /></ProtectedRoute>} />
-                        <Route path="/admin/mensagens" element={<ProtectedRoute><AdminMessages /></ProtectedRoute>} />
-                        <Route path="/admin/perfil" element={<ProtectedRoute><AdminProfile /></ProtectedRoute>} />
-                        <Route path="/admin/email" element={<ProtectedRoute requireAdmin><AdminEmailSettings /></ProtectedRoute>} />
-                        <Route path="/admin/permissoes-menu" element={<ProtectedRoute requireAdmin><AdminMenuPermissions /></ProtectedRoute>} />
-                        <Route path="/admin/configuracoes" element={<ProtectedRoute requireAdmin><AdminSettings /></ProtectedRoute>} />
-                        <Route path="/blog" element={<Blog />} />
-                        <Route path="/blog/:slug" element={<BlogPost />} />
-                        <Route path="*" element={<NotFound />} />
-                      </Routes>
-                    </Suspense>
-                  </HashRouter>
-                  <Toaster />
-                  <Sonner position="top-right" closeButton richColors />
-                </TooltipProvider>
-              </CookieConsentProvider>
-            </FavoritesProvider>
-          </BrandProvider>
-        </AuthProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
-  </HelmetProvider>
-);
+                          {/* Admin routes */}
+                          <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>} />
+                          <Route path="/admin/imoveis" element={<ProtectedRoute requireAdmin><AdminProperties /></ProtectedRoute>} />
+                          <Route path="/admin/imoveis/:id" element={<ProtectedRoute requireAdmin><AdminProperties /></ProtectedRoute>} />
+                          <Route path="/admin/corretores" element={<ProtectedRoute requireAdmin><AdminAgents /></ProtectedRoute>} />
+                          <Route path="/admin/proprietarios" element={<ProtectedRoute requireAdmin><AdminOwners /></ProtectedRoute>} />
+                          <Route path="/admin/configuracoes-ia" element={<ProtectedRoute requireAdmin><AdminAIConfig /></ProtectedRoute>} />
+                          <Route path="/admin/tipos" element={<ProtectedRoute requireAdmin><AdminPropertyTypes /></ProtectedRoute>} />
+                          <Route path="/admin/comodidades" element={<ProtectedRoute requireAdmin><AdminAmenities /></ProtectedRoute>} />
+                          <Route path="/admin/mostruario" element={<ProtectedRoute requireAdmin><AdminMostruario /></ProtectedRoute>} />
+                          <Route path="/admin/performance" element={<ProtectedRoute requireAdmin><AdminPropertyPerformance /></ProtectedRoute>} />
+                          <Route path="/admin/operacional" element={<ProtectedRoute requireAdmin><AdminAIOperational /></ProtectedRoute>} />
+                          <Route path="/admin/agentes" element={<ProtectedRoute requireAdmin><AdminAIAgents /></ProtectedRoute>} />
+                          <Route path="/admin/automacoes" element={<ProtectedRoute requireAdmin><AdminAIAutomations /></ProtectedRoute>} />
+                          <Route path="/admin/logs" element={<ProtectedRoute requireAdmin><AdminAILogs /></ProtectedRoute>} />
+                          <Route path="/admin/saude" element={<ProtectedRoute requireAdmin><AdminAIHealth /></ProtectedRoute>} />
+                          <Route path="/admin/alertas" element={<ProtectedRoute requireAdmin><AdminAIAlerts /></ProtectedRoute>} />
+                          <Route path="/admin/telemetria" element={<ProtectedRoute requireAdmin><AdminAITelemetry /></ProtectedRoute>} />
+                          <Route path="/admin/devops" element={<ProtectedRoute requireAdmin><AdminDevOps /></ProtectedRoute>} />
+                          <Route path="/admin/meta-ads" element={<ProtectedRoute requireAdmin><AdminMetaAds /></ProtectedRoute>} />
+                          <Route path="/admin/supabase-monitor" element={<ProtectedRoute requireAdmin><AdminSupabaseMonitor /></ProtectedRoute>} />
+                          <Route path="/admin/agenda" element={<ProtectedRoute><AdminAgenda /></ProtectedRoute>} />
+                          <Route path="/admin/contatos" element={<ProtectedRoute><AdminContacts /></ProtectedRoute>} />
+                          <Route path="/admin/mensagens" element={<ProtectedRoute><AdminMessages /></ProtectedRoute>} />
+                          <Route path="/admin/perfil" element={<ProtectedRoute><AdminProfile /></ProtectedRoute>} />
+                          <Route path="/admin/email" element={<ProtectedRoute requireAdmin><AdminEmailSettings /></ProtectedRoute>} />
+                          <Route path="/admin/permissoes-menu" element={<ProtectedRoute requireAdmin><AdminMenuPermissions /></ProtectedRoute>} />
+                          <Route path="/admin/configuracoes" element={<ProtectedRoute requireAdmin><AdminSettings /></ProtectedRoute>} />
+                          <Route path="/blog" element={<Blog />} />
+                          <Route path="/blog/:slug" element={<BlogPost />} />
+                          <Route path="*" element={<NotFound />} />
+                        </Routes>
+                      </Suspense>
+                    </HashRouter>
+                    <Toaster />
+                    <Sonner position="top-right" closeButton richColors />
+                  </TooltipProvider>
+                </CookieConsentProvider>
+              </FavoritesProvider>
+            </BrandProvider>
+          </AuthProvider>
+        </ThemeProvider>
+        {/* OmniRoute Chat Widget — available on all public pages */}
+        {omnirouteKey && <ChatWidget apiKey={omnirouteKey} tenantName="Arruda Imobi" position="bottom-right" />}
+      </QueryClientProvider>
+    </HelmetProvider>
+  );
+}
 
 export default App;
