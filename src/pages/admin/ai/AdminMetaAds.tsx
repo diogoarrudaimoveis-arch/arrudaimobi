@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { AdminPageShell, PageCard } from '@/components/admin/shared/AdminComponents';
 import { SectionHeader } from '@/components/admin/ai/AiOpsCards';
@@ -8,6 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+} from '@/components/ui/chart';
 import type {
   MetaAdsBudgetDraft,
   MetaAdsOverview,
@@ -41,7 +49,15 @@ import {
   Settings,
   Pencil,
   RefreshCw,
+  ShoppingCart,
+  Users,
+  Target,
+  Zap,
 } from 'lucide-react';
+import {
+  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend,
+} from 'recharts';
 
 // ─── Health Badge ────────────────────────────────────────────────────────────
 
@@ -112,16 +128,16 @@ function MetaMetricCard({ metric }: { metric: MetaAdsMetricCardData }) {
     info: 'text-blue-400',
   };
   return (
-    <Card className="border-white/5">
+    <Card className="border-white/5 hover:border-white/10 transition-colors">
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">{metric.title}</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{metric.title}</p>
             <p className={`text-xl font-bold ${statusColors[metric.status] ?? 'text-white'}`}>
               {metric.value}
             </p>
             {metric.subValue && (
-              <p className="text-xs text-muted-foreground">{metric.subValue}</p>
+              <p className="text-[10px] text-muted-foreground">{metric.subValue}</p>
             )}
           </div>
           <div className="flex flex-col items-end gap-1">
@@ -136,6 +152,290 @@ function MetaMetricCard({ metric }: { metric: MetaAdsMetricCardData }) {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+// ─── Spend Over Time Chart ──────────────────────────────────────────────────
+
+const SPEND_CHART_COLORS = ['#6366f1', '#06b6d4'];
+
+interface SpendChartProps {
+  campaigns: MetaCampaignWithInsights[];
+}
+
+function SpendOverTimeChart({ campaigns }: SpendChartProps) {
+  // Build spend trend from campaigns that have startTime
+  const chartData = useMemo(() => {
+    const sorted = [...campaigns]
+      .filter((c) => c.insights && c.insights.spend > 0)
+      .sort((a, b) => {
+        const aTime = a.startTime ?? '';
+        const bTime = b.startTime ?? '';
+        return aTime.localeCompare(bTime);
+      });
+
+    return sorted.map((c) => ({
+      name: c.name.length > 20 ? c.name.substring(0, 20) + '…' : c.name,
+      spend: c.insights?.spend ?? 0,
+      impressions: c.insights?.impressions ?? 0,
+      clicks: c.insights?.clicks ?? 0,
+      roas: c.insights?.roas ?? 0,
+    }));
+  }, [campaigns]);
+
+  if (chartData.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full min-h-[200px] gap-3 text-center">
+        <BarChart3 className="h-6 w-6 text-muted-foreground/30" />
+        <p className="text-sm text-muted-foreground">Sem dados de spend para exibir</p>
+      </div>
+    );
+  }
+
+  const chartConfig = {
+    spend: { label: 'Spend (R$)', color: SPEND_CHART_COLORS[0] },
+    impressions: { label: 'Impressões', color: SPEND_CHART_COLORS[1] },
+  };
+
+  return (
+    <ChartContainer config={chartConfig} className="h-[220px] w-full">
+      <BarChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+        <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+        <XAxis
+          dataKey="name"
+          tick={{ fontSize: 10 }}
+          tickLine={false}
+          axisLine={false}
+          interval={0}
+          angle={-20}
+          textAnchor="end"
+          height={50}
+        />
+        <YAxis
+          tick={{ fontSize: 10 }}
+          tickLine={false}
+          axisLine={false}
+          tickFormatter={(v) => `R$${v}`}
+        />
+        <ChartTooltip content={<ChartTooltipContent />} />
+        <ChartLegend content={<ChartLegendContent />} />
+        <Bar dataKey="spend" fill={SPEND_CHART_COLORS[0]} radius={[4, 4, 0, 0]} name="Spend (R$)" />
+        <Bar dataKey="impressions" fill={SPEND_CHART_COLORS[1]} radius={[4, 4, 0, 0]} name="Impressões" />
+      </BarChart>
+    </ChartContainer>
+  );
+}
+
+// ─── ROAS Bar Chart ───────────────────────────────────────────────────────────
+
+interface RoasChartProps {
+  campaigns: MetaCampaignWithInsights[];
+}
+
+function RoasChart({ campaigns }: RoasChartProps) {
+  const chartData = useMemo(() => {
+    return [...campaigns]
+      .filter((c) => c.insights && c.insights.roas > 0)
+      .sort((a, b) => (b.insights?.roas ?? 0) - (a.insights?.roas ?? 0))
+      .slice(0, 8)
+      .map((c) => ({
+        name: c.name.length > 18 ? c.name.substring(0, 18) + '…' : c.name,
+        roas: Number((c.insights?.roas ?? 0).toFixed(2)),
+        spend: c.insights?.spend ?? 0,
+      }));
+  }, [campaigns]);
+
+  if (chartData.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full min-h-[200px] gap-3 text-center">
+        <Zap className="h-6 w-6 text-muted-foreground/30" />
+        <p className="text-sm text-muted-foreground">Sem dados de ROAS para exibir</p>
+      </div>
+    );
+  }
+
+  const chartConfig = {
+    roas: { label: 'ROAS', color: '#22c55e' },
+  };
+
+  return (
+    <ChartContainer config={chartConfig} className="h-[220px] w-full">
+      <BarChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+        <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+        <XAxis
+          dataKey="name"
+          tick={{ fontSize: 10 }}
+          tickLine={false}
+          axisLine={false}
+          interval={0}
+          angle={-20}
+          textAnchor="end"
+          height={50}
+        />
+        <YAxis
+          tick={{ fontSize: 10 }}
+          tickLine={false}
+          axisLine={false}
+          tickFormatter={(v) => `${v}x`}
+        />
+        <ChartTooltip
+          content={({ active, payload }) => {
+            if (!active || !payload?.length) return null;
+            const d = payload[0].payload;
+            return (
+              <div className="rounded-lg border border-border/50 bg-background px-3 py-2 text-xs shadow-xl">
+                <p className="font-medium">{d.name}</p>
+                <p className="text-muted-foreground">ROAS: <span className="text-green-400 font-mono">{d.roas}x</span></p>
+                <p className="text-muted-foreground">Spend: <span className="font-mono">R${d.spend.toFixed(2)}</span></p>
+              </div>
+            );
+          }}
+        />
+        <Bar dataKey="roas" fill="#22c55e" radius={[4, 4, 0, 0]} name="ROAS" />
+      </BarChart>
+    </ChartContainer>
+  );
+}
+
+// ─── Spend Donut by Campaign ────────────────────────────────────────────────
+
+interface SpendDonutProps {
+  campaigns: MetaCampaignWithInsights[];
+}
+
+const DONUT_COLORS = ['#6366f1', '#06b6d4', '#22c55e', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6', '#14b8a6'];
+
+function SpendDonut({ campaigns }: SpendDonutProps) {
+  const chartData = useMemo(() => {
+    return [...campaigns]
+      .filter((c) => c.insights && c.insights.spend > 0)
+      .sort((a, b) => (b.insights?.spend ?? 0) - (a.insights?.spend ?? 0))
+      .slice(0, 6)
+      .map((c) => ({
+        name: c.name.length > 16 ? c.name.substring(0, 16) + '…' : c.name,
+        value: c.insights?.spend ?? 0,
+      }));
+  }, [campaigns]);
+
+  const totalSpend = chartData.reduce((sum, d) => sum + d.value, 0);
+
+  if (chartData.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full min-h-[200px] gap-3 text-center">
+        <PieChart className="h-6 w-6 text-muted-foreground/30" />
+        <p className="text-sm text-muted-foreground">Sem dados de spend</p>
+      </div>
+    );
+  }
+
+  const renderLabel = ({ name, percent }: { name: string; percent: number }) =>
+    percent > 0.05 ? `${(percent * 100).toFixed(0)}%` : null;
+
+  return (
+    <div className="flex flex-col h-full">
+      <ChartContainer
+        config={{}}
+        className="h-[180px] w-full"
+      >
+        <PieChart>
+          <Pie
+            data={chartData}
+            dataKey="value"
+            nameKey="name"
+            cx="50%"
+            cy="50%"
+            innerRadius={50}
+            outerRadius={80}
+            paddingAngle={2}
+            label={renderLabel}
+            labelLine={false}
+          >
+            {chartData.map((_, i) => (
+              <cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />
+            ))}
+          </Pie>
+          <Tooltip formatter={(value: number) => [`R$ ${value.toFixed(2)}`, 'Spend']} />
+          <Legend
+            content={({ payload }) => (
+              <div className="flex flex-wrap gap-2 justify-center mt-2">
+                {payload?.map((entry, i) => (
+                  <div key={i} className="flex items-center gap-1.5 text-xs">
+                    <div className="h-2 w-2 rounded-full" style={{ background: entry.color }} />
+                    <span className="text-muted-foreground">{entry.value}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          />
+        </PieChart>
+      </ChartContainer>
+      <div className="text-center mt-auto">
+        <p className="text-xs text-muted-foreground">Total spend: <span className="font-mono font-medium text-foreground">R$ {totalSpend.toFixed(2)}</span></p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Results Trend Area Chart ────────────────────────────────────────────────
+
+interface ResultsChartProps {
+  campaigns: MetaCampaignWithInsights[];
+}
+
+function ResultsChart({ campaigns }: ResultsChartProps) {
+  const chartData = useMemo(() => {
+    return [...campaigns]
+      .filter((c) => c.insights && (c.insights.spend > 0 || c.insights.impressions > 0))
+      .sort((a, b) => {
+        const aTime = a.startTime ?? '';
+        const bTime = b.startTime ?? '';
+        return aTime.localeCompare(bTime);
+      })
+      .slice(0, 12)
+      .map((c) => ({
+        name: c.name.length > 16 ? c.name.substring(0, 16) + '…' : c.name,
+        purchases: c.insights?.purchases ?? 0,
+        leads: c.insights?.leads ?? 0,
+        ctr: c.insights?.ctr ?? 0,
+      }));
+  }, [campaigns]);
+
+  if (chartData.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full min-h-[200px] gap-3 text-center">
+        <TrendingUp className="h-6 w-6 text-muted-foreground/30" />
+        <p className="text-sm text-muted-foreground">Sem dados de resultados</p>
+      </div>
+    );
+  }
+
+  const chartConfig = {
+    purchases: { label: 'Compras', color: '#22c55e' },
+    leads: { label: 'Leads', color: '#6366f1' },
+  };
+
+  return (
+    <ChartContainer config={chartConfig} className="h-[220px] w-full">
+      <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+        <defs>
+          <linearGradient id="colorPurchases" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#22c55e" stopOpacity={0.2} />
+            <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+          </linearGradient>
+          <linearGradient id="colorLeads" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2} />
+            <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+        <XAxis dataKey="name" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} interval={0} angle={-20} textAnchor="end" height={50} />
+        <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
+        <ChartTooltip content={<ChartTooltipContent />} />
+        <ChartLegend content={<ChartLegendContent />} />
+        <Area type="monotone" dataKey="purchases" stroke="#22c55e" fill="url(#colorPurchases)" name="Compras" />
+        <Area type="monotone" dataKey="leads" stroke="#6366f1" fill="url(#colorLeads)" name="Leads" />
+      </AreaChart>
+    </ChartContainer>
   );
 }
 
@@ -188,13 +488,13 @@ function CampaignTable({ campaigns, canWrite, onEditBudget }: {
             <th className="pb-2 pr-4 font-medium text-muted-foreground text-right">CTR</th>
             <th className="pb-2 pr-4 font-medium text-muted-foreground text-right">CPC</th>
             <th className="pb-2 font-medium text-muted-foreground text-right">CPM</th>
-            <th className="pb-2 pl-4 font-medium text-muted-foreground text-right">Budget</th>
+            <th className="pb-2 pl-4 font-medium text-muted-foreground text-right">Orçamento</th>
             <th className="pb-2 pl-4 font-medium text-muted-foreground text-right">Ações</th>
           </tr>
         </thead>
         <tbody>
           {campaigns.map((c) => (
-            <tr key={c.id} className="border-b border-white/5 hover:bg-white/2.5">
+            <tr key={c.id} className="border-b border-white/5 hover:bg-white/2.5 transition-colors">
               <td className="py-2 pr-4 max-w-[200px] truncate">{c.name}</td>
               <td className="py-2 pr-4">
                 <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${badgeClass(c.effectiveStatus)}`}>
@@ -431,16 +731,9 @@ export default function AdminMetaAds() {
   useEffect(() => {
     let mounted = true;
     getMetaAdsOverview()
-      .then((data) => {
-        if (mounted) setOverview(data);
-      })
-      .catch((err) => {
-        if (mounted) setError(err instanceof Error ? err.message : String(err));
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
-
+      .then((data) => { if (mounted) setOverview(data); })
+      .catch((err) => { if (mounted) setError(err instanceof Error ? err.message : String(err)); })
+      .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
   }, []);
 
@@ -528,10 +821,12 @@ export default function AdminMetaAds() {
     );
   }
 
-  const { health, account, campaigns, totalSpend, totalImpressions, totalClicks, avgCpc, avgCpm, avgCtr, topCampaigns, worstCampaigns, noDeliveryCampaigns, pausedCampaigns, errorCampaigns, fetchedAt } = overview;
+  const {
+    health, account, campaigns, totalSpend, totalImpressions, totalClicks,
+    avgCpc, avgCpm, avgCtr, totalPurchases, totalLeads, avgRoas,
+    topCampaigns, worstCampaigns, noDeliveryCampaigns, pausedCampaigns, errorCampaigns, fetchedAt
+  } = overview;
   const canWriteMetaAds = health.canReadAds && health.canManageAds;
-
-  // ── Degraded mode banner ──
   const isDegraded = health.status === 'DEGRADED';
 
   // ── Build metric cards ──
@@ -575,11 +870,19 @@ export default function AdminMetaAds() {
       trend: avgCpc > 0 && avgCpc < 3 ? 'up' : avgCpc > 5 ? 'down' : undefined,
     },
     {
-      id: 'cpm',
-      title: 'CPM Médio (7d)',
-      value: avgCpm > 0 ? formatCurrency(avgCpm) : 'Sem dados',
-      icon: '📢',
-      status: 'neutral',
+      id: 'purchases',
+      title: 'Compras (7d)',
+      value: totalPurchases > 0 ? formatNumber(totalPurchases) : 'Sem dados',
+      icon: '🛒',
+      status: totalPurchases > 0 ? 'success' : 'neutral',
+      subValue: avgRoas > 0 ? `ROAS: ${avgRoas.toFixed(2)}x` : undefined,
+    },
+    {
+      id: 'leads',
+      title: 'Leads (7d)',
+      value: totalLeads > 0 ? formatNumber(totalLeads) : 'Sem dados',
+      icon: '👥',
+      status: totalLeads > 0 ? 'success' : 'neutral',
     },
     {
       id: 'campaigns',
@@ -588,13 +891,6 @@ export default function AdminMetaAds() {
       subValue: `${campaigns.length} total`,
       icon: '🎯',
       status: campaigns.some((c) => c.effectiveStatus === 'ACTIVE') ? 'success' : 'warning',
-    },
-    {
-      id: 'campaigns_paused',
-      title: 'Campanhas Pausadas',
-      value: pausedCampaigns.length.toString(),
-      icon: '⏸',
-      status: pausedCampaigns.length > 0 ? 'warning' : 'neutral',
     },
   ];
 
@@ -689,6 +985,69 @@ export default function AdminMetaAds() {
             <MetaMetricCard key={m.id} metric={m} />
           ))}
         </div>
+
+        {/* Charts — Tabs: Spend | ROAS | Resultados */}
+        {campaigns.length > 0 && (
+          <Tabs defaultValue="spend" className="w-full">
+            <TabsList className="mb-4">
+              <TabsTrigger value="spend">
+                <DollarSign size={14} className="mr-1.5" />
+                Spend
+              </TabsTrigger>
+              <TabsTrigger value="roas">
+                <Zap size={14} className="mr-1.5" />
+                ROAS
+              </TabsTrigger>
+              <TabsTrigger value="results">
+                <Target size={14} className="mr-1.5" />
+                Resultados
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="spend">
+              <div className="grid gap-4 lg:grid-cols-2">
+                <Card>
+                  <CardContent className="pt-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                      Spend &amp; Impressões por Campanha
+                    </p>
+                    <SpendOverTimeChart campaigns={campaigns} />
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                      Distribuição de Spend
+                    </p>
+                    <SpendDonut campaigns={campaigns} />
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="roas">
+              <Card>
+                <CardContent className="pt-4">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                    ROAS por Campanha (top 8)
+                  </p>
+                  <RoasChart campaigns={campaigns} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="results">
+              <Card>
+                <CardContent className="pt-4">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                    Compras &amp; Leads por Campanha
+                  </p>
+                  <ResultsChart campaigns={campaigns} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        )}
 
         {/* All Campaigns */}
         {campaigns.length > 0 && (
