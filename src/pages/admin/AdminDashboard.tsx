@@ -118,6 +118,7 @@ const TabVisaoGeral = ({
   recentContacts: ReturnType<typeof useAdminDashboardData>["recentContacts"];
   loading: boolean;
 }) => {
+  console.log('[TabVisaoGeral] render, loading:', loading, 'metrics:', metrics);
   const fmt = (n: number | null) => n === null ? "—" : n.toLocaleString("pt-BR");
   const fmtPrice = (n: number) =>
     n >= 1000000 ? `R$ ${(n / 1000000).toFixed(1)}M` :
@@ -442,12 +443,12 @@ const TabEquipe = ({ metrics }: { metrics: ReturnType<typeof useAdminDashboardDa
 
 // ─── Dashboard ──────────────────────────────────────────────────────────────
 const AdminDashboard = () => {
-  const { profile } = useAuth();
+  const { profile, normalizedRole } = useAuth();
   const [activeTab, setActiveTab] = useState("visao-geral");
   const { metrics, recentProperties, recentContacts, recentAppointments, loading, error } = useAdminDashboardData();
   const firstName = profile?.full_name?.split(" ")[0] || "Admin";
 
-  console.log("[DEBUG] AdminDashboard render → profile:", profile?.id, "role:", profile?.role);
+  console.log('[AdminDashboard] render → profile:', profile?.id, 'role:', normalizedRole, 'loading:', loading, 'error:', error);
 
   return (
     <AdminLayout>

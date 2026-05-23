@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { normalizeRole, canSeeMenuItem, getRoleLabel, type AdminMenuItem } from "@/lib/adminPermissions";
 import {
   Building2, LayoutDashboard, Home, Users, Settings, Tag, Sparkles, Mail, User, Database, Shield,
-  MessageSquare, LogOut, X, Menu, Sun, Moon, Image, Send, Mail,
+  MessageSquare, LogOut, X, Menu, Sun, Moon, Image, Send,
   PanelLeftClose, PanelLeftOpen, ChevronRight, FileText, Download, Globe,
   Calendar as CalendarIcon, Target, BarChart3, BrainCircuit, Bot, Workflow,
   ScrollText, HeartPulse, GitBranch, LayoutGrid, CreditCard

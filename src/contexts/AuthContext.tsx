@@ -89,40 +89,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchProfile = async (userId: string) => {
     try {
       setIsProfileLoading(true);
-      const { data: profileData } = await supabase
+      console.log('[Auth] fetchProfile start, userId:', userId);
+
+      const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("*")
         .eq("user_id", userId)
         .maybeSingle();
 
+      console.log('[Auth] profile result:', profileData ? 'found' : 'null', 'error:', profileError);
+
       if (profileData) {
         setProfile(profileData as UserProfile);
         setTenantId(profileData.tenant_id);
+        console.log('[Auth] tenantId set to:', profileData.tenant_id);
+      } else {
+        console.log('[Auth] NO PROFILE DATA - RLS deny or missing row');
       }
 
-      const { data: roleData } = await supabase
+      const { data: roleData, error: roleError } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", userId)
         .eq("tenant_id", profileData?.tenant_id)
         .maybeSingle();
 
+      console.log('[Auth] role result:', roleData, 'error:', roleError);
+
       if (roleData) {
         setUserRole(roleData.role);
+        console.log('[Auth] userRole set to:', roleData.role);
         // Auto-seed default data for admin users
         if (roleData.role === "admin" && profileData?.tenant_id) {
           seedDefaultData(profileData.tenant_id);
         }
       } else {
         // No role found - default to "user" instead of null
+        console.log('[Auth] NO ROLE DATA - defaulting to "user"');
         setUserRole("user");
       }
     } catch (err) {
-      console.error("Error fetching profile:", err);
+      console.error('[Auth] fetchProfile EXCEPTION:', err);
       // On error, default to user instead of null to prevent redirect loops
       setUserRole("user");
     } finally {
       setIsProfileLoading(false);
+      console.log('[Auth] fetchProfile done, isProfileLoading=false');
     }
   };
 
@@ -131,9 +143,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
+    // Safety timeout: if profile loading takes > 15s, force it to false
+    const timeout = setTimeout(() => {
+      setIsProfileLoading((prev) => {
+        if (prev) {
+          console.warn('[Auth] TIMEOUT 15s — forcing isProfileLoading=false');
+          return false;
+        }
+        return prev;
+      });
+    }, 15000);
+
     // Set up listener BEFORE getSession to avoid race conditions
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, s) => {
+        console.log('[Auth] onAuthStateChange event:', _event, 'hasUser:', !!s?.user);
         setSession(s);
         setUser(s?.user ?? null);
         if (s?.user) {
@@ -148,15 +172,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     supabase.auth.getSession().then(({ data: { session: s } }) => {
+      console.log('[Auth] getSession result, hasUser:', !!s?.user);
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) {
         fetchProfile(s.user.id);
+      } else {
+        setIsProfileLoading(false);
       }
       setIsReady(true);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {

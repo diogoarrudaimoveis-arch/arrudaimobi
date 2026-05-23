@@ -6,6 +6,7 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
   requireAdmin?: boolean;
   requireAgent?: boolean;
+  requireOwner?: boolean;
 }
 
 /**
@@ -14,15 +15,27 @@ interface ProtectedRouteProps {
  * Rules:
  * - Shows loading spinner while auth/profile is loading (no redirect)
  * - Redirects to /login if no user session
- * - Redirects to /admin if user doesn't have required admin access (not to "/" public site)
+ * - Redirects to "/" if user doesn't have required admin access
  * - Developer role has full admin access (same as admin)
  */
-export function ProtectedRoute({ children, requireAdmin, requireAgent }: ProtectedRouteProps) {
-  const { user, isReady, isProfileLoading, normalizedRole } = useAuth();
+export function ProtectedRoute({ children, requireAdmin, requireAgent, requireOwner }: ProtectedRouteProps) {
+  const { user, isReady, isProfileLoading, normalizedRole, isAdmin, isAgent } = useAuth();
+
+  console.log('[ProtectedRoute] render:', {
+    requireAdmin,
+    requireAgent,
+    requireOwner,
+    isReady,
+    isProfileLoading,
+    normalizedRole,
+    hasUser: !!user,
+    canAccessAdmin: canAccessAdmin(normalizedRole),
+  });
 
   // Show loading while auth is initializing or profile/role is being fetched
   // Do NOT redirect during loading — this prevents logout loops for developer
   if (!isReady || isProfileLoading) {
+    console.log('[ProtectedRoute] showing loading spinner (isReady=', isReady, 'isProfileLoading=', isProfileLoading, ')');
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -31,17 +44,23 @@ export function ProtectedRoute({ children, requireAdmin, requireAgent }: Protect
   }
 
   // No session → go to login
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) {
+    console.log('[ProtectedRoute] no user, redirect to /login');
+    return <Navigate to="/login" replace />;
+  }
 
-  // Admin required but user is not admin/developer → redirect to /admin (safe hub), not to public site
+  // Admin required but user is not admin/developer → redirect home
   if (requireAdmin && !canAccessAdmin(normalizedRole)) {
+    console.log('[ProtectedRoute] NOT admin (role=', normalizedRole, '), redirect to /');
     return <Navigate to="/" replace />;
   }
 
-  // Agent required but user is not agent/admin → redirect to /admin safe hub
+  // Agent required but user is not agent/admin
   if (requireAgent && !isAgent && !isAdmin) {
+    console.log('[ProtectedRoute] NOT agent, redirect to /');
     return <Navigate to="/" replace />;
   }
 
+  console.log('[ProtectedRoute] ✅ rendering children for role:', normalizedRole);
   return <>{children}</>;
 }

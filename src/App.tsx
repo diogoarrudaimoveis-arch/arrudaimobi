@@ -12,6 +12,7 @@ import { CookieConsentProvider } from "@/contexts/CookieConsentContext";
 import { BrandProvider } from "@/components/BrandProvider";
 import { FavoritesProvider } from "@/contexts/FavoritesContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Loader2 } from "lucide-react";
 import { ChatWidget } from "@/components/chat/ChatWidget";
 import { useAISettings } from "@/hooks/use-ai-settings";
@@ -129,7 +130,11 @@ export function App() {
                           <Route path="/proprietario/novo-imovel" element={<ProtectedRoute requireOwner><ProprietarioPropertyNew /></ProtectedRoute>} />
 
                           {/* Admin routes */}
-                          <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>} />
+                          <Route path="/admin" element={
+                            <ErrorBoundary section="AdminDashboard">
+                              <ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>
+                            </ErrorBoundary>
+                          } />
                           <Route path="/admin/imoveis" element={<ProtectedRoute requireAdmin><AdminProperties /></ProtectedRoute>} />
                           <Route path="/admin/imoveis/:id" element={<ProtectedRoute requireAdmin><AdminProperties /></ProtectedRoute>} />
                           <Route path="/admin/corretores" element={<ProtectedRoute requireAdmin><AdminAgents /></ProtectedRoute>} />
