@@ -4,15 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
+import { sonnerToast } from "@/components/ui/sonner";
 import { useTenantSettings } from "@/hooks/use-tenant-settings";
 import { Phone, Mail, MapPin, Clock, MessageCircle, Loader2, CheckCircle2 } from "lucide-react";
 
 const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 
 const Contact = () => {
-  const { toast } = useToast();
-  const { data: tenant } = useTenantSettings();
+    const { data: tenant } = useTenantSettings();
   const s = tenant?.settings || {};
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -56,9 +55,9 @@ const Contact = () => {
       if (!submitRes.ok) throw new Error(data.error || "Erro ao enviar");
 
       setSubmitted(true);
-      toast({ title: "Mensagem enviada!", description: "Entraremos em contato em breve." });
+      sonnerToast({ title: "Mensagem enviada!", description: "Entraremos em contato em breve." });
     } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      sonnerToast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
