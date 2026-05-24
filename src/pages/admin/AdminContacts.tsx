@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Loader2, TableIcon, Trash2, RotateCcw, MessageSquare } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2, TableIcon, Trash2, RotateCcw, MessageSquare, Plus } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   AlertDialog,
@@ -26,7 +27,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { useContacts } from "@/hooks/use-contacts";
+import { useContacts, useCreateContact } from "@/hooks/use-contacts";
 import { toast as sonnerToast } from "sonner";
 
 const TABLE_PAGE_SIZE = 20;
@@ -158,6 +159,45 @@ export default function AdminContacts() {
   // Dialog state
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [restoreConfirmId, setRestoreConfirmId] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+
+  // Create contact form state
+  const [createName, setCreateName] = useState("");
+  const [createEmail, setCreateEmail] = useState("");
+  const [createPhone, setCreatePhone] = useState("");
+  const [createMessage, setCreateMessage] = useState("");
+  const [createErrors, setCreateErrors] = useState<Record<string, string>>({});
+
+  const createMutation = useCreateContact();
+
+  const validateCreate = () => {
+    const e: Record<string, string> = {};
+    if (!createName.trim() || createName.trim().length < 2) e.name = "Nome e obrigatorio (minimo 2 caracteres)";
+    if (!createEmail.trim() && !createPhone.trim()) e.contact = "Informe email ou telefone";
+    if (createEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(createEmail)) e.email = "Email invalido";
+    setCreateErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleCreate = async () => {
+    if (!validateCreate()) return;
+    try {
+      await createMutation.mutateAsync({
+        name: createName.trim(),
+        email: createEmail.trim() || null,
+        phone: createPhone.trim() || null,
+        message: createMessage.trim() || null,
+      });
+      setCreateOpen(false);
+      setCreateName("");
+      setCreateEmail("");
+      setCreatePhone("");
+      setCreateMessage("");
+      setCreateErrors({});
+    } catch (err: any) {
+      sonnerToast({ title: "Erro", description: err.message, variant: "destructive" });
+    }
+  };
 
   const softDeleteMutation = useSoftDeleteContact(tenantId);
   const restoreMutation = useRestoreContact(tenantId);
@@ -223,6 +263,10 @@ export default function AdminContacts() {
           subtitle={`${activeCount} cadastrados manualmente`}
           actions={
             <div className="flex items-center gap-2 flex-wrap">
+              <Button size="sm" onClick={() => setCreateOpen(true)}>
+                <Plus className="h-4 w-4 mr-1.5" />
+                Novo Contato
+              </Button>
               <div className="flex rounded-lg border border-border overflow-hidden">
                 <Button variant="default" size="sm" className="rounded-none gap-1.5">
                   <TableIcon className="h-4 w-4" />
@@ -358,6 +402,48 @@ export default function AdminContacts() {
           </TabsContent>
         </Tabs>
       </AdminPageShell>
+
+      {/* Create Contact Dialog */}
+      <AlertDialog open={createOpen} onOpenChange={(open) => { setCreateOpen(open); if (!open) setCreateErrors({}); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Novo Contato</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cadastre um novo lead manualmente no sistema.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <label className="text-sm font-medium mb-1 block">Nome *</label>
+              <Input placeholder="Nome completo" value={createName} onChange={(e) => setCreateName(e.target.value)} />
+              {createErrors.name && <p className="text-xs text-destructive mt-1">{createErrors.name}</p>}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium mb-1 block">Telefone</label>
+                <Input placeholder="(11) 99999-0000" value={createPhone} onChange={(e) => setCreatePhone(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Email</label>
+                <Input placeholder="email@exemplo.com" value={createEmail} onChange={(e) => setCreateEmail(e.target.value)} />
+                {createErrors.email && <p className="text-xs text-destructive mt-1">{createErrors.email}</p>}
+              </div>
+            </div>
+            {createErrors.contact && <p className="text-xs text-destructive">{createErrors.contact}</p>}
+            <div>
+              <label className="text-sm font-medium mb-1 block">Mensagem</label>
+              <Textarea placeholder="Observacoes sobre o contato..." value={createMessage} onChange={(e) => setCreateMessage(e.target.value)} className="min-h-[80px]" />
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => { setCreateOpen(false); setCreateErrors({}); }}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCreate} disabled={createMutation.isPending}>
+              {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Cadastrar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Delete confirmation dialog */}
       <AlertDialog open={deleteConfirmId !== null} onOpenChange={() => setDeleteConfirmId(null)}>

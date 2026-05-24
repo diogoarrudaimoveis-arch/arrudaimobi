@@ -5,10 +5,6 @@ import { toast } from "sonner";
 
 export const CONTACTS_QUERY_KEY = "contacts";
 
-// =============================================================================
-// Types
-// =============================================================================
-
 export type ContactStatus = "new" | "read" | "replied" | "archived";
 
 export interface Contact {
@@ -28,9 +24,7 @@ export interface Contact {
 }
 
 export interface ContactFilters {
-  /** Quando definido, filtra apenas leads externos (true) ou orgânicos (false) */
   isExternalLead?: boolean;
-  /** Filtrar por fonte específica (ex: 'whatsapp_bot') */
   externalSource?: string;
   status?: ContactStatus;
   agentId?: string;
@@ -43,13 +37,6 @@ export interface LeadMetrics {
   newLeads: number;
 }
 
-// =============================================================================
-// Hooks
-// =============================================================================
-
-/**
- * Lista contatos do tenant com filtros opcionais por tipo de lead.
- */
 export function useContacts(filters: ContactFilters = {}) {
   const { tenantId, isReady } = useAuth();
 
@@ -87,10 +74,6 @@ export function useContacts(filters: ContactFilters = {}) {
   });
 }
 
-/**
- * Métricas agregadas de leads para o Dashboard (total, externos, orgânicos, novos).
- * Usa 4 queries leves com `head: true` para minimizar transferência de dados.
- */
 export function useLeadMetrics() {
   const { tenantId, isReady } = useAuth();
 
@@ -98,20 +81,9 @@ export function useLeadMetrics() {
     queryKey: [CONTACTS_QUERY_KEY, "metrics", tenantId],
     queryFn: async () => {
       const [total, external, newLeads] = await Promise.all([
-        supabase
-          .from("contacts")
-          .select("*", { count: "exact", head: true })
-          .eq("tenant_id", tenantId!),
-        supabase
-          .from("contacts")
-          .select("*", { count: "exact", head: true })
-          .eq("tenant_id", tenantId!)
-          .eq("is_external_lead", true),
-        supabase
-          .from("contacts")
-          .select("*", { count: "exact", head: true })
-          .eq("tenant_id", tenantId!)
-          .eq("status", "new"),
+        supabase.from("contacts").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId!),
+        supabase.from("contacts").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId!).eq("is_external_lead", true),
+        supabase.from("contacts").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId!).eq("status", "new"),
       ]);
 
       const totalCount = total.count ?? 0;
@@ -129,9 +101,6 @@ export function useLeadMetrics() {
   });
 }
 
-/**
- * Atualiza o status de um contato (ex: marcar como lido, respondido, arquivado).
- */
 export function useUpdateContactStatus() {
   const queryClient = useQueryClient();
   const { tenantId } = useAuth();
@@ -143,7 +112,6 @@ export function useUpdateContactStatus() {
         .update({ status })
         .eq("id", id)
         .eq("tenant_id", tenantId!);
-
       if (error) throw error;
     },
     onSuccess: () => {
@@ -151,7 +119,43 @@ export function useUpdateContactStatus() {
       toast.success("Status atualizado");
     },
     onError: (err: Error) => {
-      toast.error(`Erro ao atualizar: ${err.message}`);
+      toast.error("Erro ao atualizar: " + err.message);
+    },
+  });
+}
+
+export function useCreateContact() {
+  const queryClient = useQueryClient();
+  const { tenantId } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ name, email, phone, message, status }: {
+      name: string;
+      email?: string | null;
+      phone?: string | null;
+      message?: string | null;
+      status?: ContactStatus;
+    }) => {
+      const { error } = await supabase
+        .from("contacts")
+        .insert({
+          name,
+          email: email || null,
+          phone: phone || null,
+          message: message || null,
+          status: status || "new",
+          tenant_id: tenantId!,
+          is_external_lead: false,
+          external_source: null,
+        });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CONTACTS_QUERY_KEY] });
+      toast.success("Contato criado com sucesso");
+    },
+    onError: (err: Error) => {
+      toast.error("Erro ao criar contato: " + err.message);
     },
   });
 }
