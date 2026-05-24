@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminPageShell, PageCard } from "@/components/admin/shared/AdminComponents";
-import { Users, UserPlus, Loader2 } from "lucide-react";
+import { Users, UserPlus, Loader2, Pencil, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,7 +11,12 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { getRoleLabel, getRoleBadgeVariant } from "@/lib/adminPermissions";
+import { getRoleLabel, getRoleBadgeVariant, normalizeRole } from "@/lib/adminPermissions";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 
 interface CompanyUser {
   user_id: string;
@@ -25,38 +30,38 @@ interface CompanyUser {
 }
 
 const AdminAgents = () => {
-  const { tenantId, isReady, session, isDeveloper } = useAuth();
+  const { tenantId, isReady, session, isDeveloper, profile } = useAuth();
+  const queryClient = useQueryClient();
+
+  const normalizedRole = normalizeRole(profile?.role);
+  const isAdmin = normalizedRole === "admin";
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["company-users", tenantId],
     queryFn: async (): Promise<CompanyUser[]> => {
       if (!tenantId) throw new Error("No tenantId");
 
-      // Fetch profiles for this tenant
       const { data: profiles, error: profErr } = await supabase
         .from("profiles")
         .select("user_id, full_name, avatar_url, phone, bio, created_at")
         .eq("tenant_id", tenantId);
       if (profErr) throw profErr;
 
-      // Fetch roles for this tenant
       const { data: roles, error: rolesErr } = await supabase
         .from("user_roles")
         .select("user_id, role")
         .eq("tenant_id", tenantId);
       if (rolesErr) throw rolesErr;
 
-      // Build role map
       const roleMap: Record<string, string> = {};
       roles?.forEach((r) => { roleMap[r.user_id] = r.role; });
 
-      // Fetch email from auth.users for each user
       const userIds = (profiles || []).map((p) => p.user_id);
       let emailMap: Record<string, string> = {};
 
       if (userIds.length > 0 && session?.access_token) {
         try {
-          const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+          const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID || "udutxbyzrdwucabxqvgg";
           const res = await fetch(
             `https://${PROJECT_ID}.supabase.co/auth/v1/admin/users?page=1&per_page=1000`,
             {
@@ -74,7 +79,7 @@ const AdminAgents = () => {
             });
           }
         } catch {
-          // If we can't fetch emails, proceed without
+          // proceed without emails
         }
       }
 
@@ -87,17 +92,106 @@ const AdminAgents = () => {
     enabled: isReady && !!tenantId,
   });
 
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [newUserForm, setNewUserForm] = useState({
+    full_name: "",
+    email: "",
+    phone: "",
+    role: "user",
+    bio: "",
+    is_corretor: false,
+    corretor_key: "",
+  });
+  const [creatingUser, setCreatingUser] = useState(false);
+
+  const handleCreateUser = async () => {
+    if (!newUserForm.full_name || !newUserForm.email) {
+      toast.error("Nome e email são obrigatórios");
+      return;
+    }
+    setCreatingUser(true);
+    try {
+      const { data, error } = await supabase.auth.admin.createUser({
+        email: newUserForm.email,
+        email_confirm: true,
+        user_metadata: { full_name: newUserForm.full_name, phone: newUserForm.phone },
+      });
+      if (error) throw error;
+      const userId = data.user.id;
+
+      const { error: profileErr } = await supabase.from("profiles").upsert({
+        user_id: userId,
+        tenant_id: tenantId,
+        full_name: newUserForm.full_name,
+        phone: newUserForm.phone || null,
+        bio: newUserForm.bio || null,
+        is_corretor: newUserForm.is_corretor,
+        corretor_key: newUserForm.is_corretor ? newUserForm.corretor_key : null,
+      });
+      if (profileErr) console.error("profile err:", profileErr);
+
+      const { error: roleErr } = await supabase.from("user_roles").upsert({
+        user_id: userId,
+        tenant_id: tenantId,
+        role: newUserForm.role,
+      });
+      if (roleErr) console.error("role err:", roleErr);
+
+      toast.success("Usuário criado com sucesso");
+      setShowCreateDialog(false);
+      setNewUserForm({ full_name: "", email: "", phone: "", role: "user", bio: "", is_corretor: false, corretor_key: "" });
+      queryClient.invalidateQueries({ queryKey: ["company-users"] });
+    } catch (err: any) {
+      toast.error("Erro ao criar usuário: " + err.message);
+    } finally {
+      setCreatingUser(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm("Excluir este usuário? Esta ação não pode ser desfeita.")) return;
+    try {
+      // Delete role
+      await supabase.from("user_roles").delete().eq("user_id", userId);
+      // Delete profile
+      await supabase.from("profiles").delete().eq("user_id", userId);
+      // Delete auth user
+      const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID || "udutxbyzrdwucabxqvgg";
+      const res = await fetch(
+        `https://${PROJECT_ID}.supabase.co/auth/v1/admin/users/${userId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          },
+        }
+      );
+      toast.success("Usuário excluído");
+      queryClient.invalidateQueries({ queryKey: ["company-users"] });
+    } catch (err: any) {
+      toast.error("Erro ao excluir: " + err.message);
+    }
+  };
+
   const roleBadgeVariant = (role: string) => {
     const variant = getRoleBadgeVariant(role);
-    if (variant === "default") return "default"; // blue for admin
-    if (variant === "developer") return "developer"; // purple
-    if (variant === "secondary") return "success"; // green for agent
-    return "outline"; // gray for user
+    if (variant === "default") return "default";
+    if (variant === "developer") return "secondary";
+    if (variant === "secondary") return "success";
+    return "outline";
   };
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return "—";
     return new Date(dateStr).toLocaleDateString("pt-BR");
+  };
+
+  // Developer can do everything. Admin can only edit/delete agent/user (not admin or developer)
+  const canEditUser = (u: CompanyUser) => {
+    if (isDeveloper) return true;
+    if (isAdmin && u.role !== "admin" && u.role !== "developer") return true;
+    return false;
   };
 
   return (
@@ -112,13 +206,14 @@ const AdminAgents = () => {
                   Agentes & Usuários
                 </h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {isLoading
-                    ? "Carregando membros..."
-                    : `${users.length} membros na imobiliária`}
+                  {isLoading ? "Carregando membros..." : `${users.length} membros na imobiliária`}
                 </p>
               </div>
               {isDeveloper && (
-                <Button className="gap-2 bg-[#003366] hover:bg-[#002244] text-white" disabled>
+                <Button
+                  onClick={() => setShowCreateDialog(true)}
+                  className="gap-2 bg-[#003366] hover:bg-[#002244] text-white"
+                >
                   <UserPlus className="h-4 w-4" />
                   Criar Usuário
                 </Button>
@@ -157,6 +252,7 @@ const AdminAgents = () => {
                       <TableHead>Telefone</TableHead>
                       <TableHead>Role</TableHead>
                       <TableHead>Data Criação</TableHead>
+                      {isDeveloper && <TableHead className="w-[100px]">Ações</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -170,38 +266,155 @@ const AdminAgents = () => {
                                 {(u.full_name || "U").charAt(0).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="font-medium">
-                              {u.full_name || "Sem nome"}
-                            </span>
+                            <span className="font-medium">{u.full_name || "Sem nome"}</span>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm text-muted-foreground">
-                            {u.email || "—"}
-                          </span>
+                          <span className="text-sm text-muted-foreground">{u.email || "—"}</span>
                         </TableCell>
                         <TableCell>
                           <span className="text-sm">{u.phone || "—"}</span>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={roleBadgeVariant(u.role)}>
-                            {getRoleLabel(u.role)}
-                          </Badge>
+                          <Badge variant={roleBadgeVariant(u.role)}>{getRoleLabel(u.role)}</Badge>
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm text-muted-foreground">
-                            {formatDate(u.created_at)}
-                          </span>
+                          <span className="text-sm text-muted-foreground">{formatDate(u.created_at)}</span>
                         </TableCell>
+                        {isDeveloper && (
+                          <TableCell>
+                            {canEditUser(u) ? (
+                              <div className="flex gap-1">
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-red-500 hover:text-red-600"
+                                  onClick={() => handleDeleteUser(u.user_id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               </div>
             )}
+
+            {isAdmin && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 p-4">
+                <p className="text-sm text-amber-800 dark:text-amber-300">
+                  <strong>Admin:</strong> Você pode visualizar todos os membros. Apenas o{" "}
+                  <strong>Desenvolvedor</strong> pode criar e gerenciar usuários.
+                </p>
+              </div>
+            )}
           </div>
         </PageCard>
       </AdminPageShell>
+
+      {/* Create User Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Criar Novo Usuário</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label>Nome completo *</Label>
+              <Input
+                value={newUserForm.full_name}
+                onChange={(e) => setNewUserForm((p) => ({ ...p, full_name: e.target.value }))}
+                placeholder="Nome da pessoa"
+              />
+            </div>
+            <div>
+              <Label>Email *</Label>
+              <Input
+                type="email"
+                value={newUserForm.email}
+                onChange={(e) => setNewUserForm((p) => ({ ...p, email: e.target.value }))}
+                placeholder="email@exemplo.com"
+              />
+            </div>
+            <div>
+              <Label>Telefone</Label>
+              <Input
+                value={newUserForm.phone}
+                onChange={(e) => setNewUserForm((p) => ({ ...p, phone: e.target.value }))}
+                placeholder="(31) 99999-9999"
+              />
+            </div>
+            <div>
+              <Label>Tipo de usuário *</Label>
+              <select
+                value={newUserForm.role}
+                onChange={(e) => setNewUserForm((p) => ({ ...p, role: e.target.value }))}
+                className="w-full px-3 py-2 border rounded-lg bg-background"
+              >
+                <option value="user">Usuário</option>
+                <option value="agent">Agente</option>
+                <option value="financeiro">Financeiro</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div>
+              <Label>Biografia / Observações</Label>
+              <Textarea
+                value={newUserForm.bio}
+                onChange={(e) => setNewUserForm((p) => ({ ...p, bio: e.target.value }))}
+                placeholder="Informações adicionais..."
+                rows={3}
+              />
+            </div>
+            {/* Corretor section */}
+            <div className="space-y-2 rounded-lg border p-4">
+              <Label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={newUserForm.is_corretor}
+                  onChange={(e) => setNewUserForm((p) => ({ ...p, is_corretor: e.target.checked }))}
+                  className="rounded"
+                />
+                Este usuário é um <strong>CORRETOR</strong> (exibir no portal público)
+              </Label>
+              {newUserForm.is_corretor && (
+                <div>
+                  <Label>Chave do Corretor (para portal público) *</Label>
+                  <Input
+                    value={newUserForm.corretor_key}
+                    onChange={(e) => setNewUserForm((p) => ({ ...p, corretor_key: e.target.value }))}
+                    placeholder="Creci ou código único"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Esta chave identifica o corretor no portal público de agentes.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleCreateUser}
+              disabled={!newUserForm.full_name || !newUserForm.email || creatingUser}
+            >
+              {creatingUser ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Criar Usuário
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 };

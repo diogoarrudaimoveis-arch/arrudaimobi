@@ -17,7 +17,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, RotateCcw, Download, AlertTriangle } from "lucide-react";
+import { Loader2, Save, RotateCcw, Download, AlertTriangle, Lock } from "lucide-react";
+import { normalizeRole } from "@/lib/adminPermissions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -73,8 +74,30 @@ const MENU_PERMISSIONS = [
 ];
 
 export default function AdminMostruario() {
-  const { tenantId, isReady, session } = useAuth();
+  const { tenantId, isReady, session, profile } = useAuth();
   const { toast } = useToast();
+
+  const normalizedRole = normalizeRole(profile?.role);
+  if (normalizedRole !== "developer") {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Card className="max-w-md text-center">
+            <CardHeader>
+              <Lock className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+              <CardTitle>Acesso Restrito</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground text-sm">
+                Esta página é exclusiva para <strong>Desenvolvedor</strong>.
+                Apenas o desenvolvedor pode gerenciar identidade da imobiliária e módulos habilitados.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   // Load current tenant usage
   const { data: usage, isLoading: usageLoading } = useQuery({
