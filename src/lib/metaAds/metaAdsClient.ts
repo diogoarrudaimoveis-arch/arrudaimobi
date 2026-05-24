@@ -2,7 +2,13 @@
 // Chama Supabase Edge Function (server-side) — token NUNCA sai do browser
 // O Edge Function faz as chamadas à Meta API com META_SYSTEM_USER_TOKEN em servidor
 
-import type { MetaAdsBudgetDraftResponse, MetaAdsOverview } from './metaAdsTypes';
+import type {
+  MetaAdsBudgetDraftResponse,
+  MetaAdsOverview,
+  MetaCampaignCreateDraft,
+  MetaCampaignCreateResponse,
+  MetaCampaign,
+} from './metaAdsTypes';
 
 const TIMEOUT_MS = 12000;
 
@@ -110,6 +116,14 @@ export async function applyMetaCampaignDailyBudget(params: {
 }): Promise<MetaAdsBudgetDraftResponse> {
   return edgePost<MetaAdsBudgetDraftResponse>('meta-ads-write', {
     action: 'apply-budget-update',
+    ...params,
+  });
+}
+
+// Campaign creation (draft mode always available; applied only when META_ADS_WRITE_ENABLED=true)
+export async function createMetaCampaign(params: MetaCampaignCreateDraft): Promise<MetaCampaignCreateResponse> {
+  return edgePost<MetaCampaignCreateResponse>('meta-ads-write', {
+    action: 'create-campaign',
     ...params,
   });
 }

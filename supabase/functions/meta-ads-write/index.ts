@@ -5,6 +5,7 @@ const ALLOWED_ORIGINS = [
   "https://arrudaimobi.com.br",
   "https://www.arrudaimobi.com.br",
   "https://arrudaimobi.vercel.app",
+  "https://arrudaimobi-9twwru1pa-diogoarrudaimoveis-archs-projects.vercel.app",
   "http://localhost:8080",
   "http://localhost:5173",
 ];
@@ -12,14 +13,21 @@ const META_API_VERSION = "v19.0";
 const META_BASE = `https://graph.facebook.com/${META_API_VERSION}`;
 const MIN_DAILY_BUDGET_CENTS = 500; // R$ 5,00
 const MAX_DAILY_BUDGET_CENTS = 1000000; // R$ 10.000,00
+const MIN_CAMPAIGN_NAME = 3;
+const MAX_CAMPAIGN_NAME = 128;
 
 type DraftRequest = {
-  action: "draft-budget-update" | "apply-budget-update";
-  campaignId: string;
+  action: "draft-budget-update" | "apply-budget-update" | "create-campaign";
+  campaignId?: string;
   campaignName?: string;
   currentDailyBudget?: string | null;
-  newDailyBudget: number;
+  newDailyBudget?: number;
   approvalId?: string;
+  // create-campaign fields
+  name?: string;
+  objective?: string;
+  dailyBudget?: number;
+  status?: string;
 };
 
 function cors(origin: string | null) {
@@ -68,7 +76,7 @@ function validateBudget(value: number) {
   return null;
 }
 function approvalHash(input: DraftRequest) {
-  const normalized = `${input.campaignId}:${input.currentDailyBudget ?? ""}:${input.newDailyBudget}`;
+  const normalized = `${input.campaignId ?? ""}:${input.currentDailyBudget ?? ""}:${input.newDailyBudget ?? ""}`;
   return btoa(normalized).replace(/=+$/g, "").slice(0, 18);
 }
 
@@ -79,6 +87,76 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json() as DraftRequest;
+
+    // ── CREATE CAMPAIGN ────────────────────────────────────────────────────────
+    if (body.action === "create-campaign") {
+      const name = (body.name ?? "").trim();
+      const objective = body.objective ?? "OUTCOME_LEADS";
+      const dailyBudget = body.dailyBudget ?? 0;
+      const status = body.status ?? "PAUSED";
+
+      if (name.length < MIN_CAMPAIGN_NAME) {
+        return new Response(JSON.stringify({ ok: false, error: `Nome deve ter pelo menos ${MIN_CAMPAIGN_NAME} caracteres` }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      if (name.length > MAX_CAMPAIGN_NAME) {
+        return new Response(JSON.stringify({ ok: false, error: `Nome deve ter no máximo ${MAX_CAMPAIGN_NAME} caracteres` }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      const budgetError = validateBudget(dailyBudget);
+      if (budgetError) return new Response(JSON.stringify({ ok: false, error: budgetError }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+      const manage = await canManageAds();
+
+      // Draft mode: just return what would be created
+      if (!manage || Deno.env.get("META_ADS_WRITE_ENABLED") !== "true") {
+        const draft = {
+          approvalId: approvalHash({ action: "create-campaign", name, objective, dailyBudget }),
+          name,
+          objective,
+          dailyBudget,
+          dailyBudgetCents: toCents(dailyBudget),
+          status,
+          canManageAds: manage,
+          risk: "Criação de campanha é uma ação irreversível. Requer aprovação explícita do Diogo.",
+        };
+        return new Response(JSON.stringify({ ok: true, mode: "draft", draft }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      // Real creation
+      const createPayload: Record<string, unknown> = {
+        name,
+        objective,
+        daily_budget: toCents(dailyBudget),
+        status: status.toUpperCase(),
+      };
+
+      const created = await metaFetch<{ id: string; name: string; status: string; effective_status: string }>(
+        `/${accountId()}/campaigns`,
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(createPayload) }
+      );
+
+      // Fetch full campaign data
+      const refreshed = await metaFetch<Record<string, unknown>>(
+        `/${created.id}?fields=id,name,status,effective_status,objective,daily_budget,start_time,stop_time`,
+        { method: "GET" }
+      );
+
+      return new Response(JSON.stringify({
+        ok: true,
+        mode: "applied",
+        campaign: {
+          id: created.id,
+          name: created.name ?? name,
+          status: created.status ?? status,
+          effectiveStatus: created.effective_status ?? status.toLowerCase(),
+          objective,
+          dailyBudget: String(dailyBudget),
+          dailyBudgetCents: toCents(dailyBudget),
+        },
+        raw: refreshed,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ── BUDGET UPDATE ──────────────────────────────────────────────────────────
     if (!body.campaignId || !body.newDailyBudget) {
       return new Response(JSON.stringify({ error: "campaignId e newDailyBudget são obrigatórios" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -123,6 +201,7 @@ Deno.serve(async (req) => {
     });
     const after = await metaFetch<Record<string, unknown>>(`/${body.campaignId}?fields=id,name,status,effective_status,daily_budget`);
     return new Response(JSON.stringify({ ok: true, mode: "applied", draft, result, after }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro interno";
     return new Response(JSON.stringify({ error: message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });

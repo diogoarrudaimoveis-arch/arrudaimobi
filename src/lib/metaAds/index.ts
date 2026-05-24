@@ -1,6 +1,7 @@
 // Meta Ads — Public API (READ-ONLY)
 export {
   applyMetaCampaignDailyBudget,
+  createMetaCampaign,
   draftMetaCampaignDailyBudget,
   getMetaAdsOverview,
   getMetaSetupChecklist,

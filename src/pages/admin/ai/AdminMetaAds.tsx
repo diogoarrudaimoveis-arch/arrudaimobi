@@ -25,6 +25,7 @@ import type {
 } from '@/lib/metaAds';
 import {
   applyMetaCampaignDailyBudget,
+  createMetaCampaign,
   draftMetaCampaignDailyBudget,
   getMetaAdsOverview,
   getMetaSetupChecklist,
@@ -48,6 +49,7 @@ import {
   Shield,
   Settings,
   Pencil,
+  Plus,
   RefreshCw,
   ShoppingCart,
   Users,
@@ -665,6 +667,168 @@ function BudgetEditModal({
 
 // ─── Section Collapsible ──────────────────────────────────────────────────────
 
+// ─── Campaign Creation Modal ─────────────────────────────────────────────────
+
+interface CreateCampaignForm {
+  name: string;
+  objective: string;
+  dailyBudget: string;
+  status: string;
+}
+
+function CreateCampaignModal({
+  open,
+  onOpenChange,
+  onCreated,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCreated: () => void;
+}) {
+  const [form, setForm] = useState<CreateCampaignForm>({
+    name: '',
+    objective: 'OUTCOME_LEADS',
+    dailyBudget: '',
+    status: 'PAUSED',
+  });
+  const [draft, setDraft] = useState<Record<string, unknown> | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      setForm({ name: '', objective: 'OUTCOME_LEADS', dailyBudget: '', status: 'PAUSED' });
+      setDraft(null);
+      setStatus(null);
+    }
+  }, [open]);
+
+  const newBudget = Number(String(form.dailyBudget).replace(',', '.'));
+  const invalidBudget = !Number.isFinite(newBudget) || newBudget < 5 || newBudget > 10000;
+  const invalidName = form.name.trim().length < 3;
+
+  async function handleCreate(preview = false) {
+    if (invalidName || invalidBudget) return;
+    setLoading(true);
+    setStatus(null);
+    try {
+      const result = await createMetaCampaign({
+        campaignName: form.name.trim(),
+        objective: form.objective,
+        dailyBudget: newBudget,
+        status: form.status,
+      });
+      if (result.ok) {
+        if (result.mode === 'draft') {
+          setDraft(result.draft ?? result);
+          setStatus('Rascunho criado — ação não foi aplicada na Meta.');
+        } else {
+          setStatus('Campanha criada com sucesso na Meta Ads!');
+          setTimeout(() => { onOpenChange(false); onCreated(); }, 1500);
+        }
+      } else {
+        setStatus(result.error ?? 'Erro ao criar campanha');
+      }
+    } catch (err) {
+      setStatus(err instanceof Error ? err.message : 'Erro ao criar campanha');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const objectiveLabels: Record<string, string> = {
+    OUTCOME_LEADS: 'Conversões / Leads',
+    OUTCOME_SALES: 'Vendas',
+    OUTCOME_AWARENESS: 'Reconhecimento',
+    OUTCOME_ENGAGEMENT: 'Engajamento',
+    OUTCOME_TRAFFIC: 'Tráfego',
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Criar Campanha</DialogTitle>
+          <DialogDescription>
+            Crie uma nova campanha de anúncios. Rascunho disponível mesmo sem write mode.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="cc-name">Nome da Campanha</Label>
+            <Input
+              id="cc-name"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder="Ex.: Imóveis 3 dorms — Junho 2025"
+              maxLength={128}
+            />
+            {invalidName && form.name.length > 0 && (
+              <p className="text-xs text-red-400">Nome deve ter pelo menos 3 caracteres</p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="cc-objective">Objetivo</Label>
+            <select
+              id="cc-objective"
+              className="flex h-10 w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm"
+              value={form.objective}
+              onChange={(e) => setForm({ ...form, objective: e.target.value })}
+            >
+              {Object.entries(objectiveLabels).map(([val, label]) => (
+                <option key={val} value={val}>{label}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="cc-budget">Orçamento Diário (R$)</Label>
+            <Input
+              id="cc-budget"
+              inputMode="decimal"
+              value={form.dailyBudget}
+              onChange={(e) => setForm({ ...form, dailyBudget: e.target.value })}
+              placeholder="Ex.: 25,00"
+            />
+            {invalidBudget && form.dailyBudget.length > 0 && (
+              <p className="text-xs text-red-400">Mínimo R$ 5,00 · máximo R$ 10.000,00</p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="cc-status">Status Inicial</Label>
+            <select
+              id="cc-status"
+              className="flex h-10 w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm"
+              value={form.status}
+              onChange={(e) => setForm({ ...form, status: e.target.value })}
+            >
+              <option value="PAUSED">Pausada (não veicula)</option>
+              <option value="ACTIVE">Ativa (veicula imediatamente)</option>
+            </select>
+          </div>
+          <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3 text-xs text-yellow-200">
+            <strong>Atenção:</strong> criar campanha é uma ação irreversível. Solicite aprovação do Diogo antes de executar.
+          </div>
+          {draft && (
+            <div className="rounded-lg border border-green-500/30 bg-green-500/5 p-3 text-xs text-green-200">
+              <p><strong>Approval ID:</strong> {String(draft.approvalId ?? '')}</p>
+              <p>Preview: {form.name} · R$ {newBudget.toFixed(2)}/dia · {form.status}</p>
+            </div>
+          )}
+          {status && <p className="text-sm text-muted-foreground">{status}</p>}
+        </div>
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button variant="outline" onClick={() => handleCreate(true)} disabled={loading || invalidName || invalidBudget}>
+            Gerar rascunho
+          </Button>
+          <Button onClick={() => handleCreate(false)} disabled={loading || invalidName || invalidBudget}>
+            {draft ? 'Criar na Meta' : 'Solicitar aprovação'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function CollapsibleSection({
   title,
   icon,
@@ -708,6 +872,7 @@ export default function AdminMetaAds() {
   const [error, setError] = useState<string | null>(null);
   const [refreshError, setRefreshError] = useState<string | null>(null);
   const [budgetCampaign, setBudgetCampaign] = useState<MetaCampaignWithInsights | null>(null);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
 
   async function fetchLiveMetaAds({ initial = false }: { initial?: boolean } = {}) {
     if (initial) setLoading(true);
@@ -726,6 +891,11 @@ export default function AdminMetaAds() {
       if (initial) setLoading(false);
       else setRefreshing(false);
     }
+  }
+
+  function handleCampaignCreated() {
+    fetchLiveMetaAds();
+    setCreateModalOpen(false);
   }
 
   useEffect(() => {
@@ -917,6 +1087,16 @@ export default function AdminMetaAds() {
             >
               <RefreshCw size={14} className={`mr-2 ${refreshing ? 'animate-spin' : ''}`} />
               {refreshing ? 'Atualizando...' : 'Atualizar agora'}
+            </Button>
+            <Button
+              type="button"
+              variant="default"
+              size="sm"
+              onClick={() => setCreateModalOpen(true)}
+              aria-label="Criar nova campanha na Meta Ads"
+            >
+              <Plus size={14} className="mr-2" />
+              Criar Campanha
             </Button>
             <HealthBadge status={health.status} />
             <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${canWriteMetaAds ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'}`}>
