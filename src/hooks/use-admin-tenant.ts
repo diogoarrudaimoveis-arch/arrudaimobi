@@ -49,5 +49,5 @@ export function useAdminTenant() {
     return merged;
   };
 
-  return { tenant: query.data, isLoading: query.isLoading, tenantId, getCurrentSettings, saveSettings, queryClient, toast };
+  return { tenant: query.data, isLoading: query.isLoading, tenantId, getCurrentSettings, saveSettings, queryClient, toast: sonnerToast };
 }

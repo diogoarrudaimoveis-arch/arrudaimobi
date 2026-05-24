@@ -7,6 +7,7 @@ interface ProtectedRouteProps {
   requireAdmin?: boolean;
   requireAgent?: boolean;
   requireOwner?: boolean;
+  requireDeveloper?: boolean;
 }
 
 /**
@@ -18,7 +19,7 @@ interface ProtectedRouteProps {
  * - Redirects to "/" if user doesn't have required admin access
  * - Developer role has full admin access (same as admin)
  */
-export function ProtectedRoute({ children, requireAdmin, requireAgent, requireOwner }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, requireAdmin, requireAgent, requireOwner, requireDeveloper }: ProtectedRouteProps) {
   const { user, isReady, isProfileLoading, normalizedRole, isAdmin, isAgent } = useAuth();
 
   console.log('[ProtectedRoute] render:', {
@@ -58,6 +59,12 @@ export function ProtectedRoute({ children, requireAdmin, requireAgent, requireOw
   // Agent required but user is not agent/admin
   if (requireAgent && !isAgent && !isAdmin) {
     console.log('[ProtectedRoute] NOT agent, redirect to /');
+    return <Navigate to="/" replace />;
+  }
+
+  // Developer required but user is not developer → redirect home
+  if (requireDeveloper && normalizedRole !== "developer") {
+    console.log('[ProtectedRoute] NOT developer (role=', normalizedRole, '), redirect to /');
     return <Navigate to="/" replace />;
   }
 

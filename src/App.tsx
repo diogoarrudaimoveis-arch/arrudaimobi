@@ -143,7 +143,7 @@ export function App() {
                           <Route path="/admin/configuracoes-ia" element={<ErrorBoundary section="AdminAIConfig"><ProtectedRoute requireAdmin><AdminAIConfig /></ProtectedRoute></ErrorBoundary>} />
                           <Route path="/admin/tipos" element={<ErrorBoundary section="AdminPropertyTypes"><ProtectedRoute requireAdmin><AdminPropertyTypes /></ProtectedRoute></ErrorBoundary>} />
                           <Route path="/admin/comodidades" element={<ErrorBoundary section="AdminAmenities"><ProtectedRoute requireAdmin><AdminAmenities /></ProtectedRoute></ErrorBoundary>} />
-                          <Route path="/admin/mostruario" element={<ErrorBoundary section="AdminMostruario"><ProtectedRoute requireAdmin><AdminMostruario /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/mostruario" element={<ErrorBoundary section="AdminMostruario"><ProtectedRoute requireDeveloper><AdminMostruario /></ProtectedRoute></ErrorBoundary>} />
                           <Route path="/admin/performance" element={<ErrorBoundary section="AdminPerformance"><ProtectedRoute requireAdmin><AdminPropertyPerformance /></ProtectedRoute></ErrorBoundary>} />
                           <Route path="/admin/operacional" element={<ErrorBoundary section="AdminAIOperational"><ProtectedRoute requireAdmin><AdminAIOperational /></ProtectedRoute></ErrorBoundary>} />
                           <Route path="/admin/agentes" element={<ErrorBoundary section="AdminAIAgents"><ProtectedRoute requireAdmin><AdminAIAgents /></ProtectedRoute></ErrorBoundary>} />
