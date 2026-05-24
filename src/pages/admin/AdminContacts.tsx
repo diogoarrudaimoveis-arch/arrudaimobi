@@ -280,7 +280,6 @@ function LeadTableRow({ lead, onDelete }: { lead: any; onDelete: (id: number) =>
 
 export default function AdminContacts() {
   const { tenantId, isReady } = useAuth();
-  const { toast } = useToast();
 
   // View mode
   const [viewMode, setViewMode] = useState<"kanban" | "table">("kanban");
