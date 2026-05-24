@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
+import { sonnerToast } from "@/components/ui/sonner";
 import { formatCurrency } from "@/lib/format";
 import { fetchImageAsFile, getStoragePathFromUrl, processImageWithWatermark } from "@/lib/image-compression";
 import { Plus, Pencil, Trash2, Loader2, Home, ImageIcon, Search, HelpCircle, X } from "lucide-react";
@@ -36,7 +36,6 @@ const DEFAULT_PAGE_SIZE = 10;
 
 const AdminProperties = () => {
   const { tenantId, user, isReady, isAdmin } = useAuth();
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   
   // Estados do Modal Assistente de IA
@@ -84,7 +83,7 @@ const AdminProperties = () => {
   const handleCepLookup = useCallback(async (cep: string) => {
     const cleanCep = (cep || "").replace(/\D/g, "");
     if (cleanCep.length !== 8) {
-      toast({ title: "CEP inválido", description: "Digite um CEP com 8 dígitos", variant: "destructive" });
+      sonnerToast({ title: "CEP inválido", description: "Digite um CEP com 8 dígitos", variant: "destructive" });
       return;
     }
     setFetchingCep(true);
@@ -92,7 +91,7 @@ const AdminProperties = () => {
       const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
       const data = await res.json();
       if (data.erro) {
-        toast({ title: "CEP não encontrado", variant: "destructive" });
+        sonnerToast({ title: "CEP não encontrado", variant: "destructive" });
         return;
       }
       // Precedência de Estado: atualizamos primeiro o UF para disparar o IBGE
@@ -111,13 +110,13 @@ const AdminProperties = () => {
         }));
       }, 500);
 
-      toast({ title: "Endereço preenchido!" });
+      sonnerToast({ title: "Endereço preenchido!" });
     } catch {
-      toast({ title: "Erro ao buscar CEP", variant: "destructive" });
+      sonnerToast({ title: "Erro ao buscar CEP", variant: "destructive" });
     } finally {
       setFetchingCep(false);
     }
-  }, [toast]);
+  }, []);
 
   const [form, setForm] = useState({
     title: "", 
@@ -491,16 +490,16 @@ const AdminProperties = () => {
     onSuccess: (id: string) => {
       queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
       if (editingId) {
-        toast({ title: "Imóvel atualizado!" });
+        sonnerToast({ title: "Imóvel atualizado!" });
         resetForm();
         setDialogOpen(false);
       } else {
-        toast({ title: "Imóvel criado! Agora adicione as imagens." });
+        sonnerToast({ title: "Imóvel criado! Agora adicione as imagens." });
         setEditingId(id);
       }
     },
     onError: (err: any) => {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      sonnerToast({ title: "Erro", description: err.message, variant: "destructive" });
     },
     onSettled: () => {
       setIsImageProcessing(false);
@@ -514,7 +513,7 @@ const AdminProperties = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
-      toast({ title: "Imóvel removido" });
+      sonnerToast({ title: "Imóvel removido" });
     },
   });
 
