@@ -122,7 +122,7 @@ const AdminPlanosLimites = () => {
       const data = await resp.json();
       const parsed = data.map((p: any) => ({
         ...p,
-        limits: typeof p.limits === "string" ? JSON.parse(p.limits) : (p.limits || EMPTY_LIMITS),
+        limits: typeof p.limits === "string" ? JSON.parse(p.limits) : (p.limits || p.limits === null ? p.limits : EMPTY_LIMITS),
       }));
       setPlans(parsed);
     } catch (e) {

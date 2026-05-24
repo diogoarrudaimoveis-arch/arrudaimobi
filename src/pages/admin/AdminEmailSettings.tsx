@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
+import { sonnerToast } from "@/components/ui/sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -34,8 +34,7 @@ const DEFAULT_HTML = `<!DOCTYPE html>
 </html>`;
 
 export default function AdminEmailSettings() {
-  const { toast } = useToast();
-  const { session } = useAuth();
+    const { session } = useAuth();
 
   // SMTP fields
   const [host, setHost] = useState("");
@@ -117,11 +116,11 @@ export default function AdminEmailSettings() {
         setProductHtml(isOldProductTemplate || !savedHtml ? DEFAULT_HTML : savedHtml);
         setHasPassword(settings.has_password || false);
         setConnectionStatus(settings.has_password ? "connected" : "idle");
-        toast({ title: "Configurações carregadas com sucesso!" });
+        sonnerToast({ title: "Configurações carregadas com sucesso!" });
       }
     } catch (error) {
       const message = await getInvokeErrorMessage(error, "Erro ao carregar configurações");
-      toast({ title: message, variant: "destructive" });
+      sonnerToast({ title: message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -129,15 +128,15 @@ export default function AdminEmailSettings() {
 
   async function handleSave() {
     if (!host || !port || !username || !senderEmail || !senderName) {
-      toast({ title: "Preencha todos os campos obrigatórios", variant: "destructive" });
+      sonnerToast({ title: "Preencha todos os campos obrigatórios", variant: "destructive" });
       return;
     }
     if (!hasPassword && !password) {
-      toast({ title: "Senha SMTP é obrigatória na primeira configuração", variant: "destructive" });
+      sonnerToast({ title: "Senha SMTP é obrigatória na primeira configuração", variant: "destructive" });
       return;
     }
     if (!session?.access_token) {
-      toast({ title: "Sessão inválida. Faça login novamente.", variant: "destructive" });
+      sonnerToast({ title: "Sessão inválida. Faça login novamente.", variant: "destructive" });
       return;
     }
 
@@ -160,13 +159,13 @@ export default function AdminEmailSettings() {
 
       if (error) throw error;
 
-      toast({ title: "Configurações salvas com sucesso!" });
+      sonnerToast({ title: "Configurações salvas com sucesso!" });
       setHasPassword(true);
       setPassword("");
       setConnectionStatus("connected");
     } catch (error) {
       const message = await getInvokeErrorMessage(error, "Erro ao salvar");
-      toast({ title: message, variant: "destructive" });
+      sonnerToast({ title: message, variant: "destructive" });
       setConnectionStatus("error");
     } finally {
       setSaving(false);
@@ -175,7 +174,7 @@ export default function AdminEmailSettings() {
 
   async function handleTest() {
     if (!session?.access_token) {
-      toast({ title: "Sessão inválida. Faça login novamente.", variant: "destructive" });
+      sonnerToast({ title: "Sessão inválida. Faça login novamente.", variant: "destructive" });
       return;
     }
 
@@ -191,12 +190,12 @@ export default function AdminEmailSettings() {
       if (error) throw error;
 
       const payload = data as { message?: string } | null;
-      toast({ title: payload?.message || "E-mail de teste enviado!" });
+      sonnerToast({ title: payload?.message || "E-mail de teste enviado!" });
       setConnectionStatus("connected");
     } catch (error) {
       console.error("SMTP test error:", error);
       const message = await getInvokeErrorMessage(error, "Erro no teste SMTP");
-      toast({ title: message, variant: "destructive" });
+      sonnerToast({ title: message, variant: "destructive" });
       setConnectionStatus("error");
     } finally {
       setTesting(false);
