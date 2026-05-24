@@ -4,6 +4,7 @@ import { usePropertyTypes, useCities } from "@/hooks/use-properties";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 
 interface SearchBarProps {
@@ -36,8 +37,54 @@ export function SearchBar({ filters, onFiltersChange, compact = false }: SearchB
     });
   };
 
+  const quickTypes = (propertyTypes || [])
+    .filter(t => t.active)
+    .slice(0, 6);
+
+  const isQuickTypeActive = (typeName: string) => filters.type === typeName;
+
+  const toggleQuickType = (typeName: string) => {
+    if (isQuickTypeActive(typeName)) {
+      updateFilter("type", "");
+    } else {
+      updateFilter("type", typeName);
+    }
+  };
+
   return (
     <div className="w-full space-y-3">
+      {/* Quick filter chips — popular property types */}
+      {!compact && quickTypes.length > 0 && (
+        <div className="flex flex-wrap gap-2 animate-fade-in">
+          {quickTypes.map((type) => {
+            const active = isQuickTypeActive(type.name);
+            return (
+              <Badge
+                key={type.id}
+                variant={active ? "default" : "outline"}
+                className={`cursor-pointer px-3 py-1.5 text-xs font-medium transition-all hover:scale-105 ${
+                  active ? "bg-primary text-primary-foreground shadow-sm" : "bg-card hover:bg-accent"
+                }`}
+                onClick={() => toggleQuickType(type.name)}
+              >
+                {type.name}
+              </Badge>
+            );
+          })}
+          {(filters.type || filters.purpose) && (
+            <Badge
+              variant="secondary"
+              className="cursor-pointer px-3 py-1.5 text-xs font-medium bg-destructive/10 text-destructive hover:bg-destructive/20 transition-all hover:scale-105"
+              onClick={resetFilters}
+            >
+              <X className="h-3 w-3 mr-1" />
+              Limpar filtros
+            </Badge>
+          )}
+        </div>
+      )}
+
+      {/* Main search row */}
       <div className={`flex flex-col gap-2 ${compact ? "sm:flex-row" : "md:flex-row"}`}>
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -77,13 +124,15 @@ export function SearchBar({ filters, onFiltersChange, compact = false }: SearchB
           size="icon"
           onClick={() => setShowAdvanced(!showAdvanced)}
           className="shrink-0"
+          aria-label="Filtros avançados"
         >
           <SlidersHorizontal className="h-4 w-4" />
         </Button>
       </div>
 
+      {/* Advanced filters panel */}
       {showAdvanced && (
-        <div className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card p-4">
+        <div className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card p-4 animate-fade-in">
           <div className="min-w-0 flex-1 sm:min-w-[160px]">
             <label className="mb-1 block text-xs font-medium text-muted-foreground">Cidade</label>
             <Select value={filters.city || "all"} onValueChange={(v) => updateFilter("city", v === "all" ? "" : v)}>
