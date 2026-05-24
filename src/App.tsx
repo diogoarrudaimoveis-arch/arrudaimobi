@@ -135,33 +135,33 @@ export function App() {
                               <ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>
                             </ErrorBoundary>
                           } />
-                          <Route path="/admin/imoveis" element={<ProtectedRoute requireAdmin><AdminProperties /></ProtectedRoute>} />
-                          <Route path="/admin/imoveis/:id" element={<ProtectedRoute requireAdmin><AdminProperties /></ProtectedRoute>} />
-                          <Route path="/admin/corretores" element={<ProtectedRoute requireAdmin><AdminAgents /></ProtectedRoute>} />
-                          <Route path="/admin/proprietarios" element={<ProtectedRoute requireAdmin><AdminOwners /></ProtectedRoute>} />
-                          <Route path="/admin/configuracoes-ia" element={<ProtectedRoute requireAdmin><AdminAIConfig /></ProtectedRoute>} />
-                          <Route path="/admin/tipos" element={<ProtectedRoute requireAdmin><AdminPropertyTypes /></ProtectedRoute>} />
-                          <Route path="/admin/comodidades" element={<ProtectedRoute requireAdmin><AdminAmenities /></ProtectedRoute>} />
-                          <Route path="/admin/mostruario" element={<ProtectedRoute requireAdmin><AdminMostruario /></ProtectedRoute>} />
-                          <Route path="/admin/performance" element={<ProtectedRoute requireAdmin><AdminPropertyPerformance /></ProtectedRoute>} />
-                          <Route path="/admin/operacional" element={<ProtectedRoute requireAdmin><AdminAIOperational /></ProtectedRoute>} />
-                          <Route path="/admin/agentes" element={<ProtectedRoute requireAdmin><AdminAIAgents /></ProtectedRoute>} />
-                          <Route path="/admin/automacoes" element={<ProtectedRoute requireAdmin><AdminAIAutomations /></ProtectedRoute>} />
-                          <Route path="/admin/logs" element={<ProtectedRoute requireAdmin><AdminAILogs /></ProtectedRoute>} />
-                          <Route path="/admin/saude" element={<ProtectedRoute requireAdmin><AdminAIHealth /></ProtectedRoute>} />
-                          <Route path="/admin/alertas" element={<ProtectedRoute requireAdmin><AdminAIAlerts /></ProtectedRoute>} />
-                          <Route path="/admin/telemetria" element={<ProtectedRoute requireAdmin><AdminAITelemetry /></ProtectedRoute>} />
-                          <Route path="/admin/devops" element={<ProtectedRoute requireAdmin><AdminDevOps /></ProtectedRoute>} />
-                          <Route path="/admin/n8n-workflows" element={<ProtectedRoute requireAdmin><AdminN8NWorkflows /></ProtectedRoute>} />
-                          <Route path="/admin/meta-ads" element={<ProtectedRoute requireAdmin><AdminMetaAds /></ProtectedRoute>} />
-                          <Route path="/admin/supabase-monitor" element={<ProtectedRoute requireAdmin><AdminSupabaseMonitor /></ProtectedRoute>} />
-                          <Route path="/admin/agenda" element={<ProtectedRoute><AdminAgenda /></ProtectedRoute>} />
-                          <Route path="/admin/contatos" element={<ProtectedRoute><AdminContacts /></ProtectedRoute>} />
-                          <Route path="/admin/mensagens" element={<ProtectedRoute><AdminMessages /></ProtectedRoute>} />
-                          <Route path="/admin/perfil" element={<ProtectedRoute><AdminProfile /></ProtectedRoute>} />
-                          <Route path="/admin/email" element={<ProtectedRoute requireAdmin><AdminEmailSettings /></ProtectedRoute>} />
-                          <Route path="/admin/permissoes-menu" element={<ProtectedRoute requireAdmin><AdminMenuPermissions /></ProtectedRoute>} />
-                          <Route path="/admin/configuracoes" element={<ProtectedRoute requireAdmin><AdminSettings /></ProtectedRoute>} />
+                          <Route path="/admin/imoveis" element={<ErrorBoundary section="AdminProperties"><ProtectedRoute requireAdmin><AdminProperties /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/imoveis/:id" element={<ErrorBoundary section="AdminProperties"><ProtectedRoute requireAdmin><AdminProperties /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/corretores" element={<ErrorBoundary section="AdminAgents"><ProtectedRoute requireAdmin><AdminAgents /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/proprietarios" element={<ErrorBoundary section="AdminOwners"><ProtectedRoute requireAdmin><AdminOwners /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/configuracoes-ia" element={<ErrorBoundary section="AdminAIConfig"><ProtectedRoute requireAdmin><AdminAIConfig /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/tipos" element={<ErrorBoundary section="AdminPropertyTypes"><ProtectedRoute requireAdmin><AdminPropertyTypes /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/comodidades" element={<ErrorBoundary section="AdminAmenities"><ProtectedRoute requireAdmin><AdminAmenities /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/mostruario" element={<ErrorBoundary section="AdminMostruario"><ProtectedRoute requireAdmin><AdminMostruario /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/performance" element={<ErrorBoundary section="AdminPerformance"><ProtectedRoute requireAdmin><AdminPropertyPerformance /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/operacional" element={<ErrorBoundary section="AdminAIOperational"><ProtectedRoute requireAdmin><AdminAIOperational /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/agentes" element={<ErrorBoundary section="AdminAIAgents"><ProtectedRoute requireAdmin><AdminAIAgents /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/automacoes" element={<ErrorBoundary section="AdminAIAutomations"><ProtectedRoute requireAdmin><AdminAIAutomations /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/logs" element={<ErrorBoundary section="AdminAILogs"><ProtectedRoute requireAdmin><AdminAILogs /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/saude" element={<ErrorBoundary section="AdminAIHealth"><ProtectedRoute requireAdmin><AdminAIHealth /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/alertas" element={<ErrorBoundary section="AdminAIAlerts"><ProtectedRoute requireAdmin><AdminAIAlerts /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/telemetria" element={<ErrorBoundary section="AdminAITelemetry"><ProtectedRoute requireAdmin><AdminAITelemetry /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/devops" element={<ErrorBoundary section="AdminDevOps"><ProtectedRoute requireAdmin><AdminDevOps /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/n8n-workflows" element={<ErrorBoundary section="AdminN8NWorkflows"><ProtectedRoute requireAdmin><AdminN8NWorkflows /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/meta-ads" element={<ErrorBoundary section="AdminMetaAds"><ProtectedRoute requireAdmin><AdminMetaAds /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/supabase-monitor" element={<ErrorBoundary section="AdminSupabaseMonitor"><ProtectedRoute requireAdmin><AdminSupabaseMonitor /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/agenda" element={<ErrorBoundary section="AdminAgenda"><ProtectedRoute><AdminAgenda /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/contatos" element={<ErrorBoundary section="AdminContacts"><ProtectedRoute><AdminContacts /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/mensagens" element={<ErrorBoundary section="AdminMessages"><ProtectedRoute><AdminMessages /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/perfil" element={<ErrorBoundary section="AdminProfile"><ProtectedRoute><AdminProfile /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/email" element={<ErrorBoundary section="AdminEmailSettings"><ProtectedRoute requireAdmin><AdminEmailSettings /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/permissoes-menu" element={<ErrorBoundary section="AdminMenuPermissions"><ProtectedRoute requireAdmin><AdminMenuPermissions /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/configuracoes" element={<ErrorBoundary section="AdminSettings"><ProtectedRoute requireAdmin><AdminSettings /></ProtectedRoute></ErrorBoundary>} />
                           <Route path="/blog" element={<Blog />} />
                           <Route path="/blog/:slug" element={<BlogPost />} />
                           <Route path="*" element={<NotFound />} />
