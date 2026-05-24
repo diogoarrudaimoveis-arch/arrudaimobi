@@ -19,28 +19,29 @@ import { useTheme } from "next-themes";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
 
 // Menu items with permission flags
+// RULES: developer=everything, admin=all EXCEPT techOnly+developerOnly, agent/user=no flags
 const allMenuItems: AdminMenuItem[] = [
-  // Principal
+  // Principal — visible to all authenticated users
   { key: "dashboard", label: "Dashboard", path: "/admin", icon: LayoutDashboard, section: "Principal" },
   { key: "owners", label: "Proprietários", path: "/admin/proprietarios", icon: Users, section: "Principal" },
   { key: "properties", label: "Imóveis", path: "/admin/imoveis", icon: Home, section: "Principal" },
   { key: "agenda", label: "Agenda", path: "/admin/agenda", icon: CalendarIcon, section: "Principal" },
-  // Gestão Básica
+  // Gestão Básica — visible to admin and developer
   { key: "agents", label: "Agentes", path: "/admin/corretores", icon: Users, section: "Gestão Básica" },
   { key: "property-types", label: "Tipos de Imóvel", path: "/admin/tipos", icon: Tag, section: "Gestão Básica" },
   { key: "amenities", label: "Comodidades", path: "/admin/comodidades", icon: Sparkles, section: "Gestão Básica" },
   { key: "media", label: "Biblioteca de Mídias", path: "/admin/midias", icon: Image, section: "Gestão Básica" },
   { key: "blog", label: "Blog", path: "/admin/blog", icon: FileText, section: "Gestão Básica" },
-  { key: "mostruario", label: "Mostruário", path: "/admin/mostruario", icon: LayoutGrid, section: "Gestão Básica", developerOnly: true },
-  // CRM & Atendimento
+  { key: "mostruario", label: "Mostruário", path: "/admin/mostruario", icon: LayoutGrid, section: "Gestão Básica", techOnly: true },
+  // CRM & Atendimento — visible to all authenticated users
   { key: "contacts", label: "Contatos", path: "/admin/contatos", icon: MessageSquare, section: "CRM & Atendimento" },
   { key: "messages", label: "Mensagens", path: "/admin/mensagens", icon: Send, section: "CRM & Atendimento" },
-  // Marketing Digital
+  // Marketing Digital — admin and developer only (techOnly)
   { key: "ai-config", label: "Configurações de IA", path: "/admin/configuracoes-ia", icon: Sparkles, section: "Marketing Digital", techOnly: true },
-  { key: "portals", label: "Portais Imobiliários", path: "/admin/portais", icon: Globe, section: "Marketing Digital", adminOnly: true },
-  { key: "tracking", label: "Rastreamento do Portal", path: "/admin/marketing-portal", icon: Target, section: "Marketing Digital", adminOnly: true },
-  { key: "performance", label: "Performance de Imóveis", path: "/admin/performance", icon: BarChart3, section: "Marketing Digital", adminOnly: true },
-  // IA Operacional — all techOnly
+  { key: "portals", label: "Portais Imobiliários", path: "/admin/portais", icon: Globe, section: "Marketing Digital", techOnly: true },
+  { key: "tracking", label: "Rastreamento do Portal", path: "/admin/marketing-portal", icon: Target, section: "Marketing Digital", techOnly: true },
+  { key: "performance", label: "Performance de Imóveis", path: "/admin/performance", icon: BarChart3, section: "Marketing Digital", techOnly: true },
+  // IA Operacional — techOnly (developer only)
   { key: "central-ai", label: "Central IA", path: "/admin/operacional", icon: BrainCircuit, section: "IA Operacional", techOnly: true },
   { key: "ai-agents", label: "Agentes IA", path: "/admin/agentes", icon: Bot, section: "IA Operacional", techOnly: true },
   { key: "n8n", label: "Automações N8N", path: "/admin/automacoes", icon: Workflow, section: "IA Operacional", techOnly: true },
@@ -49,12 +50,12 @@ const allMenuItems: AdminMenuItem[] = [
   { key: "devops", label: "DevOps", path: "/admin/devops", icon: GitBranch, section: "IA Operacional", techOnly: true },
   { key: "meta-ads", label: "Meta Ads", path: "/admin/meta-ads", icon: Target, section: "IA Operacional", techOnly: true },
   { key: "supabase", label: "Supabase", path: "/admin/supabase-monitor", icon: Database, section: "IA Operacional", techOnly: true },
-  // Sistema
+  // Sistema — mixed
   { key: "profile", label: "Meu Perfil", path: "/admin/perfil", icon: User, section: "Sistema" },
   { key: "email-config", label: "Config. E-mail", path: "/admin/email", icon: Sparkles, section: "Sistema", adminOnly: true },
   { key: "settings", label: "Configurações", path: "/admin/configuracoes", icon: Settings, section: "Sistema", adminOnly: true },
-  { key: "menu-permissions", label: "Permissões de Menu", path: "/admin/permissoes-menu", icon: Shield, section: "Sistema", adminOnly: true },
-  // Desenvolvedor
+  { key: "menu-permissions", label: "Permissões de Menu", path: "/admin/permissoes-menu", icon: Shield, section: "Sistema", techOnly: true },
+  // Desenvolvedor — developer only
   { key: "planos-limites", label: "Planos e Limites", path: "/admin/planos-limites", icon: CreditCard, section: "Desenvolvedor", developerOnly: true },
 ];
 
