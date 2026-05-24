@@ -17,16 +17,31 @@ const SUPABASE_URL = "https://udutxbyzrdwucabxqvgg.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkdXR4Ynl6cmR3dWNhYnhxdmdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3ODQ4NjUsImV4cCI6MjA5MTM2MDg2NX0.UjjlVpTn7mCbCQg3tlvK3Sn-ZsNCDNoX28woozbZA2A";
 
 interface PlanLimits {
+  // Limites quantitativos
   properties: number;
   agents: number;
   contacts: number;
   storage_gb: number;
   api_calls_monthly: number;
   portals: number;
+  leads_per_month: number;
+  whatsapp_messages_monthly: number;
+  // Funcionalidades liberadas
   ia_operacional: boolean;
   devops_access: boolean;
   mostruario: boolean;
   white_label: boolean;
+  // Imobiliária
+  whatsapp_business: boolean;
+  chatbot_ia: boolean;
+  portal_corretor: boolean;
+  visitor_capture: boolean;
+  analytics_dashboard: boolean;
+  email_marketing: boolean;
+  pipeline_crm: boolean;
+  agenda_integrada: boolean;
+  documentos_digitais: boolean;
+  integracao_zap: boolean;
 }
 
 interface Plan {
@@ -37,6 +52,7 @@ interface Plan {
   annual_price: number;
   limits: PlanLimits;
   gateway_plan_id?: string;
+  gateway_api_key?: string;
   is_active: boolean;
   created_at?: string;
 }
@@ -48,10 +64,22 @@ const EMPTY_LIMITS: PlanLimits = {
   storage_gb: 5,
   api_calls_monthly: 1000,
   portals: 1,
+  leads_per_month: 50,
+  whatsapp_messages_monthly: 500,
   ia_operacional: true,
   devops_access: false,
   mostruario: false,
   white_label: false,
+  whatsapp_business: false,
+  chatbot_ia: false,
+  portal_corretor: false,
+  visitor_capture: false,
+  analytics_dashboard: false,
+  email_marketing: false,
+  pipeline_crm: false,
+  agenda_integrada: false,
+  documentos_digitais: false,
+  integracao_zap: false,
 };
 
 const EMPTY_FORM: Partial<Plan> = {
@@ -122,6 +150,8 @@ const AdminPlanosLimites = () => {
       monthly_price: plan.monthly_price,
       annual_price: plan.annual_price,
       limits: { ...plan.limits },
+      gateway_plan_id: plan.gateway_plan_id || "",
+      gateway_api_key: plan.gateway_api_key || "",
       is_active: plan.is_active,
     });
     setDialogOpen(true);
@@ -157,6 +187,8 @@ const AdminPlanosLimites = () => {
       monthly_price: Number(form.monthly_price) || 0,
       annual_price: Number(form.annual_price) || 0,
       limits: JSON.stringify(form.limits || EMPTY_LIMITS),
+      gateway_plan_id: form.gateway_plan_id || null,
+      gateway_api_key: form.gateway_api_key || null,
       is_active: true,
     };
     const resp = await fetch(`${SUPABASE_URL}/rest/v1/plans`, {
@@ -187,6 +219,8 @@ const AdminPlanosLimites = () => {
       monthly_price: Number(form.monthly_price) || 0,
       annual_price: Number(form.annual_price) || 0,
       limits: JSON.stringify(form.limits || EMPTY_LIMITS),
+      gateway_plan_id: form.gateway_plan_id || null,
+      gateway_api_key: form.gateway_api_key || null,
       is_active: form.is_active,
     };
     const resp = await fetch(`${SUPABASE_URL}/rest/v1/plans?id=eq.${editingPlan.id}`, {
@@ -277,12 +311,11 @@ const AdminPlanosLimites = () => {
             <CreditCard className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
             <div>
               <p className="font-medium text-blue-700 dark:text-blue-300">
-                Integração Asaas — Configurar em Permissões de Menu
+                Integração Asaas — Gateway de Pagamento
               </p>
               <p className="text-sm text-blue-600/70 dark:text-blue-400/70 mt-0.5">
-                Para ativar pagamentos automáticos, configure a API Key do Asaas na página{" "}
-                <span className="font-medium">Permissões de Menu</span>. A integração usa o
-                gateway Asaas para cobraanças recorrentes via cartão, boleto ou PIX.
+                Configure a API Key e o ID do plano Asaas ao criar/editar cada plano abaixo.
+                O Asaas permite cobranças recorrentes via cartão, boleto ou PIX.
               </p>
             </div>
           </CardContent>
@@ -441,45 +474,51 @@ CREATE POLICY "Allow all" ON plans FOR ALL USING (true) WITH CHECK (true);`}
             <CardTitle className="text-base">Resumo de Limites por Plano</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {plans.map((plan) => (
-                <div
-                  key={plan.id}
-                  className="p-3 border rounded-lg space-y-1"
-                >
-                  <div className="flex items-center justify-between">
-                    <p className="font-medium text-sm">{plan.name}</p>
-                    {plan.is_active ? (
-                      <span className="h-2 w-2 rounded-full bg-green-500" />
-                    ) : (
-                      <span className="h-2 w-2 rounded-full bg-slate-300" />
+            {plans.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">Crie um plano para ver o resumo aqui.</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {plans.map((plan) => (
+                  <div key={plan.id} className="p-4 border rounded-lg space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="font-semibold text-sm">{plan.name}</p>
+                      {plan.is_active ? (
+                        <span className="h-2 w-2 rounded-full bg-green-500" />
+                      ) : (
+                        <span className="h-2 w-2 rounded-full bg-slate-300" />
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
+                      <span>Imóveis:</span> <span className="font-medium">{plan.limits?.properties ?? 0}</span>
+                      <span>Agentes:</span> <span className="font-medium">{plan.limits?.agents ?? 0}</span>
+                      <span>Contatos:</span> <span className="font-medium">{plan.limits?.contacts ?? 0}</span>
+                      <span>Armazenamento:</span> <span className="font-medium">{plan.limits?.storage_gb ?? 0} GB</span>
+                      <span>Leads/mês:</span> <span className="font-medium">{plan.limits?.leads_per_month ?? 50}</span>
+                      <span>WhatsApp:</span> <span className="font-medium">{plan.limits?.whatsapp_messages_monthly ?? 500}</span>
+                    </div>
+                    <div className="pt-2 border-t mt-2 grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
+                      <span>Pipeline CRM:</span><span><FeatureCheck checked={!!plan.limits?.pipeline_crm} /></span>
+                      <span>Agenda:</span><span><FeatureCheck checked={!!plan.limits?.agenda_integrada} /></span>
+                      <span>WhatsApp:</span><span><FeatureCheck checked={!!plan.limits?.whatsapp_business} /></span>
+                      <span>Chatbot IA:</span><span><FeatureCheck checked={!!plan.limits?.chatbot_ia} /></span>
+                      <span>Portal Corretor:</span><span><FeatureCheck checked={!!plan.limits?.portal_corretor} /></span>
+                      <span>Analytics:</span><span><FeatureCheck checked={!!plan.limits?.analytics_dashboard} /></span>
+                      <span>E-mail Mkt:</span><span><FeatureCheck checked={!!plan.limits?.email_marketing} /></span>
+                      <span>Docs Digitais:</span><span><FeatureCheck checked={!!plan.limits?.documentos_digitais} /></span>
+                      <span>IA Operacional:</span><span><FeatureCheck checked={!!plan.limits?.ia_operacional} /></span>
+                      <span>DevOps:</span><span><FeatureCheck checked={!!plan.limits?.devops_access} /></span>
+                      <span>Mostruário:</span><span><FeatureCheck checked={!!plan.limits?.mostruario} /></span>
+                      <span>White Label:</span><span><FeatureCheck checked={!!plan.limits?.white_label} /></span>
+                    </div>
+                    {plan.gateway_plan_id && (
+                      <p className="text-xs text-muted-foreground pt-1">
+                        Asaas: {plan.gateway_plan_id}
+                      </p>
                     )}
                   </div>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
-                    <span>Imóveis:</span> <span className="font-medium">{plan.limits?.properties ?? 0}</span>
-                    <span>Agentes:</span> <span className="font-medium">{plan.limits?.agents ?? 0}</span>
-                    <span>Contatos:</span> <span className="font-medium">{plan.limits?.contacts ?? 0}</span>
-                    <span>Armazenamento:</span> <span className="font-medium">{plan.limits?.storage_gb ?? 0} GB</span>
-                    <span>IA Operacional:</span>
-                    <span>
-                      <FeatureCheck checked={!!plan.limits?.ia_operacional} />
-                    </span>
-                    <span>DevOps/Meta Ads:</span>
-                    <span>
-                      <FeatureCheck checked={!!plan.limits?.devops_access} />
-                    </span>
-                    <span>Mostruário:</span>
-                    <span>
-                      <FeatureCheck checked={!!plan.limits?.mostruario} />
-                    </span>
-                    <span>White Label:</span>
-                    <span>
-                      <FeatureCheck checked={!!plan.limits?.white_label} />
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </AdminPageShell>
@@ -619,6 +658,26 @@ CREATE POLICY "Allow all" ON plans FOR ALL USING (true) WITH CHECK (true);`}
                     onChange={(e) => handleFormChange("limits.portals", parseInt(e.target.value) || 0)}
                   />
                 </div>
+                <div>
+                  <Label htmlFor="lim-leads">Leads/mês</Label>
+                  <Input
+                    id="lim-leads"
+                    type="number"
+                    min="0"
+                    value={form.limits?.leads_per_month ?? 50}
+                    onChange={(e) => handleFormChange("limits.leads_per_month", parseInt(e.target.value) || 0)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="lim-whatsapp">Mensagens WhatsApp/mês</Label>
+                  <Input
+                    id="lim-whatsapp"
+                    type="number"
+                    min="0"
+                    value={form.limits?.whatsapp_messages_monthly ?? 500}
+                    onChange={(e) => handleFormChange("limits.whatsapp_messages_monthly", parseInt(e.target.value) || 0)}
+                  />
+                </div>
               </div>
             </div>
 
@@ -629,13 +688,121 @@ CREATE POLICY "Allow all" ON plans FOR ALL USING (true) WITH CHECK (true);`}
                 <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-muted/30">
                   <input
                     type="checkbox"
+                    checked={form.limits?.pipeline_crm ?? false}
+                    onChange={(e) => handleFormChange("limits.pipeline_crm", e.target.checked)}
+                    className="rounded"
+                  />
+                  <div>
+                    <p className="text-sm font-medium">Pipeline CRM</p>
+                    <p className="text-xs text-muted-foreground">Kanban de leads, etapas,-tags</p>
+                  </div>
+                </label>
+                <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-muted/30">
+                  <input
+                    type="checkbox"
+                    checked={form.limits?.agenda_integrada ?? true}
+                    onChange={(e) => handleFormChange("limits.agenda_integrada", e.target.checked)}
+                    className="rounded"
+                  />
+                  <div>
+                    <p className="text-sm font-medium">Agenda Integrada</p>
+                    <p className="text-xs text-muted-foreground">Agendamentos e visitas</p>
+                  </div>
+                </label>
+                <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-muted/30">
+                  <input
+                    type="checkbox"
+                    checked={form.limits?.whatsapp_business ?? false}
+                    onChange={(e) => handleFormChange("limits.whatsapp_business", e.target.checked)}
+                    className="rounded"
+                  />
+                  <div>
+                    <p className="text-sm font-medium">WhatsApp Business</p>
+                    <p className="text-xs text-muted-foreground">Integração ZPRO/WA oficial</p>
+                  </div>
+                </label>
+                <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-muted/30">
+                  <input
+                    type="checkbox"
+                    checked={form.limits?.chatbot_ia ?? false}
+                    onChange={(e) => handleFormChange("limits.chatbot_ia", e.target.checked)}
+                    className="rounded"
+                  />
+                  <div>
+                    <p className="text-sm font-medium">Chatbot IA</p>
+                    <p className="text-xs text-muted-foreground">Respostas automáticas via IA</p>
+                  </div>
+                </label>
+                <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-muted/30">
+                  <input
+                    type="checkbox"
+                    checked={form.limits?.portal_corretor ?? false}
+                    onChange={(e) => handleFormChange("limits.portal_corretor", e.target.checked)}
+                    className="rounded"
+                  />
+                  <div>
+                    <p className="text-sm font-medium">Portal do Corretor</p>
+                    <p className="text-xs text-muted-foreground">Página pública de agentes</p>
+                  </div>
+                </label>
+                <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-muted/30">
+                  <input
+                    type="checkbox"
+                    checked={form.limits?.visitor_capture ?? true}
+                    onChange={(e) => handleFormChange("limits.visitor_capture", e.target.checked)}
+                    className="rounded"
+                  />
+                  <div>
+                    <p className="text-sm font-medium">Captura de Visitantes</p>
+                    <p className="text-xs text-muted-foreground">Formulários e landings</p>
+                  </div>
+                </label>
+                <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-muted/30">
+                  <input
+                    type="checkbox"
+                    checked={form.limits?.analytics_dashboard ?? true}
+                    onChange={(e) => handleFormChange("limits.analytics_dashboard", e.target.checked)}
+                    className="rounded"
+                  />
+                  <div>
+                    <p className="text-sm font-medium">Analytics Dashboard</p>
+                    <p className="text-xs text-muted-foreground">Métricas e relatórios</p>
+                  </div>
+                </label>
+                <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-muted/30">
+                  <input
+                    type="checkbox"
+                    checked={form.limits?.email_marketing ?? false}
+                    onChange={(e) => handleFormChange("limits.email_marketing", e.target.checked)}
+                    className="rounded"
+                  />
+                  <div>
+                    <p className="text-sm font-medium">E-mail Marketing</p>
+                    <p className="text-xs text-muted-foreground">Campanhas e newsletters</p>
+                  </div>
+                </label>
+                <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-muted/30">
+                  <input
+                    type="checkbox"
+                    checked={form.limits?.documentos_digitais ?? false}
+                    onChange={(e) => handleFormChange("limits.documentos_digitais", e.target.checked)}
+                    className="rounded"
+                  />
+                  <div>
+                    <p className="text-sm font-medium">Documentos Digitais</p>
+                    <p className="text-xs text-muted-foreground">Contratos e assinaturas</p>
+                  </div>
+                </label>
+                <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-muted/30">
+                  <input
+                    type="checkbox"
                     checked={form.limits?.ia_operacional ?? true}
                     onChange={(e) => handleFormChange("limits.ia_operacional", e.target.checked)}
                     className="rounded"
                   />
                   <div>
                     <p className="text-sm font-medium">IA Operacional</p>
-                    <p className="text-xs text-muted-foreground">Central IA, Agentes, Automações</p>
+                    <p className="text-xs text-muted-foreground">Central IA e automações</p>
                   </div>
                 </label>
                 <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-muted/30">
@@ -647,7 +814,7 @@ CREATE POLICY "Allow all" ON plans FOR ALL USING (true) WITH CHECK (true);`}
                   />
                   <div>
                     <p className="text-sm font-medium">DevOps + Meta Ads</p>
-                    <p className="text-xs text-muted-foreground">Acesso a DevOps e Meta Ads</p>
+                    <p className="text-xs text-muted-foreground">Acesso técnico</p>
                   </div>
                 </label>
                 <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-muted/30">
@@ -674,6 +841,44 @@ CREATE POLICY "Allow all" ON plans FOR ALL USING (true) WITH CHECK (true);`}
                     <p className="text-xs text-muted-foreground">Marca personalizada</p>
                   </div>
                 </label>
+                <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-muted/30">
+                  <input
+                    type="checkbox"
+                    checked={form.limits?.integracao_zap ?? true}
+                    onChange={(e) => handleFormChange("limits.integracao_zap", e.target.checked)}
+                    className="rounded"
+                  />
+                  <div>
+                    <p className="text-sm font-medium">Integração Zap</p>
+                    <p className="text-xs text-muted-foreground">Webhook e multi-device</p>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {/* Asaas Gateway */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-foreground">Configuração Asaas (Gateway de Pagamento)</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <Label htmlFor="gateway-plan-id">ID do Plano no Asaas</Label>
+                  <Input
+                    id="gateway-plan-id"
+                    value={form.gateway_plan_id || ""}
+                    onChange={(e) => handleFormChange("gateway_plan_id", e.target.value)}
+                    placeholder="sub_xxx ou plan_xxx (ID do plano no Asaas)"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <Label htmlFor="asaas-api-key">API Key Asaas (usada nas Cobranças)</Label>
+                  <Input
+                    id="asaas-api-key"
+                    type="password"
+                    value={form.gateway_api_key || ""}
+                    onChange={(e) => handleFormChange("gateway_api_key", e.target.value)}
+                    placeholder="$a live_xxxxx ou $sandbox_xxxxx"
+                  />
+                </div>
               </div>
             </div>
           </div>
