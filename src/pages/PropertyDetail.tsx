@@ -12,7 +12,7 @@ import { useTenantSettings } from "@/hooks/use-tenant-settings";
 import {
   MapPin, BedDouble, Bath, Car, Maximize, Phone, Mail, MessageCircle,
   ChevronLeft, ChevronRight, Share2, Heart, ArrowLeft, Play,
-  Instagram, Facebook
+  Instagram, Facebook, Grid3X3, Maximize2, Home, Calculator
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Lightbox } from "@/components/properties/Lightbox";
@@ -22,9 +22,91 @@ import { shareProperty } from "@/lib/share";
 import { whatsappProvider, buildTelUrl, buildMailtoUrl } from "@/lib/messaging";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
+import { PropertyCardDb } from "@/components/properties/PropertyCardDb";
+import { useQuery } from "@tanstack/react-query";
 
 function getUniqueIds(ids: Array<string | null | undefined>) {
   return Array.from(new Set(ids.filter(Boolean))) as string[];
+}
+
+// JSON-LD structured data for SEO
+function buildStructuredData(property: {
+  id: string;
+  title: string;
+  description: string | null;
+  price: number;
+  address: string | null;
+  neighborhood: string | null;
+  city: string | null;
+  state: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  garages: number | null;
+  areaUseful: number | null;
+  area: number | null;
+  images: Array<{ url: string; alt: string | null }>;
+  propertyType: { name: string } | null;
+  purpose: string;
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "RealEstateListing",
+    "name": property.title,
+    "description": property.description,
+    "url": `https://www.arrudaimobi.com.br/imoveis/${property.id}`,
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": property.address,
+      "addressLocality": property.city,
+      "addressRegion": property.state,
+      "addressCountry": "BR"
+    },
+    "geo": property.latitude && property.longitude ? {
+      "@type": "GeoCoordinates",
+      "latitude": property.latitude,
+      "longitude": property.longitude
+    } : undefined,
+    "numberOfRooms": property.bedrooms,
+    "numberOfBathroomsTotal": property.bathrooms,
+    "parking": property.garages ? { "@type": "ParkingFacility", "numberOfSpaces": property.garages } : undefined,
+    "floorSize": property.areaUseful ?? property.area ? {
+      "@type": "QuantitativeValue",
+      "value": property.areaUseful ?? property.area,
+      "unitCode": "MTK"
+    } : undefined,
+    "image": property.images?.[0]?.url,
+    "offers": {
+      "@type": "Offer",
+      "price": property.price,
+      "priceCurrency": "BRL",
+      "availability": "https://schema.org/InStock"
+    },
+    "propertyType": property.propertyType?.name,
+    "transactionType": property.purpose === "sale" ? "ForSale" : "ForRent"
+  };
+}
+
+// Fetch similar properties
+function useSimilarProperties(tenantId: string, propertyId: string, purpose: string, propertyTypeId: string | null) {
+  return useQuery({
+    queryKey: ["similar-properties", tenantId, propertyId, purpose, propertyTypeId],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        action: "list_properties",
+        tenant_id: tenantId,
+        limit: "4",
+        ...(purpose === "sale" ? { purpose: "sale" } : { purpose: "rent" })
+      });
+      const res = await fetch(`https://udutxbyzrdwucabxqvgg.supabase.co/functions/v1/public-api?${params}`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return (data.properties || []).filter((p: { id: string }) => p.id !== propertyId).slice(0, 3);
+    },
+    enabled: !!tenantId && !!propertyId,
+    staleTime: 5 * 60 * 1000,
+  });
 }
 
 const PropertyDetail = () => {
@@ -46,13 +128,20 @@ const PropertyDetail = () => {
   const propertyTiktokPixel = property?.tiktokPixel || propertyPixels.tiktok || null;
   const propertyPinterestTag = property?.pinterestTag || propertyPixels.pinterest || null;
 
+  const similarProps = useSimilarProperties(
+    property?.tenantId || "",
+    property?.id || "",
+    property?.purpose || "sale",
+    property?.propertyType?.id || null
+  );
+
   const trackMarketingEvent = (eventName: string, eventData: Record<string, unknown> = {}) => {
     if (typeof window === "undefined") return;
 
-    const fbq = (window as any).fbq as ((...args: any[]) => void) | undefined;
-    const gtag = (window as any).gtag as ((...args: any[]) => void) | undefined;
-    const ttq = (window as any).ttq as any;
-    const pintrk = (window as any).pintrk as any;
+    const fbq = (window as unknown as Record<string, unknown>).fbq as ((...args: unknown[]) => void) | undefined;
+    const gtag = (window as unknown as Record<string, unknown>).gtag as ((...args: unknown[]) => void) | undefined;
+    const ttq = (window as unknown as Record<string, unknown>).ttq as { instance?: (id: string) => { track?: (name: string) => void }; track?: (name: string) => void } | undefined;
+    const pintrk = (window as unknown as Record<string, unknown>).pintrk as ((...args: unknown[]) => void) | undefined;
 
     const googleIds = getUniqueIds([globalGoogleAdsId, propertyGoogleAdsId]);
     const tiktokIds = getUniqueIds([globalTiktokPixel, propertyTiktokPixel]);
@@ -70,11 +159,11 @@ const PropertyDetail = () => {
 
     if (ttq) {
       if (typeof ttq.instance === "function") {
-        tiktokIds.forEach((id) => {
-          if (id === globalTiktokPixel) {
-            ttq.track(eventName);
+        tiktokIds.forEach((tid) => {
+          if (tid === globalTiktokPixel) {
+            ttq.track?.(eventName);
           } else {
-            ttq.instance(id)?.track?.(eventName);
+            ttq.instance(tid)?.track?.(eventName);
           }
         });
       } else {
@@ -212,7 +301,7 @@ const PropertyDetail = () => {
       <Layout>
         <div className="container flex flex-col items-center py-20 text-center">
           <h1 className="font-display text-2xl font-bold">Imóvel não encontrado</h1>
-          <Button className="mt-4" asChild><Link to="/imoveis">Voltar</Link></Button>
+          <Button className="mt-4" asChild><Link to="/imoveis">Voltar para imóveis</Link></Button>
         </div>
       </Layout>
     );
@@ -271,11 +360,37 @@ const PropertyDetail = () => {
   const nextImage = () => setCurrentImage((prev) => (prev + 1) % Math.max(images.length, 1));
   const prevImage = () => setCurrentImage((prev) => (prev - 1 + images.length) % Math.max(images.length, 1));
 
+  // Price per m²
+  const areaForPricePerSqm = property.areaUseful ?? property.area ?? 0;
+  const pricePerSqm = areaForPricePerSqm > 0 ? Math.round(property.price / areaForPricePerSqm) : null;
+
+  const structuredData = buildStructuredData({
+    id: property.id,
+    title: property.title,
+    description: property.description,
+    price: property.price,
+    address: property.address,
+    neighborhood: property.neighborhood,
+    city: property.city,
+    state: property.state,
+    latitude: property.latitude ?? 0,
+    longitude: property.longitude ?? 0,
+    bedrooms: property.bedrooms,
+    bathrooms: property.bathrooms,
+    garages: property.garages,
+    areaUseful: property.areaUseful ?? 0,
+    area: property.area ?? 0,
+    images: images.map(img => ({ url: img.url, alt: img.alt })),
+    propertyType: property.propertyType,
+    purpose: property.purpose,
+  });
+
   return (
     <Layout>
       <Helmet>
         <title>{`${property.title} | Arruda Imobi`}</title>
         <meta name="description" content={seoDescription} />
+        <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
         
         {/* OpenGraph */}
         <meta property="og:title" content={property.title} />
@@ -293,72 +408,85 @@ const PropertyDetail = () => {
       </Helmet>
 
       <div className="w-full px-4 py-6 lg:max-w-7xl lg:mx-auto">
-        <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-muted-foreground min-w-0">
-          <Link to="/imoveis" className="flex items-center gap-1 whitespace-nowrap transition-colors hover:text-primary">
-            <ArrowLeft className="h-4 w-4" /> Imóveis
+        {/* Breadcrumb */}
+        <nav className="mb-6 flex items-center gap-2 text-sm text-muted-foreground min-w-0" aria-label="Breadcrumb">
+          <Link to="/imoveis" className="flex items-center gap-1.5 whitespace-nowrap transition-colors hover:text-primary rounded-md px-2 py-1 -mx-2">
+            <Home className="h-4 w-4" /> Imóveis
           </Link>
-          <span className="whitespace-nowrap">/</span>
-          <span className="text-foreground truncate max-w-full">{property.title}</span>
-        </div>
+          <span className="text-muted-foreground/50">/</span>
+          <span className="text-foreground truncate max-w-[200px] sm:max-w-none">{property.title}</span>
+        </nav>
 
         <div className="flex flex-col gap-8 lg:flex-row">
-          <div className="flex-1 space-y-6">
+          {/* Main Content */}
+          <div className="flex-1 space-y-6 min-w-0">
             {/* Image Gallery */}
             <div className="relative w-full overflow-hidden rounded-xl bg-muted aspect-video">
-                {images.length > 0 ? (
-                  (() => {
-                    const currentImg = images[currentImage];
-                    const ytId = extractYouTubeId(currentImg?.url || "");
-                    if (ytId) {
-                      return (
-                        <iframe
-                          src={`https://www.youtube.com/embed/${ytId}`}
-                          className="h-full w-full"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                        />
-                      );
-                    }
+              {images.length > 0 ? (
+                (() => {
+                  const currentImg = images[currentImage];
+                  const ytId = extractYouTubeId(currentImg?.url || "");
+                  if (ytId) {
                     return (
+                      <iframe
+                        src={`https://www.youtube.com/embed/${ytId}`}
+                        className="h-full w-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    );
+                  }
+                  return (
+                    <>
                       <img
                         src={currentImg?.url}
                         alt={currentImg?.alt || property.title}
-                        className="h-full w-full cursor-zoom-in object-cover"
+                        className="h-full w-full cursor-zoom-in object-cover transition-transform duration-300 hover:scale-105"
                         onClick={() => setLightboxOpen(true)}
                       />
-                    );
-                  })()
-                ) : (
-                  <div className="flex h-full items-center justify-center text-muted-foreground">
-                    <MapPin className="h-12 w-12" />
-                  </div>
-                )}
+                      <button
+                        onClick={() => setLightboxOpen(true)}
+                        className="absolute bottom-3 right-3 z-10 flex items-center gap-1.5 rounded-full bg-card/90 px-3 py-2 text-sm font-medium shadow-lg backdrop-blur-sm transition-colors hover:bg-card"
+                        aria-label="Abrir galeria"
+                      >
+                        <Grid3X3 className="h-4 w-4" /> Ver fotos ({images.length})
+                      </button>
+                    </>
+                  );
+                })()
+              ) : (
+                <div className="flex h-full items-center justify-center text-muted-foreground">
+                  <MapPin className="h-12 w-12" />
+                </div>
+              )}
               {images.length > 1 && (
                 <>
-                  <button onClick={prevImage} className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-card/90 p-2 shadow-lg transition-colors hover:bg-card">
+                  <button onClick={prevImage} className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-card/90 p-2 shadow-lg transition-colors hover:bg-card" aria-label="Imagem anterior">
                     <ChevronLeft className="h-5 w-5" />
                   </button>
-                  <button onClick={nextImage} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-card/90 p-2 shadow-lg transition-colors hover:bg-card">
+                  <button onClick={nextImage} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-card/90 p-2 shadow-lg transition-colors hover:bg-card" aria-label="Próxima imagem">
                     <ChevronRight className="h-5 w-5" />
                   </button>
-                  <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
-                    {images.map((_, i) => (
-                      <button key={i} onClick={() => setCurrentImage(i)} className={`h-2 w-2 rounded-full transition-all ${i === currentImage ? "w-6 bg-card" : "bg-card/50"}`} />
+                  <div className="absolute bottom-3 left-16 flex gap-1.5">
+                    {images.slice(0, 8).map((_, i) => (
+                      <button key={i} onClick={() => setCurrentImage(i)} className={`h-2 w-2 rounded-full transition-all ${i === currentImage ? "w-6 bg-card" : "bg-card/50"}`} aria-label={`Ir para imagem ${i + 1}`} />
                     ))}
+                    {images.length > 8 && <span className="text-card text-xs self-center">+{images.length - 8}</span>}
                   </div>
                 </>
               )}
+              {/* Top-right actions */}
               <div className="absolute right-3 top-3 flex gap-2">
                 <button
                   onClick={() => toggleFavorite(property.id)}
-                  className="rounded-full bg-card/90 p-2 shadow-lg transition-colors hover:bg-card"
+                  className="rounded-full bg-card/90 p-2 shadow-lg backdrop-blur-sm transition-all hover:bg-card"
                   aria-label={isFavorite(property.id) ? "Remover dos favoritos" : "Adicionar aos favoritos"}
                 >
-                  <Heart className={`h-4 w-4 transition-colors ${isFavorite(property.id) ? "fill-destructive text-destructive" : ""}`} />
+                  <Heart className={`h-4 w-4 transition-colors ${isFavorite(property.id) ? "fill-destructive text-destructive" : "text-foreground"}`} />
                 </button>
                 <button
                   onClick={() => shareProperty(property.title)}
-                  className="rounded-full bg-card/90 p-2 shadow-lg transition-colors hover:bg-card"
+                  className="rounded-full bg-card/90 p-2 shadow-lg backdrop-blur-sm transition-all hover:bg-card"
                   aria-label="Compartilhar imóvel"
                 >
                   <Share2 className="h-4 w-4" />
@@ -368,11 +496,11 @@ const PropertyDetail = () => {
 
             {/* Thumbnails */}
             {images.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-2 px-4">
+              <div className="flex gap-2 overflow-x-auto pb-2 px-1 scrollbar-hide">
                 {images.map((img, i) => {
                   const ytId = extractYouTubeId(img.url);
                   return (
-                    <button key={img.id} onClick={() => setCurrentImage(i)} className={`relative h-16 min-w-[96px] shrink-0 overflow-hidden rounded-md border-2 transition-all ${i === currentImage ? "border-primary" : "border-transparent opacity-60"}`}>
+                    <button key={img.id} onClick={() => setCurrentImage(i)} className={`relative h-16 min-w-[96px] shrink-0 overflow-hidden rounded-lg border-2 transition-all ${i === currentImage ? "border-primary ring-2 ring-primary/20" : "border-transparent opacity-60 hover:opacity-80"}`}>
                       {ytId ? (
                         <>
                           <img src={getYouTubeThumbnail(ytId)} alt={img.alt || ""} className="h-full w-full object-cover" />
@@ -391,35 +519,48 @@ const PropertyDetail = () => {
               </div>
             )}
 
-            {/* Title & Price */}
-            <div className="px-4 sm:px-0">
+            {/* Title, Badges & Price */}
+            <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge className="bg-primary text-primary-foreground">{property.purpose === "sale" ? "Venda" : "Aluguel"}</Badge>
                 {property.propertyType?.name && <Badge variant="secondary">{property.propertyType.name}</Badge>}
                 {property.featured && <Badge className="bg-warning text-warning-foreground">Destaque</Badge>}
+                <Badge variant="outline" className="text-muted-foreground">ID: {property.id.slice(0, 8)}</Badge>
               </div>
-              <h1 className="mt-3 font-display text-2xl font-bold text-foreground md:text-4xl">{property.title}</h1>
-              <p className="mt-1 flex items-center gap-1 text-muted-foreground">
-                <MapPin className="h-4 w-4" />
-                {[property.address, property.neighborhood, property.city, property.state].filter(Boolean).join(", ")}
-              </p>
-              <p className="mt-4 font-display text-3xl font-extrabold text-primary md:text-5xl">
-                {formatCurrency(property.price)}
-                {property.purpose === "rent" && <span className="text-lg font-normal text-muted-foreground">/mês</span>}
-              </p>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <h1 className="font-display text-2xl font-bold text-foreground md:text-4xl leading-tight">{property.title}</h1>
+                  <p className="mt-1.5 flex items-center gap-1.5 text-muted-foreground">
+                    <MapPin className="h-4 w-4 shrink-0" />
+                    <span>{[property.address, property.neighborhood, property.city, property.state].filter(Boolean).join(", ")}</span>
+                  </p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="font-display text-3xl font-extrabold text-primary md:text-5xl leading-none">
+                    {formatCurrency(property.price)}
+                    {property.purpose === "rent" && <span className="text-base font-normal text-muted-foreground">/mês</span>}
+                  </p>
+                  {pricePerSqm && (
+                    <p className="mt-1 text-sm text-muted-foreground flex items-center justify-end gap-1">
+                      <Calculator className="h-3.5 w-3.5" />
+                      {formatCurrency(pricePerSqm)}/m²
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
 
-            {/* Features */}
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            {/* Features Grid */}
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
               {[
-                { icon: BedDouble, label: "Quartos", value: property.bedrooms || 0 },
-                { icon: Bath, label: "Banheiros", value: property.bathrooms || 0 },
-                { icon: Car, label: "Vagas", value: property.garages || 0 },
+                { icon: BedDouble, label: "Quartos", value: property.bedrooms ?? 0 },
+                { icon: Bath, label: "Banheiros", value: property.bathrooms ?? 0 },
+                { icon: Car, label: "Vagas", value: property.garages ?? 0 },
                 { icon: Maximize, label: "Área", value: formatArea(property.areaUseful ?? property.area ?? 0) },
               ].map((f) => (
-                <Card key={f.label} className="flex flex-col items-center p-4 text-center">
+                <Card key={f.label} className="flex flex-col items-center p-4 text-center hover:border-primary/30 transition-colors">
                   <f.icon className="h-6 w-6 text-primary" />
-                  <span className="mt-2 font-display text-lg font-bold text-foreground">{f.value}</span>
+                  <span className="mt-2 font-display text-xl font-bold text-foreground">{f.value}</span>
                   <span className="text-xs text-muted-foreground">{f.label}</span>
                 </Card>
               ))}
@@ -427,34 +568,41 @@ const PropertyDetail = () => {
 
             {/* Description */}
             {property.description && (
-              <div>
-                <h2 className="font-display text-xl font-semibold text-foreground md:text-2xl">Descrição</h2>
-                <p className="mt-3 leading-relaxed text-muted-foreground">{property.description}</p>
+              <div className="rounded-xl border bg-card p-6">
+                <h2 className="font-display text-lg font-semibold text-foreground flex items-center gap-2">
+                  <span className="h-1 w-5 rounded-full bg-primary" /> Descrição
+                </h2>
+                <p className="mt-4 leading-relaxed text-muted-foreground whitespace-pre-line">{property.description}</p>
               </div>
             )}
 
             {/* Amenities */}
             {amenities.length > 0 && (
-              <div>
-                <h2 className="font-display text-xl font-semibold text-foreground md:text-2xl">Comodidades</h2>
-                <div className="mt-3 flex flex-wrap gap-2">
+              <div className="rounded-xl border bg-card p-6">
+                <h2 className="font-display text-lg font-semibold text-foreground flex items-center gap-2">
+                  <span className="h-1 w-5 rounded-full bg-primary" /> Comodidades
+                </h2>
+                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
                   {amenities.map((amenity) => (
-                    <Badge key={amenity} variant="secondary" className="px-3 py-1.5 text-sm">{amenity}</Badge>
+                    <div key={amenity} className="flex items-center gap-2.5 rounded-lg bg-muted/60 px-3 py-2.5 text-sm">
+                      <div className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                      {amenity}
+                    </div>
                   ))}
                 </div>
               </div>
             )}
 
             {/* Map */}
-            <div>
-              <h2 className="font-display text-lg font-semibold text-foreground">Localização</h2>
+            <div className="rounded-xl border bg-card p-6">
+              <h2 className="font-display text-lg font-semibold text-foreground flex items-center gap-2 mb-4">
+                <span className="h-1 w-5 rounded-full bg-primary" /> Localização
+              </h2>
               {mapQueryText ? (
-                <div className="mt-3 w-full overflow-hidden rounded-lg bg-muted aspect-video h-[300px] md:h-[450px]">
+                <div className="w-full overflow-hidden rounded-lg">
                   <iframe
                     title={`Mapa - ${property.title}`}
-                    className="w-full h-full border-0"
-                    width="100%"
-                    height="100%"
+                    className="w-full h-[300px] md:h-[400px] border-0"
                     loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
                     src={mapSrc}
@@ -462,77 +610,91 @@ const PropertyDetail = () => {
                   />
                 </div>
               ) : (
-                <div className="mt-3 flex h-64 items-center justify-center rounded-lg border border-border bg-muted">
+                <div className="flex h-64 items-center justify-center rounded-lg border border-border bg-muted">
                   <div className="text-center">
                     <MapPin className="mx-auto h-8 w-8 text-muted-foreground/50" />
-                    <p className="mt-2 text-sm text-muted-foreground">Localização não disponível para este imóvel</p>
+                    <p className="mt-2 text-sm text-muted-foreground">Localização não disponível</p>
                   </div>
                 </div>
               )}
             </div>
+
+            {/* Similar Properties */}
+            {similarProps.data && similarProps.data.length > 0 && (
+              <div className="rounded-xl border bg-card p-6">
+                <h2 className="font-display text-lg font-semibold text-foreground flex items-center gap-2 mb-4">
+                  <span className="h-1 w-5 rounded-full bg-primary" /> Imóveis Similares
+                </h2>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {similarProps.data.map((similar: { id: string }) => (
+                    <PropertyCardDb key={similar.id} property={similar} />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
+          <div className="space-y-6 lg:w-80 xl:w-96 shrink-0">
             {agent && (
-              <Card className="p-6">
-                <h3 className="font-display text-sm font-semibold text-foreground">Agente Responsável</h3>
-                <div className="mt-4 flex items-center gap-3">
-                  <Avatar className="h-14 w-14">
+              <Card className="p-6 border-primary/20">
+                <div className="flex items-center gap-3 mb-4">
+                  <Avatar className="h-14 w-14 border-2 border-primary/20">
                     <AvatarImage src={agent.avatarUrl || undefined} />
-                    <AvatarFallback className="bg-primary text-primary-foreground font-display">
-                      {(agent.fullName || "A").split(" ").map(n => n[0]).join("")}
+                    <AvatarFallback className="bg-primary text-primary-foreground font-display text-lg">
+                      {(agent.fullName || "A").split(" ").map(n => n[0]).join("").slice(0, 2)}
                     </AvatarFallback>
                   </Avatar>
                   <div>
                     <p className="font-display font-semibold text-foreground">{agent.fullName || "Agente"}</p>
+                    <p className="text-xs text-muted-foreground">Agente Responsável</p>
                   </div>
                 </div>
-                {agent.bio && <p className="mt-3 text-sm text-muted-foreground">{agent.bio}</p>}
-                <div className="mt-4 space-y-2">
+                {agent.bio && <p className="text-sm text-muted-foreground">{agent.bio}</p>}
+                <div className="mt-4 space-y-2.5">
                   {whatsappUrl ? (
-                    <Button className="w-full gap-2" size="lg" asChild>
-                      <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" onClick={handleWhatsAppClick}>
-                        <MessageCircle className="h-4 w-4" />WhatsApp
+                    <Button className="w-full gap-2" size="lg" asChild onClick={handleWhatsAppClick}>
+                      <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+                        <MessageCircle className="h-4 w-4" /> WhatsApp
                       </a>
                     </Button>
                   ) : (
-                    <Button className="w-full gap-2" size="lg" disabled><MessageCircle className="h-4 w-4" />WhatsApp</Button>
+                    <Button className="w-full gap-2" size="lg" disabled><MessageCircle className="h-4 w-4" /> WhatsApp</Button>
                   )}
                   {phoneUrl ? (
-                    <Button variant="outline" className="w-full gap-2" asChild>
-                      <a href={phoneUrl} target="_blank" rel="noopener noreferrer" onClick={handleContactClick}>
-                        <Phone className="h-4 w-4" />Ligar
+                    <Button variant="outline" className="w-full gap-2" asChild onClick={handleContactClick}>
+                      <a href={phoneUrl} target="_blank" rel="noopener noreferrer">
+                        <Phone className="h-4 w-4" /> Ligar
                       </a>
                     </Button>
                   ) : (
-                    <Button variant="outline" className="w-full gap-2" disabled><Phone className="h-4 w-4" />Ligar</Button>
+                    <Button variant="outline" className="w-full gap-2" disabled><Phone className="h-4 w-4" /> Ligar</Button>
                   )}
                   {emailUrl ? (
-                    <Button variant="outline" className="w-full gap-2" asChild>
-                      <a href={emailUrl} target="_blank" rel="noopener noreferrer" onClick={handleContactClick}>
-                        <Mail className="h-4 w-4" />Enviar Email
+                    <Button variant="outline" className="w-full gap-2" asChild onClick={handleContactClick}>
+                      <a href={emailUrl} target="_blank" rel="noopener noreferrer">
+                        <Mail className="h-4 w-4" /> Enviar Email
                       </a>
                     </Button>
                   ) : (
-                    <Button variant="outline" className="w-full gap-2" disabled><Mail className="h-4 w-4" />Enviar Email</Button>
+                    <Button variant="outline" className="w-full gap-2" disabled><Mail className="h-4 w-4" /> Enviar Email</Button>
                   )}
                 </div>
               </Card>
             )}
 
             <Card className="p-6">
-              <h3 className="font-display text-sm font-semibold text-foreground">Contato da Imobiliária</h3>
-              <div className="mt-4 space-y-3 text-sm text-muted-foreground">
+              <h3 className="font-display text-sm font-semibold text-foreground mb-4">Contato da Imobiliária</h3>
+              <div className="space-y-3 text-sm text-muted-foreground">
                 <div className="flex items-start gap-3">
-                  <MapPin className="mt-1 h-4 w-4 text-primary" />
-                  <div>{globalAddress}</div>
+                  <MapPin className="mt-0.5 h-4 w-4 text-primary shrink-0" />
+                  <span>{globalAddress}</span>
                 </div>
                 <div className="flex items-start gap-3">
-                  <Mail className="mt-1 h-4 w-4 text-primary" />
-                  <div>{globalEmail}</div>
+                  <Mail className="mt-0.5 h-4 w-4 text-primary shrink-0" />
+                  <span>{globalEmail}</span>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 pt-2">
                   <a href={globalInstagram} target="_blank" rel="noopener noreferrer" className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-muted transition hover:bg-primary/10">
                     <Instagram className="h-4 w-4 text-foreground" />
                   </a>
