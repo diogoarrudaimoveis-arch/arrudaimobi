@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { SearchFilters } from "@/types/property";
 import { usePropertyTypes, useCities } from "@/hooks/use-properties";
+import { usePropertyNLPSearch } from "@/hooks/use-property-nlp-search";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Search, SlidersHorizontal, X, Sparkles, Loader2 } from "lucide-react";
 
 interface SearchBarProps {
   filters: SearchFilters;
@@ -15,8 +17,10 @@ interface SearchBarProps {
 
 export function SearchBar({ filters, onFiltersChange, compact = false }: SearchBarProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [isAISearchActive, setIsAISearchActive] = useState(false);
   const { data: propertyTypes } = usePropertyTypes();
   const { data: cities } = useCities();
+  const { parseNaturalLanguage, isAILoading } = usePropertyNLPSearch();
 
   const updateFilter = (key: keyof SearchFilters, value: string | number) => {
     onFiltersChange({ ...filters, [key]: value });
@@ -48,6 +52,29 @@ export function SearchBar({ filters, onFiltersChange, compact = false }: SearchB
       updateFilter("type", "");
     } else {
       updateFilter("type", typeName);
+    }
+  };
+
+  const handleAISearch = async () => {
+    if (!filters.query.trim()) return;
+    setIsAISearchActive(true);
+    try {
+      const parsed = await parseNaturalLanguage(filters.query);
+      onFiltersChange({
+        ...filters,
+        tipo: parsed.tipo as string || filters.tipo,
+        type: parsed.type as string || filters.type,
+        cidade: parsed.cidade as string || filters.cidade,
+        city: parsed.city as string || filters.city,
+        minPrice: parsed.minPreco || parsed.minPrice || 0,
+        maxPrice: parsed.maxPreco || parsed.maxPrice || 0,
+        bedrooms: parsed.dormitorios || parsed.bedrooms || 0,
+        bathrooms: parsed.banheiros || parsed.bathrooms || 0,
+        garages: parsed.vagas || parsed.garages || 0,
+        purpose: parsed.purpose || filters.purpose,
+      });
+    } finally {
+      setIsAISearchActive(false);
     }
   };
 
@@ -96,6 +123,26 @@ export function SearchBar({ filters, onFiltersChange, compact = false }: SearchB
           />
         </div>
 
+        {/* AI Search button — uses OmniRoute NLP to parse natural language */}
+        {filters.query.trim() && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleAISearch}
+            disabled={isAILoading}
+            className="shrink-0 gap-1.5 text-xs border-purple-500/50 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950"
+            aria-label="Buscar com IA"
+            title="Buscar com IA — interpretar busca em linguagem natural"
+          >
+            {isAILoading ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="h-3.5 w-3.5" />
+            )}
+            <span className="hidden sm:inline">IA</span>
+          </Button>
+        )}
+
         <Select value={filters.purpose || "all"} onValueChange={(v) => updateFilter("purpose", v === "all" ? "" : v)}>
           <SelectTrigger className="w-full sm:w-40">
             <SelectValue placeholder="Finalidade" />
@@ -113,9 +160,13 @@ export function SearchBar({ filters, onFiltersChange, compact = false }: SearchB
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos os Tipos</SelectItem>
-            {propertyTypes?.filter(t => t.active).map((type) => (
-              <SelectItem key={type.id} value={type.name}>{type.name}</SelectItem>
-            ))}
+            {propertyTypes ? (
+              propertyTypes.filter(t => t.active).map((type) => (
+                <SelectItem key={type.id} value={type.name}>{type.name}</SelectItem>
+              ))
+            ) : (
+              <Skeleton className="h-4 w-full" />
+            )}
           </SelectContent>
         </Select>
 
