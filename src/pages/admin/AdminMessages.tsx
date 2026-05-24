@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useToast } from "@/hooks/use-toast";
+import { sonnerToast } from "@/components/ui/sonner";
 import {
   Send, Settings2, Loader2, MessageSquareText, Phone, CheckCircle2,
   XCircle, Clock, RefreshCw, Wifi, WifiOff, Users, FileText, Save, Trash2
@@ -29,8 +29,7 @@ import type { TenantSettings } from "@/hooks/use-tenant-settings";
 
 const AdminMessages = () => {
   const { tenantId, user, isReady, isAdmin } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+    const queryClient = useQueryClient();
 
   // Config state
   const [configForm, setConfigForm] = useState({ api_key: "", base_url: "", instance_name: "" });
@@ -133,9 +132,9 @@ const AdminMessages = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-tenant"] });
       queryClient.invalidateQueries({ queryKey: ["tenant-settings"] });
-      toast({ title: "Template salvo!" });
+      sonnerToast({ title: "Template salvo!" });
     },
-    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    onError: (err: any) => sonnerToast({ title: "Erro", description: err.message, variant: "destructive" }),
   });
 
   // Save config
@@ -163,11 +162,11 @@ const AdminMessages = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["evolution-config"] });
-      toast({ title: "Configuração salva!" });
+      sonnerToast({ title: "Configuração salva!" });
       setConfigDialogOpen(false);
     },
     onError: (err: any) => {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      sonnerToast({ title: "Erro", description: err.message, variant: "destructive" });
     },
   });
 
@@ -202,9 +201,9 @@ const AdminMessages = () => {
 
       const result = await res.json();
       setInstances(Array.isArray(result) ? result : []);
-      toast({ title: `${Array.isArray(result) ? result.length : 0} instância(s) encontrada(s)` });
+      sonnerToast({ title: `${Array.isArray(result) ? result.length : 0} instância(s) encontrada(s)` });
     } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      sonnerToast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
       setLoadingInstances(false);
     }
@@ -240,16 +239,16 @@ const AdminMessages = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["messages-log"] });
       if (data.status === "sent") {
-        toast({ title: "Mensagem enviada!", description: `Para: ${data.phone_sanitized}` });
+        sonnerToast({ title: "Mensagem enviada!", description: `Para: ${data.phone_sanitized}` });
         setSendPhone("");
         setSendMessage("");
         setSelectedContactId("");
       } else {
-        toast({ title: "Falha no envio", description: data.error, variant: "destructive" });
+        sonnerToast({ title: "Falha no envio", description: data.error, variant: "destructive" });
       }
     },
     onError: (err: any) => {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      sonnerToast({ title: "Erro", description: err.message, variant: "destructive" });
     },
   });
 
@@ -276,9 +275,9 @@ const AdminMessages = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erro ao limpar histórico");
       queryClient.invalidateQueries({ queryKey: ["messages-log"] });
-      toast({ title: "Histórico limpo com sucesso!" });
+      sonnerToast({ title: "Histórico limpo com sucesso!" });
     } catch (err: any) {
-      toast({ title: err.message || "Erro ao limpar histórico", variant: "destructive" });
+      sonnerToast({ title: err.message || "Erro ao limpar histórico", variant: "destructive" });
     } finally {
       setClearingHistory(false);
     }

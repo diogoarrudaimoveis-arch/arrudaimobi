@@ -13,7 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "@/hooks/use-toast";
+import { sonnerToast } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { BlogRichEditor } from "@/components/admin/BlogRichEditor";
 import { BlogTagInput } from "@/components/admin/BlogTagInput";
@@ -28,8 +28,7 @@ export default function AdminBlog() {
   const createPost = useCreateBlogPost();
   const updatePost = useUpdateBlogPost();
   const deletePost = useDeleteBlogPost();
-  const { toast } = useToast();
-
+  
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<BlogPost | null>(null);
   const [title, setTitle] = useState("");
@@ -68,7 +67,7 @@ export default function AdminBlog() {
     const file = e.target.files?.[0];
     if (!file || !tenantId) return;
     if (file.size > 5 * 1024 * 1024) {
-      toast({ title: "Imagem muito grande", description: "Máximo 5MB", variant: "destructive" });
+      sonnerToast({ title: "Imagem muito grande", description: "Máximo 5MB", variant: "destructive" });
       return;
     }
     setUploading(true);
@@ -79,7 +78,7 @@ export default function AdminBlog() {
       const { data } = supabase.storage.from("property-images").getPublicUrl(`blog/${filename}`);
       setCoverUrl(data.publicUrl);
     } catch (err: any) {
-      toast({ title: "Erro ao enviar imagem", description: err.message, variant: "destructive" });
+      sonnerToast({ title: "Erro ao enviar imagem", description: err.message, variant: "destructive" });
     } finally {
       setUploading(false);
     }
@@ -87,10 +86,10 @@ export default function AdminBlog() {
 
   const handleSave = async () => {
     if (!title.trim() || !slug.trim()) {
-      toast({ title: "Título e slug são obrigatórios", variant: "destructive" }); return;
+      sonnerToast({ title: "Título e slug são obrigatórios", variant: "destructive" }); return;
     }
     if (!content.trim() || content === "<p></p>") {
-      toast({ title: "Conteúdo é obrigatório", variant: "destructive" }); return;
+      sonnerToast({ title: "Conteúdo é obrigatório", variant: "destructive" }); return;
     }
     if (!tenantId || !user) return;
 
@@ -103,7 +102,7 @@ export default function AdminBlog() {
           cover_image_url: coverUrl || null, published,
           tag_ids: selectedTagIds,
         });
-        toast({ title: "Post atualizado!" });
+        sonnerToast({ title: "Post atualizado!" });
       } else {
         await createPost.mutateAsync({
           title, slug, excerpt: excerpt || undefined,
@@ -111,12 +110,12 @@ export default function AdminBlog() {
           published, tenant_id: tenantId, author_id: user.id,
           tag_ids: selectedTagIds,
         });
-        toast({ title: "Post criado!" });
+        sonnerToast({ title: "Post criado!" });
       }
       setDialogOpen(false);
     } catch (err: any) {
       const msg = err.message?.includes("duplicate") ? "Já existe um post com este slug" : err.message;
-      toast({ title: "Erro", description: msg, variant: "destructive" });
+      sonnerToast({ title: "Erro", description: msg, variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -125,10 +124,10 @@ export default function AdminBlog() {
   const handleDelete = async (id: string) => {
     try {
       await deletePost.mutateAsync(id);
-      toast({ title: "Post excluído" });
+      sonnerToast({ title: "Post excluído" });
       setDeleteConfirm(null);
     } catch (err: any) {
-      toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
+      sonnerToast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
     }
   };
 
