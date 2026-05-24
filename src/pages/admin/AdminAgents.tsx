@@ -1,248 +1,103 @@
 import { useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminPageShell, PageCard } from "@/components/admin/shared/AdminComponents";
-import { Users } from "lucide-react";
+import { Users, UserPlus, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/hooks/use-toast";
-import { Plus, Loader2, Users, UserPlus, Trash2, Pencil, Save } from "lucide-react";
-import { getRoleLabel as getRoleLabelFromLib, getRoleBadgeVariant, normalizeRole } from "@/lib/adminPermissions";
-import {
-  isDeveloper,
-  canEditUserRole,
-  canDeleteUser,
-  getAvailableRolesForSelector,
-  filterUsersForRole,
-} from "@/lib/saasPermissions";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PasswordInput } from "@/components/auth/PasswordInput";
-import { DialogDescription } from "@/components/ui/dialog";
-import { LogoCropper } from "@/components/admin/LogoCropper";
+import { getRoleLabel, getRoleBadgeVariant } from "@/lib/adminPermissions";
+
+interface CompanyUser {
+  user_id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  phone: string | null;
+  bio: string | null;
+  created_at: string;
+  role: string;
+  email?: string;
+}
 
 const AdminAgents = () => {
-  const { tenantId, isReady, session, user } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const { tenantId, isReady, session, isDeveloper } = useAuth();
 
-  // Get current user role from AuthContext
-  const currentUserRole = session?.user?.role || user?.user_metadata?.role || 'user';
+  const { data: users = [], isLoading } = useQuery({
+    queryKey: ["company-users", tenantId],
+    queryFn: async (): Promise<CompanyUser[]> => {
+      if (!tenantId) throw new Error("No tenantId");
 
-  // Filter users list: non-developer users don't see developers
-  const { data: allAgents = [], isLoading } = useQuery({
-    queryKey: ["admin-agents", tenantId],
-    queryFn: async () => {
+      // Fetch profiles for this tenant
       const { data: profiles, error: profErr } = await supabase
         .from("profiles")
-        .select("*")
-        .eq("tenant_id", tenantId!);
+        .select("user_id, full_name, avatar_url, phone, bio, created_at")
+        .eq("tenant_id", tenantId);
       if (profErr) throw profErr;
 
+      // Fetch roles for this tenant
       const { data: roles, error: rolesErr } = await supabase
         .from("user_roles")
         .select("user_id, role")
-        .eq("tenant_id", tenantId!);
+        .eq("tenant_id", tenantId);
       if (rolesErr) throw rolesErr;
 
+      // Build role map
       const roleMap: Record<string, string> = {};
-      roles?.forEach(r => { roleMap[r.user_id] = r.role; });
+      roles?.forEach((r) => { roleMap[r.user_id] = r.role; });
 
-      return (profiles || []).map(p => ({
+      // Fetch email from auth.users for each user
+      const userIds = (profiles || []).map((p) => p.user_id);
+      let emailMap: Record<string, string> = {};
+
+      if (userIds.length > 0 && session?.access_token) {
+        try {
+          const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+          const res = await fetch(
+            `https://${PROJECT_ID}.supabase.co/auth/v1/admin/users?page=1&per_page=1000`,
+            {
+              headers: {
+                Authorization: `Bearer ${session.access_token}`,
+                apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+              },
+            }
+          );
+          if (res.ok) {
+            const data = await res.json();
+            const users_arr: any[] = data.users || [];
+            users_arr.forEach((u) => {
+              if (u.id && u.email) emailMap[u.id] = u.email;
+            });
+          }
+        } catch {
+          // If we can't fetch emails, proceed without
+        }
+      }
+
+      return (profiles || []).map((p) => ({
         ...p,
         role: roleMap[p.user_id] || "user",
+        email: emailMap[p.user_id] || undefined,
       }));
     },
     enabled: isReady && !!tenantId,
   });
 
-  const visibleAgents = filterUsersForRole(allAgents ?? [], currentUserRole);
-
-  // Get available roles for the role selector based on current user role
-  const availableRoles = getAvailableRolesForSelector(currentUserRole);
-
-  // Check if current user can manage roles at all
-  const canManageRoles = availableRoles.length > 0;
-
-  // For the create/edit dialog: filter out developer option if not developer
-  const createDialogRoles = getAvailableRolesForSelector(currentUserRole);
-  const [newEmail, setNewEmail] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [newName, setNewName] = useState("");
-  const [newPhone, setNewPhone] = useState("");
-  const [newRole, setNewRole] = useState("agent");
-  const [newAvatarUrl, setNewAvatarUrl] = useState("");
-  const [showOnPublicPage, setShowOnPublicPage] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [editingAgent, setEditingAgent] = useState<any>(null);
-  const [isCropperOpen, setIsCropperOpen] = useState(false);
-  const [deleteConfirmAgent, setDeleteConfirmAgent] = useState<{ userId: string; name: string } | null>(null);
-
-  const updateRoleMutation = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
-      await supabase.from("user_roles").delete().eq("user_id", userId).eq("tenant_id", tenantId!);
-      const { error } = await supabase.from("user_roles").insert({
-        user_id: userId,
-        tenant_id: tenantId!,
-        role: role as any,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-agents"] });
-      toast({ title: "Papel atualizado!" });
-    },
-    onError: (err: any) => {
-      // Friendly RLS error handling — do not bypass RLS
-      const isRLSError = err?.message?.includes('row-level security') || err?.code === '42501';
-      if (isRLSError) {
-        toast({
-          title: "Sem permissão para alterar papéis",
-          description: "Configure a policy de RLS em user_roles no Supabase para permitir esta ação, ou peça ao administrador.",
-          variant: "destructive",
-        });
-      } else {
-        toast({ title: "Erro ao atualizar papel", description: err.message, variant: "destructive" });
-      }
-    },
-  });
-
-  const deleteAgentMutation = useMutation({
-    mutationFn: async (userId: string) => {
-      const { error: roleErr } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("tenant_id", tenantId!);
-      if (roleErr) throw roleErr;
-      const { error: profileErr } = await supabase.from("profiles").delete().eq("user_id", userId).eq("tenant_id", tenantId!);
-      if (profileErr) throw profileErr;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-agents"] });
-      toast({ title: "Usuário removido!" });
-      setDeleteConfirmAgent(null);
-    },
-    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
-  });
-
-  const handleCreateAgent = async () => {
-    if (!newEmail.trim() || (!editingAgent && !newPassword.trim())) {
-      toast({ title: "Email e senha são obrigatórios", variant: "destructive" });
-      return;
-    }
-    if (!editingAgent && newPassword.length < 6) {
-      toast({ title: "Senha deve ter no mínimo 6 caracteres", variant: "destructive" });
-      return;
-    }
-
-    setCreating(true);
-    try {
-      const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const res = await fetch(`https://${PROJECT_ID}.supabase.co/functions/v1/create-agent`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session?.access_token}`,
-        },
-        body: JSON.stringify({
-          action: editingAgent ? "update" : "create",
-          userId: editingAgent?.user_id,
-          email: newEmail.trim(),
-          password: newPassword || undefined,
-          full_name: newName.trim() || newEmail.trim(),
-          phone: newPhone.trim(),
-          role: newRole,
-          avatar_url: newAvatarUrl || undefined,
-          show_on_public_page: showOnPublicPage,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Erro ao processar usuário");
-
-      toast({ title: editingAgent ? "Usuário atualizado!" : "Usuário criado com sucesso!" });
-      resetForm();
-      setDialogOpen(false);
-      queryClient.invalidateQueries({ queryKey: ["admin-agents"] });
-    } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
-    } finally {
-      setCreating(false);
-    }
+  const roleBadgeVariant = (role: string) => {
+    const variant = getRoleBadgeVariant(role);
+    if (variant === "default") return "default"; // blue for admin
+    if (variant === "developer") return "developer"; // purple
+    if (variant === "secondary") return "success"; // green for agent
+    return "outline"; // gray for user
   };
 
-  const resetForm = () => {
-    setNewEmail("");
-    setNewPassword("");
-    setNewName("");
-    setNewPhone("");
-    setNewRole("agent");
-    setShowOnPublicPage(false);
-    setNewAvatarUrl("");
-    setEditingAgent(null);
-  };
-
-  const openEditDialog = async (agent: any) => {
-    setEditingAgent(agent);
-    setNewName(agent.full_name || "");
-    setNewEmail(agent.email || "");
-    setNewPhone(agent.phone || "");
-    setNewRole(agent.role || "agent");
-    setShowOnPublicPage(!!agent.show_on_public_page);
-    setNewAvatarUrl(agent.avatar_url || "");
-
-    if (!agent.email && agent.user_id) {
-      try {
-        const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-        const res = await fetch(`https://${PROJECT_ID}.supabase.co/functions/v1/create-agent`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${session?.access_token}`,
-          },
-          body: JSON.stringify({ action: "load", userId: agent.user_id }),
-        });
-        const data = await res.json();
-        if (res.ok && data?.email) {
-          setNewEmail(data.email);
-        }
-      } catch (err) {
-        console.warn("Falha ao carregar email do usuário:", err);
-      }
-    }
-
-    setDialogOpen(true);
-  };
-
-  const handleAvatarCropped = async (blob: Blob) => {
-    try {
-      const fileName = `avatars/${crypto.randomUUID()}.png`;
-      const { data, error } = await supabase.storage
-        .from("property-images")
-        .upload(fileName, blob);
-
-      if (error) throw error;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("property-images")
-        .getPublicUrl(data.path);
-
-      setNewAvatarUrl(publicUrl);
-      setIsCropperOpen(false);
-      toast({ title: "Foto enviada!" });
-    } catch (err: any) {
-      toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
-    }
-  };
-
-  const getRoleLabel = (agent: any) => {
-    return getRoleLabelFromLib(agent.role || agent.userRole || "user");
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return "—";
+    return new Date(dateStr).toLocaleDateString("pt-BR");
   };
 
   return (
@@ -250,209 +105,103 @@ const AdminAgents = () => {
       <AdminPageShell>
         <PageCard title="Agentes & Usuários" icon={Users}>
           <div className="space-y-6">
+            {/* Header */}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Agentes & Usuários</h1>
-                <p className="mt-1 text-sm text-muted-foreground">Gerencie perfis, funções e acessos · {allAgents?.length || 0} membros</p>
+                <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">
+                  Agentes & Usuários
+                </h1>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {isLoading
+                    ? "Carregando membros..."
+                    : `${users.length} membros na imobiliária`}
+                </p>
               </div>
-          <Button className="gap-2" onClick={() => { resetForm(); setDialogOpen(true); }}>
-            <UserPlus className="h-4 w-4" /> Adicionar
-          </Button>
-        </div>
-
-        {/* Create Agent Dialog */}
-        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>{editingAgent ? "Editar Usuário" : "Adicionar Usuário"}</DialogTitle>
-              <DialogDescription className="sr-only">
-                Gerenciamento de usuários e corretores da imobiliária
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 pt-2">
-              <div className="flex flex-col items-center gap-3">
-                <Avatar className="h-20 w-20 ring-2 ring-border">
-                  <AvatarImage src={newAvatarUrl} />
-                  <AvatarFallback className="bg-muted text-2xl font-display">
-                    {(newName || "U").charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
-                <Button variant="outline" size="sm" onClick={() => setIsCropperOpen(true)}>
-                  {newAvatarUrl ? "Alterar Foto" : "Adicionar Foto"}
+              {isDeveloper && (
+                <Button className="gap-2 bg-[#003366] hover:bg-[#002244] text-white" disabled>
+                  <UserPlus className="h-4 w-4" />
+                  Criar Usuário
                 </Button>
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium">Nome completo</label>
-                <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="João Silva" />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium">Email *</label>
-                <Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="email@exemplo.com" />
-              </div>
-              {!editingAgent && (
-                <div>
-                  <label className="mb-1 block text-sm font-medium">Senha *</label>
-                  <PasswordInput value={newPassword} onChange={setNewPassword} placeholder="Mínimo 6 caracteres" />
-                </div>
               )}
-              <div>
-                <label className="mb-1 block text-sm font-medium">Telefone / WhatsApp</label>
-                <Input value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder="(11) 99999-0000" />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium">Papel</label>
-                <Select value={newRole} onValueChange={setNewRole}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {createDialogRoles.map((r) => (
-                      <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {!isDeveloper(currentUserRole) && (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Apenas Desenvolvedor pode atribuir o papel Desenvolvedor.
-                  </p>
-                )}
-              </div>
-              <div className="flex items-center justify-between gap-3 rounded-lg border border-border p-4">
-                <div>
-                  <p className="text-sm font-medium">Exibir no site público</p>
-                  <p className="text-xs text-muted-foreground">Ative para que este agente apareça na página pública de agentes.</p>
-                </div>
-                <Switch checked={showOnPublicPage} onCheckedChange={(checked) => setShowOnPublicPage(checked)} />
-              </div>
-              <Button onClick={handleCreateAgent} disabled={creating} className="w-full gap-2 bg-[#003366] hover:bg-[#002244] text-white">
-                {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : editingAgent ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                {editingAgent ? "Salvar Alterações" : "Criar Usuário"}
-              </Button>
             </div>
-          </DialogContent>
-        </Dialog>
 
-        <LogoCropper
-          open={isCropperOpen}
-          onClose={() => setIsCropperOpen(false)}
-          onCropped={handleAvatarCropped}
-          aspect={1}
-        />
-
-        {isLoading ? (
-          <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
-        ) : !visibleAgents?.length ? (
-          <Card className="flex flex-col items-center py-12 text-center">
-            <Users className="h-10 w-10 text-muted-foreground/40" />
-            <p className="mt-3 font-display font-semibold">Nenhum membro encontrado</p>
-          </Card>
-        ) : (
-          <div className="overflow-x-auto rounded-lg border border-border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Usuário</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>Papel</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visibleAgents.map((agent: any) => {
-                  const role = getRoleLabel(agent);
-                  return (
-                    <TableRow key={agent.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={agent.avatar_url} />
-                            <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                              {(agent.full_name || "U").charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium">{agent.full_name || "Sem nome"}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{agent.phone || "—"}</TableCell>
-                      <TableCell>
-                        <Select
-                          value={role}
-                          disabled={!canManageRoles || !canEditUserRole(currentUserRole, agent.role)}
-                          onValueChange={(v) => {
-                            if (!canEditUserRole(currentUserRole, agent.role)) {
-                              toast({ title: "Sem permissão", description: "Apenas Desenvolvedor pode alterar o papel Desenvolvedor.", variant: "destructive" });
-                              return;
-                            }
-                            updateRoleMutation.mutate({ userId: agent.user_id, role: v });
-                          }}
-                        >
-                          <SelectTrigger className="w-28">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {availableRoles.map((r) => (
-                              <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Badge variant={getRoleBadgeVariant(agent.role)}>
-                            {getRoleLabel(agent)}
-                          </Badge>
-                          {canEditUserRole(currentUserRole, agent.role) && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="text-muted-foreground hover:text-primary"
-                              onClick={() => openEditDialog(agent)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {agent.user_id !== user?.id && canDeleteUser(currentUserRole, agent.role) && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="text-destructive hover:text-destructive"
-                              onClick={() => setDeleteConfirmAgent({ userId: agent.user_id, name: agent.full_name || "Sem nome" })}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
+            {/* Table */}
+            {isLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="flex items-center gap-4 rounded-lg border border-border p-4">
+                    <Skeleton variant="circle" className="h-10 w-10" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton variant="text" className="w-48" />
+                      <Skeleton variant="text" className="w-32" />
+                    </div>
+                    <Skeleton variant="default" className="h-6 w-20" />
+                  </div>
+                ))}
+              </div>
+            ) : !users.length ? (
+              <Card className="flex flex-col items-center py-12 text-center">
+                <Users className="h-10 w-10 text-muted-foreground/40" />
+                <p className="mt-3 font-display font-semibold">Nenhum membro encontrado</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Nenhum perfil encontrado para este tenant.
+                </p>
+              </Card>
+            ) : (
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Telefone</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Data Criação</TableHead>
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+                  </TableHeader>
+                  <TableBody>
+                    {users.map((u) => (
+                      <TableRow key={u.user_id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src={u.avatar_url ?? undefined} />
+                              <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                                {(u.full_name || "U").charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="font-medium">
+                              {u.full_name || "Sem nome"}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-muted-foreground">
+                            {u.email || "—"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">{u.phone || "—"}</span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={roleBadgeVariant(u.role)}>
+                            {getRoleLabel(u.role)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-muted-foreground">
+                            {formatDate(u.created_at)}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </div>
         </PageCard>
       </AdminPageShell>
-      <AlertDialog open={!!deleteConfirmAgent} onOpenChange={() => setDeleteConfirmAgent(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Usuário</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja remover "{deleteConfirmAgent?.name}" do sistema? O perfil e permissões serão removidos. Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => { if (deleteConfirmAgent) deleteAgentMutation.mutate(deleteConfirmAgent.userId); }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {deleteAgentMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </AdminLayout>
   );
 };

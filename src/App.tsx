@@ -62,6 +62,7 @@ const AdminAIHealth = lazy(() => import("./pages/admin/ai/AdminAIHealth"));
 const AdminAIAlerts = lazy(() => import("./pages/admin/ai/AdminAIAlerts"));
 const AdminAITelemetry = lazy(() => import("./pages/admin/ai/AdminAITelemetry"));
 const AdminDevOps = lazy(() => import("./pages/admin/ai/AdminDevOps"));
+const AdminPlanosLimites = lazy(() => import("./pages/admin/AdminPlanosLimites"));
 const AdminN8NWorkflows = lazy(() => import("./pages/admin/AdminN8NWorkflows"));
 const AdminMetaAds = lazy(() => import("./pages/admin/ai/AdminMetaAds"));
 const AdminSupabaseMonitor = lazy(() => import("./pages/admin/ai/AdminSupabaseMonitor"));
@@ -162,6 +163,11 @@ export function App() {
                           <Route path="/admin/email" element={<ErrorBoundary section="AdminEmailSettings"><ProtectedRoute requireAdmin><AdminEmailSettings /></ProtectedRoute></ErrorBoundary>} />
                           <Route path="/admin/permissoes-menu" element={<ErrorBoundary section="AdminMenuPermissions"><ProtectedRoute requireAdmin><AdminMenuPermissions /></ProtectedRoute></ErrorBoundary>} />
                           <Route path="/admin/configuracoes" element={<ErrorBoundary section="AdminSettings"><ProtectedRoute requireAdmin><AdminSettings /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/blog" element={<ErrorBoundary section="AdminBlog"><ProtectedRoute requireAdmin><AdminBlog /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/midias" element={<ErrorBoundary section="AdminMediaLibrary"><ProtectedRoute requireAdmin><AdminMediaLibrary /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/portais" element={<ErrorBoundary section="AdminPortals"><ProtectedRoute requireAdmin><AdminPortals /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/marketing-portal" element={<ErrorBoundary section="AdminPortalMarketing"><ProtectedRoute requireAdmin><AdminPortalMarketing /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/planos-limites" element={<ErrorBoundary section="AdminPlanosLimites"><ProtectedRoute requireAdmin><AdminPlanosLimites /></ProtectedRoute></ErrorBoundary>} />
                           <Route path="/blog" element={<Blog />} />
                           <Route path="/blog/:slug" element={<BlogPost />} />
                           <Route path="*" element={<NotFound />} />

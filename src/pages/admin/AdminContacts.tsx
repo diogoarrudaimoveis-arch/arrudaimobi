@@ -2,19 +2,35 @@ import { useState, useMemo } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminPageShell, AdminPageHeader, PageCard } from "@/components/admin/shared/AdminComponents";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Loader2, LayoutGrid, TableIcon, Phone, Mail, MessageCircle, AlertTriangle, RefreshCw, Shield, Star, Flame } from "lucide-react";
+import { Loader2, LayoutGrid, TableIcon, Phone, Mail, MessageCircle, AlertTriangle, RefreshCw, Shield, Star, Flame, Trash2, RotateCcw, MessageSquare } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { useCrmLeads, filterLeads, CrmStage } from "@/hooks/use-crm-leads";
 import { useContacts } from "@/hooks/use-contacts";
-import { useToast } from "@/hooks/use-toast";
+import { toast as sonnerToast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 
 const TABLE_PAGE_SIZE = 20;
 
@@ -245,7 +261,7 @@ function KanbanColumn({
 }
 
 // =============================================================================
-// Table row
+// Table row (CRM)
 // =============================================================================
 
 function LeadTableRow({ lead, isZpro }: { lead: any; isZpro: boolean }) {
@@ -329,6 +345,64 @@ function LeadTableRow({ lead, isZpro }: { lead: any; isZpro: boolean }) {
 }
 
 // =============================================================================
+// Soft delete mutations
+// =============================================================================
+
+function useSoftDeleteContact() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (contactId: string) => {
+      const { error } = await supabase
+        .from("contacts")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", contactId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      sonnerToast.success("Contato movido para a lixeira.");
+    },
+    onError: (err: Error) => {
+      sonnerToast.error(`Erro ao excluir: ${err.message}`);
+    },
+  });
+}
+
+function useRestoreContact() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (contactId: string) => {
+      const { error } = await supabase
+        .from("contacts")
+        .update({ deleted_at: null })
+        .eq("id", contactId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      sonnerToast.success("Contato restaurado.");
+    },
+    onError: (err: Error) => {
+      sonnerToast.error(`Erro ao restaurar: ${err.message}`);
+    },
+  });
+}
+
+// =============================================================================
+// useToast must be called inside a component — helper wrapper
+// =============================================================================
+
+function useToast() {
+  // This hook is used by sub-components that need toast access
+  // In this file we primarily use sonner toast directly
+  return { toast: sonnerToast };
+}
+
+// =============================================================================
 // Main component
 // =============================================================================
 
@@ -341,6 +415,16 @@ const AdminContacts = () => {
   const [search, setSearch] = useState("");
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
+
+  // Tab state for soft delete views
+  const [contactsTab, setContactsTab] = useState<"active" | "trash">("active");
+
+  // Soft delete dialog state
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [restoreConfirmId, setRestoreConfirmId] = useState<string | null>(null);
+
+  const softDeleteMutation = useSoftDeleteContact();
+  const restoreMutation = useRestoreContact();
 
   // CRM data
   const {
@@ -355,9 +439,29 @@ const AdminContacts = () => {
     refetch,
   } = useCrmLeads();
 
-  // Legacy fallback
-  const { data: legacyContacts } = useContacts();
-  const useLegacy = isFallbackMode || (!isCrmAvailable && !!legacyContacts?.length);
+  // Legacy contacts — active (non-deleted)
+  const { data: activeContacts, isLoading: activeLoading } = useContacts();
+  const activeCount = activeContacts?.length ?? 0;
+
+  // Deleted contacts (trash)
+  const { data: trashedContacts, isLoading: trashLoading } = useQuery({
+    queryKey: ["contacts", "trash", tenantId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contacts")
+        .select("*")
+        .eq("tenant_id", tenantId!)
+        .not("deleted_at", "is", null)
+        .order("deleted_at", { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: isReady && !!tenantId,
+  });
+  const trashCount = trashedContacts?.length ?? 0;
+
+  const useLegacy = isFallbackMode || (!isCrmAvailable && !!activeContacts?.length);
 
   // Filter leads for table/search
   const filteredLeads = useMemo(() => {
@@ -456,7 +560,99 @@ const AdminContacts = () => {
   };
 
   const displayLeads = useLegacy ? [] : leads;
-  const displayTotal = useLegacy ? (legacyContacts?.length ?? 0) : total;
+  const displayTotal = useLegacy ? (activeContacts?.length ?? 0) : total;
+
+  // Handle soft delete confirmation
+  const handleSoftDelete = (contactId: string) => {
+    softDeleteMutation.mutate(contactId);
+    setDeleteConfirmId(null);
+  };
+
+  // Handle restore confirmation
+  const handleRestore = (contactId: string) => {
+    restoreMutation.mutate(contactId);
+    setRestoreConfirmId(null);
+  };
+
+  // Contacts table row for legacy/active contacts tab
+  const ContactTableRow = ({ contact }: { contact: any }) => (
+    <TableRow>
+      <TableCell className="font-medium">{contact.name || "—"}</TableCell>
+      <TableCell className="text-sm">{contact.phone || "—"}</TableCell>
+      <TableCell className="text-sm text-muted-foreground">{contact.email || "—"}</TableCell>
+      <TableCell>
+        <Badge variant="outline" className="text-xs">
+          {contact.status || "—"}
+        </Badge>
+      </TableCell>
+      <TableCell>
+        {contact.is_external_lead ? (
+          <Badge variant="secondary" className="text-xs">Externo</Badge>
+        ) : (
+          <Badge variant="outline" className="text-xs">Orgânico</Badge>
+        )}
+      </TableCell>
+      <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
+        {contact.message || "—"}
+      </TableCell>
+      <TableCell className="text-xs text-muted-foreground">
+        {contact.created_at ? new Date(contact.created_at).toLocaleDateString("pt-BR") : "—"}
+      </TableCell>
+      <TableCell>
+        <div className="flex gap-1">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7 text-destructive"
+            title="Mover para lixeira"
+            onClick={() => setDeleteConfirmId(contact.id)}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+
+  // Contacts table row for trash tab
+  const TrashedContactRow = ({ contact }: { contact: any }) => (
+    <TableRow>
+      <TableCell className="font-medium">{contact.name || "—"}</TableCell>
+      <TableCell className="text-sm">{contact.phone || "—"}</TableCell>
+      <TableCell className="text-sm text-muted-foreground">{contact.email || "—"}</TableCell>
+      <TableCell>
+        <Badge variant="outline" className="text-xs">
+          {contact.status || "—"}
+        </Badge>
+      </TableCell>
+      <TableCell>
+        {contact.is_external_lead ? (
+          <Badge variant="secondary" className="text-xs">Externo</Badge>
+        ) : (
+          <Badge variant="outline" className="text-xs">Orgânico</Badge>
+        )}
+      </TableCell>
+      <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
+        {contact.message || "—"}
+      </TableCell>
+      <TableCell className="text-xs text-muted-foreground">
+        {contact.deleted_at ? new Date(contact.deleted_at).toLocaleDateString("pt-BR") : "—"}
+      </TableCell>
+      <TableCell>
+        <div className="flex gap-1">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7 text-green-600"
+            title="Restaurar contato"
+            onClick={() => setRestoreConfirmId(contact.id)}
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
 
   return (
     <AdminLayout>
@@ -567,75 +763,240 @@ const AdminContacts = () => {
           </ScrollArea>
         )}
 
-        {/* TABLE VIEW */}
+        {/* TABLE VIEW — CRM leads + legacy contacts tabs */}
         {viewMode === "table" && !useLegacy && !crmLoading && (
           <>
-            <div className="border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Telefone</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Stage</TableHead>
-                    <TableHead>Canal</TableHead>
-                    <TableHead>Última mensagem</TableHead>
-                    <TableHead>Última interação</TableHead>
-                    <TableHead>Stale</TableHead>
-                    <TableHead>VIP/Hot</TableHead>
-                    <TableHead>Origem</TableHead>
-                    <TableHead className="w-[100px]">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedLeads.map((lead) => (
-                    <LeadTableRow
-                      key={lead.id}
-                      lead={lead}
-                      isZpro={lead.source === "zpro" || lead.origin === "zpro"}
-                    />
-                  ))}
-                  {paginatedLeads.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={11} className="text-center py-16">
-                        <div className="flex flex-col items-center gap-3">
-                          <MessageSquare className="h-10 w-10 text-muted-foreground/30" />
-                          <p className="text-muted-foreground">
-                            {search ? "Nenhum lead encontrado para a busca." : "Nenhum lead no CRM."}
-                          </p>
-                          <p className="text-xs text-muted-foreground/60">
-                            {search ? "Tente outro termo de busca." : "Leads aparecerão aqui quando chegarem pelo site ou integração ZPRO."}
-                          </p>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-            {totalPages > 1 && (
-              <TablePagination
-                page={tablePage}
-                totalPages={totalPages}
-                onPageChange={setTablePage}
-              />
-            )}
+            {/* Soft Delete Tabs — only shown when CRM is active */}
+            <Tabs value={contactsTab} onValueChange={(v) => setContactsTab(v as "active" | "trash")} className="mb-4">
+              <TabsList>
+                <TabsTrigger value="active" className="gap-1.5">
+                  Ativos
+                  <Badge variant="secondary" className="text-xs ml-1">{activeCount}</Badge>
+                </TabsTrigger>
+                <TabsTrigger value="trash" className="gap-1.5">
+                  Lixeira
+                  <Badge variant="outline" className="text-xs ml-1">{trashCount}</Badge>
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Active contacts tab */}
+              <TabsContent value="active" className="mt-0">
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Telefone</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Mensagem</TableHead>
+                        <TableHead>Criado em</TableHead>
+                        <TableHead className="w-[80px]">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {activeContacts && activeContacts.length > 0 ? (
+                        activeContacts.map((contact) => (
+                          <ContactTableRow key={contact.id} contact={contact} />
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center py-16">
+                            <div className="flex flex-col items-center gap-3">
+                              <MessageSquare className="h-10 w-10 text-muted-foreground/30" />
+                              <p className="text-muted-foreground">Nenhum contato ativo.</p>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </TabsContent>
+
+              {/* Trash tab */}
+              <TabsContent value="trash" className="mt-0">
+                <div className="border border-destructive/30 rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Telefone</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Mensagem</TableHead>
+                        <TableHead>Excluído em</TableHead>
+                        <TableHead className="w-[80px]">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {trashedContacts && trashedContacts.length > 0 ? (
+                        trashedContacts.map((contact) => (
+                          <TrashedContactRow key={contact.id} contact={contact} />
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center py-16">
+                            <div className="flex flex-col items-center gap-3">
+                              <Trash2 className="h-10 w-10 text-muted-foreground/30" />
+                              <p className="text-muted-foreground">Lixeira vazia.</p>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </TabsContent>
+            </Tabs>
           </>
         )}
 
         {/* LEGACY MODE */}
         {useLegacy && (
-          <div className="border rounded-lg p-6 text-center">
-            <AlertTriangle className="h-8 w-8 text-amber-500 mx-auto mb-3" />
-            <h3 className="font-semibold text-lg mb-2">Modo Legado Ativo</h3>
-            <p className="text-muted-foreground text-sm mb-4">
-              CRM ZPRO indisponível. Exibindo {legacyContacts?.length ?? 0} contatos legados.
-            </p>
-            <p className="text-xs text-muted-foreground">
-              A sincronização com ZPRO será restaurada automaticamente quando o CRM estiver disponível.
-            </p>
+          <div className="space-y-4">
+            {/* Legacy contacts with soft delete tabs */}
+            <Tabs value={contactsTab} onValueChange={(v) => setContactsTab(v as "active" | "trash")}>
+              <TabsList>
+                <TabsTrigger value="active" className="gap-1.5">
+                  Ativos
+                  <Badge variant="secondary" className="text-xs ml-1">{activeCount}</Badge>
+                </TabsTrigger>
+                <TabsTrigger value="trash" className="gap-1.5">
+                  Lixeira
+                  <Badge variant="outline" className="text-xs ml-1">{trashCount}</Badge>
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="active" className="mt-0">
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Telefone</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Mensagem</TableHead>
+                        <TableHead>Criado em</TableHead>
+                        <TableHead className="w-[80px]">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {activeContacts && activeContacts.length > 0 ? (
+                        activeContacts.map((contact) => (
+                          <ContactTableRow key={contact.id} contact={contact} />
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center py-16">
+                            <div className="flex flex-col items-center gap-3">
+                              <MessageSquare className="h-10 w-10 text-muted-foreground/30" />
+                              <p className="text-muted-foreground">
+                                Nenhum contato legados disponível.
+                              </p>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="trash" className="mt-0">
+                <div className="border border-destructive/30 rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Telefone</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Mensagem</TableHead>
+                        <TableHead>Excluído em</TableHead>
+                        <TableHead className="w-[80px]">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {trashedContacts && trashedContacts.length > 0 ? (
+                        trashedContacts.map((contact) => (
+                          <TrashedContactRow key={contact.id} contact={contact} />
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center py-16">
+                            <div className="flex flex-col items-center gap-3">
+                              <Trash2 className="h-10 w-10 text-muted-foreground/30" />
+                              <p className="text-muted-foreground">Lixeira vazia.</p>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            {/* Legacy mode notice */}
+            <Card className="bg-amber-500/10 border-amber-500/30">
+              <CardContent className="p-4 flex items-center gap-3">
+                <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0" />
+                <div className="text-sm text-amber-600 dark:text-amber-400">
+                  <strong>Modo Legado Ativo:</strong> CRM ZPRO indisponível. Exibindo {activeContacts?.length ?? 0} contatos legados via tabela direta.
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
+
+        {/* Soft Delete Dialogs */}
+        <AlertDialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Arquivar contato</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja arquivar este contato? Ele será movido para a lixeira e poderá ser restaurado a qualquer momento.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => { if (deleteConfirmId) handleSoftDelete(deleteConfirmId); }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {softDeleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Arquivar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={!!restoreConfirmId} onOpenChange={() => setRestoreConfirmId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Restaurar contato</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja restaurar este contato? Ele voltará para a lista de contatos ativos.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => { if (restoreConfirmId) handleRestore(restoreConfirmId); }}
+                className="bg-green-600 text-white hover:bg-green-700"
+              >
+                {restoreMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Restaurar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </AdminPageShell>
     </AdminLayout>
   );

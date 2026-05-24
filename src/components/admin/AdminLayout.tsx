@@ -7,7 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils";
 import { normalizeRole, canSeeMenuItem, getRoleLabel, type AdminMenuItem } from "@/lib/adminPermissions";
 import {
-  Building2, LayoutDashboard, Home, Users, Settings, Tag, Sparkles, Mail, User, Database, Shield,
+  Building2, LayoutDashboard, Home, Users, Settings, Tag, Sparkles, User, Database, Shield,
   MessageSquare, LogOut, X, Menu, Sun, Moon, Image, Send,
   PanelLeftClose, PanelLeftOpen, ChevronRight, FileText, Download, Globe,
   Calendar as CalendarIcon, Target, BarChart3, BrainCircuit, Bot, Workflow,
@@ -21,51 +21,52 @@ import { usePWAInstall } from "@/hooks/usePWAInstall";
 // Menu items with permission flags
 const allMenuItems: AdminMenuItem[] = [
   // Principal
-  { key: "dashboard", label: "Dashboard", href: "/admin", icon: LayoutDashboard, section: "Principal" },
-  { key: "owners", label: "Proprietários", href: "/admin/proprietarios", icon: Users, section: "Principal" },
-  { key: "properties", label: "Imóveis", href: "/admin/imoveis", icon: Home, section: "Principal" },
-  { key: "agenda", label: "Agenda", href: "/admin/agenda", icon: CalendarIcon, section: "Principal" },
+  { key: "dashboard", label: "Dashboard", path: "/admin", icon: LayoutDashboard, section: "Principal" },
+  { key: "owners", label: "Proprietários", path: "/admin/proprietarios", icon: Users, section: "Principal" },
+  { key: "properties", label: "Imóveis", path: "/admin/imoveis", icon: Home, section: "Principal" },
+  { key: "agenda", label: "Agenda", path: "/admin/agenda", icon: CalendarIcon, section: "Principal" },
   // Gestão Básica
-  { key: "agents", label: "Agentes", href: "/admin/agentes", icon: Users, section: "Gestão Básica" },
-  { key: "property-types", label: "Tipos de Imóvel", href: "/admin/tipos", icon: Tag, section: "Gestão Básica" },
-  { key: "amenities", label: "Comodidades", href: "/admin/comodidades", icon: Sparkles, section: "Gestão Básica" },
-  { key: "media", label: "Biblioteca de Mídias", href: "/admin/midias", icon: Image, section: "Gestão Básica" },
-  { key: "blog", label: "Blog", href: "/admin/blog", icon: FileText, section: "Gestão Básica" },
+  { key: "agents", label: "Agentes", path: "/admin/corretores", icon: Users, section: "Gestão Básica" },
+  { key: "property-types", label: "Tipos de Imóvel", path: "/admin/tipos", icon: Tag, section: "Gestão Básica" },
+  { key: "amenities", label: "Comodidades", path: "/admin/comodidades", icon: Sparkles, section: "Gestão Básica" },
+  { key: "media", label: "Biblioteca de Mídias", path: "/admin/midias", icon: Image, section: "Gestão Básica" },
+  { key: "blog", label: "Blog", path: "/admin/blog", icon: FileText, section: "Gestão Básica" },
+  { key: "mostruario", label: "Mostruário", path: "/admin/mostruario", icon: LayoutGrid, section: "Gestão Básica", developerOnly: true },
   // CRM & Atendimento
-  { key: "contacts", label: "Contatos", href: "/admin/contatos", icon: MessageSquare, section: "CRM & Atendimento" },
-  { key: "messages", label: "Mensagens", href: "/admin/mensagens", icon: Send, section: "CRM & Atendimento" },
+  { key: "contacts", label: "Contatos", path: "/admin/contatos", icon: MessageSquare, section: "CRM & Atendimento" },
+  { key: "messages", label: "Mensagens", path: "/admin/mensagens", icon: Send, section: "CRM & Atendimento" },
   // Marketing Digital
-  { key: "ai-config", label: "Configurações de IA", href: "/admin/configuracoes-ia", icon: Sparkles, section: "Marketing Digital", techOnly: true },
-  { key: "portals", label: "Portais Imobiliários", href: "/admin/portais", icon: Globe, section: "Marketing Digital", adminOnly: true },
-  { key: "tracking", label: "Rastreamento do Portal", href: "/admin/marketing-portal", icon: Target, section: "Marketing Digital", adminOnly: true },
-  { key: "performance", label: "Performance de Imóveis", href: "/admin/performance", icon: BarChart3, section: "Marketing Digital", adminOnly: true },
+  { key: "ai-config", label: "Configurações de IA", path: "/admin/configuracoes-ia", icon: Sparkles, section: "Marketing Digital", techOnly: true },
+  { key: "portals", label: "Portais Imobiliários", path: "/admin/portais", icon: Globe, section: "Marketing Digital", adminOnly: true },
+  { key: "tracking", label: "Rastreamento do Portal", path: "/admin/marketing-portal", icon: Target, section: "Marketing Digital", adminOnly: true },
+  { key: "performance", label: "Performance de Imóveis", path: "/admin/performance", icon: BarChart3, section: "Marketing Digital", adminOnly: true },
   // IA Operacional — all techOnly
-  { key: "central-ai", label: "Central IA", href: "/admin/ia-operacional", icon: BrainCircuit, section: "IA Operacional", techOnly: true },
-  { key: "ai-agents", label: "Agentes IA", href: "/admin/ia-agentes", icon: Bot, section: "IA Operacional", techOnly: true },
-  { key: "n8n", label: "Automações N8N", href: "/admin/ia-automacoes", icon: Workflow, section: "IA Operacional", techOnly: true },
-  { key: "logs", label: "Logs", href: "/admin/ia-logs", icon: ScrollText, section: "IA Operacional", techOnly: true },
-  { key: "health", label: "Health Checks", href: "/admin/ia-health", icon: HeartPulse, section: "IA Operacional", techOnly: true },
-  { key: "devops", label: "DevOps", href: "/admin/devops", icon: GitBranch, section: "IA Operacional", techOnly: true },
-  { key: "meta-ads", label: "Meta Ads", href: "/admin/meta-ads", icon: Target, section: "IA Operacional", techOnly: true },
-  { key: "supabase", label: "Supabase", href: "/admin/supabase-monitor", icon: Database, section: "IA Operacional", techOnly: true },
+  { key: "central-ai", label: "Central IA", path: "/admin/operacional", icon: BrainCircuit, section: "IA Operacional", techOnly: true },
+  { key: "ai-agents", label: "Agentes IA", path: "/admin/agentes", icon: Bot, section: "IA Operacional", techOnly: true },
+  { key: "n8n", label: "Automações N8N", path: "/admin/automacoes", icon: Workflow, section: "IA Operacional", techOnly: true },
+  { key: "logs", label: "Logs", path: "/admin/logs", icon: ScrollText, section: "IA Operacional", techOnly: true },
+  { key: "health", label: "Health Checks", path: "/admin/saude", icon: HeartPulse, section: "IA Operacional", techOnly: true },
+  { key: "devops", label: "DevOps", path: "/admin/devops", icon: GitBranch, section: "IA Operacional", techOnly: true },
+  { key: "meta-ads", label: "Meta Ads", path: "/admin/meta-ads", icon: Target, section: "IA Operacional", techOnly: true },
+  { key: "supabase", label: "Supabase", path: "/admin/supabase-monitor", icon: Database, section: "IA Operacional", techOnly: true },
   // Sistema
-  { key: "profile", label: "Meu Perfil", href: "/admin/perfil", icon: User, section: "Sistema" },
-  { key: "email-config", label: "Config. E-mail", href: "/admin/email", icon: Mail, section: "Sistema", adminOnly: true },
-  { key: "settings", label: "Configurações", href: "/admin/configuracoes", icon: Settings, section: "Sistema", adminOnly: true },
-  { key: "menu-permissions", label: "Permissões de Menu", href: "/admin/permissoes-menu", icon: Shield, section: "Sistema", adminOnly: true },
-  { key: "mostruario", label: "Mostruário", href: "/admin/mostruario", icon: LayoutGrid, section: "Desenvolvedor", developerOnly: true },
-  { key: "planos-limites", label: "Planos e Limites", href: "/admin/planos-limites", icon: CreditCard, section: "Desenvolvedor", developerOnly: true },
+  { key: "profile", label: "Meu Perfil", path: "/admin/perfil", icon: User, section: "Sistema" },
+  { key: "email-config", label: "Config. E-mail", path: "/admin/email", icon: Sparkles, section: "Sistema", adminOnly: true },
+  { key: "settings", label: "Configurações", path: "/admin/configuracoes", icon: Settings, section: "Sistema", adminOnly: true },
+  { key: "menu-permissions", label: "Permissões de Menu", path: "/admin/permissoes-menu", icon: Shield, section: "Sistema", adminOnly: true },
+  // Desenvolvedor
+  { key: "planos-limites", label: "Planos e Limites", path: "/admin/planos-limites", icon: CreditCard, section: "Desenvolvedor", developerOnly: true },
 ];
 
 // Group menu items by section
 const menuSections = [
   { label: "Principal", keys: ["dashboard", "owners", "properties", "agenda"] },
-  { label: "Gestão Básica", keys: ["agents", "property-types", "amenities", "media", "blog"] },
+  { label: "Gestão Básica", keys: ["agents", "property-types", "amenities", "media", "blog", "mostruario"] },
   { label: "CRM & Atendimento", keys: ["contacts", "messages"] },
   { label: "Marketing Digital", keys: ["ai-config", "portals", "tracking", "performance"] },
   { label: "IA Operacional", keys: ["central-ai", "ai-agents", "n8n", "logs", "health", "devops", "meta-ads", "supabase"] },
   { label: "Sistema", keys: ["profile", "email-config", "settings", "menu-permissions"] },
-  { label: "Desenvolvedor", keys: ["mostruario", "planos-limites"] },
+  { label: "Desenvolvedor", keys: ["planos-limites"] },
 ];
 
 interface AdminLayoutProps {
@@ -102,10 +103,10 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     .split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
 
   const NavLink = ({ item }: { item: AdminMenuItem }) => {
-    const active = location.pathname === item.href;
+    const active = location.pathname === item.path;
     const link = (
       <Link
-        to={item.href}
+        to={item.path}
         className={cn(
           "group relative flex items-center gap-2 rounded-sm px-2 py-1.5 text-[12px] font-medium transition-all duration-150",
           collapsed && "justify-center px-1.5",
