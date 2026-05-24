@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useLeadSubmitWithN8N } from "@/hooks/workflow-hooks";
 import { Loader2, CheckCircle2 } from "lucide-react";
 
 const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
@@ -28,6 +29,8 @@ export function PropertyContactForm({ propertyId, propertyTitle, agentId, tenant
     message: `Olá, tenho interesse no imóvel "${propertyTitle}".`,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const { triggerN8NLeadFlow, isTriggering } = useLeadSubmitWithN8N();
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -66,7 +69,23 @@ export function PropertyContactForm({ propertyId, propertyTitle, agentId, tenant
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erro ao enviar");
 
+      // Track Meta Pixel lead event
       trackLead(propertyId, propertyTitle);
+
+      // Trigger N8N → ZPRO → WhatsApp workflow (non-blocking)
+      triggerN8NLeadFlow({
+        name: form.name,
+        phone: form.phone,
+        email: form.email || undefined,
+        propertyId,
+        propertyTitle,
+        message: form.message,
+        source: "property_contact_form",
+        channel: "website",
+      });
+
+      onTrackMarketingEvent?.("lead_captured", { property_id: propertyId });
+
       setSubmitted(true);
       toast({ title: "Mensagem enviada!", description: "O agente entrará em contato." });
     } catch (err: any) {
@@ -111,7 +130,7 @@ export function PropertyContactForm({ propertyId, propertyTitle, agentId, tenant
           {errors.phone && <p className="mt-1 text-xs text-destructive">{errors.phone}</p>}
         </div>
         <Textarea placeholder="Mensagem" className="min-h-[80px]" value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} maxLength={1000} />
-        <Button className="w-full gap-2" type="submit" disabled={submitting}>
+        <Button className="w-full gap-2" type="submit" disabled={submitting || isTriggering}>
           {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
           Enviar Mensagem
         </Button>
