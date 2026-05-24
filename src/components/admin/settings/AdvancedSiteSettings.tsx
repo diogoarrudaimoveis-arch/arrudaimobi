@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { sonnerToast } from "@/components/ui/sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Save, Image as ImageIcon, FileText, Globe, Cookie, Shield, Link as LinkIcon, Trash2 } from "lucide-react";
 import { BlogRichEditor } from "@/components/admin/BlogRichEditor";
@@ -15,8 +15,7 @@ interface AdvancedSiteSettingsProps {
 }
 
 export function AdvancedSiteSettings({ tenantId }: AdvancedSiteSettingsProps) {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+    const queryClient = useQueryClient();
 
   const [savingFavicon, setSavingFavicon] = useState(false);
   const [savingSeo, setSavingSeo] = useState(false);
@@ -83,7 +82,7 @@ export function AdvancedSiteSettings({ tenantId }: AdvancedSiteSettingsProps) {
       queryClient.invalidateQueries({ queryKey: ["site-settings"] });
     },
     onError: (err: any) => {
-      toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
+      sonnerToast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
     }
   });
 
@@ -99,7 +98,7 @@ export function AdvancedSiteSettings({ tenantId }: AdvancedSiteSettingsProps) {
       const { data } = supabase.storage.from("property-images").getPublicUrl(`branding/${filename}`);
       setFaviconUrl(data.publicUrl);
     } catch (err: any) {
-      toast({ title: "Erro ao enviar", description: err.message, variant: "destructive" });
+      sonnerToast({ title: "Erro ao enviar", description: err.message, variant: "destructive" });
     } finally {
       setUploadingFavicon(false);
     }
@@ -117,7 +116,7 @@ export function AdvancedSiteSettings({ tenantId }: AdvancedSiteSettingsProps) {
       const { data } = supabase.storage.from("property-images").getPublicUrl(`branding/${filename}`);
       setSeoImageUrl(data.publicUrl);
     } catch (err: any) {
-      toast({ title: "Erro ao enviar", description: err.message, variant: "destructive" });
+      sonnerToast({ title: "Erro ao enviar", description: err.message, variant: "destructive" });
     } finally {
       setUploadingSeoImg(false);
     }
@@ -127,7 +126,7 @@ export function AdvancedSiteSettings({ tenantId }: AdvancedSiteSettingsProps) {
     setSavingFavicon(true);
     try {
       await upsertMutation.mutateAsync({ favicon_url: faviconUrl });
-      toast({ title: "Favicon salvo com sucesso!" });
+      sonnerToast({ title: "Favicon salvo com sucesso!" });
     } finally {
       setSavingFavicon(false);
     }
@@ -141,7 +140,7 @@ export function AdvancedSiteSettings({ tenantId }: AdvancedSiteSettingsProps) {
         seo_description: seoDescription, 
         seo_image_url: seoImageUrl 
       });
-      toast({ title: "Configurações de SEO salvas com sucesso!" });
+      sonnerToast({ title: "Configurações de SEO salvas com sucesso!" });
     } finally {
       setSavingSeo(false);
     }
@@ -154,7 +153,7 @@ export function AdvancedSiteSettings({ tenantId }: AdvancedSiteSettingsProps) {
         terms_content: termsContent, 
         privacy_policy_content: privacyContent 
       });
-      toast({ title: "Documentos atualizados com sucesso!" });
+      sonnerToast({ title: "Documentos atualizados com sucesso!" });
     } finally {
       setSavingDocs(false);
     }
@@ -166,7 +165,7 @@ export function AdvancedSiteSettings({ tenantId }: AdvancedSiteSettingsProps) {
       await upsertMutation.mutateAsync({ 
         cookie_banner_json: { message: cookieMsg }
       });
-      toast({ title: "Configurações de cookies salvas!" });
+      sonnerToast({ title: "Configurações de cookies salvas!" });
     } finally {
       setSavingCookies(false);
     }

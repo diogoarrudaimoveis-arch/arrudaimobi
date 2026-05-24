@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
+import { sonnerToast } from "@/components/ui/sonner";
 import { useLeadSubmitWithN8N } from "@/hooks/workflow-hooks";
 import { Loader2, CheckCircle2 } from "lucide-react";
 
@@ -19,8 +19,7 @@ interface Props {
 }
 
 export function PropertyContactForm({ propertyId, propertyTitle, agentId, tenantId, onTrackMarketingEvent }: Props) {
-  const { toast } = useToast();
-  const [submitting, setSubmitting] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -87,9 +86,9 @@ export function PropertyContactForm({ propertyId, propertyTitle, agentId, tenant
       onTrackMarketingEvent?.("lead_captured", { property_id: propertyId });
 
       setSubmitted(true);
-      toast({ title: "Mensagem enviada!", description: "O agente entrará em contato." });
+      sonnerToast({ title: "Mensagem enviada!", description: "O agente entrará em contato." });
     } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      sonnerToast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }

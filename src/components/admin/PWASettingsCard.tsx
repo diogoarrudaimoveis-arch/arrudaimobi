@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { LogoCropper } from "./LogoCropper";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { sonnerToast } from "@/components/ui/sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, Save, Smartphone, ImageIcon, Trash2, Info } from "lucide-react";
 import { updateCachedTenantSettings, type TenantSettings } from "@/hooks/use-tenant-settings";
@@ -17,8 +17,7 @@ interface PWASettingsCardProps {
 }
 
 export function PWASettingsCard({ tenantId, settings, allSettings }: PWASettingsCardProps) {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+    const queryClient = useQueryClient();
 
   const [pwaIcon192, setPwaIcon192] = useState(settings.pwa_icon_192 || "");
   const [pwaIcon512, setPwaIcon512] = useState(settings.pwa_icon_512 || "");
@@ -56,9 +55,9 @@ export function PWASettingsCard({ tenantId, settings, allSettings }: PWASettings
       const { data: urlData } = supabase.storage.from("property-images").getPublicUrl(`pwa/${filename}`);
       setPwaIcon192(urlData.publicUrl);
       setCropper192Open(false);
-      toast({ title: "Ícone 192x192 enviado!" });
+      sonnerToast({ title: "Ícone 192x192 enviado!" });
     } catch (err: any) {
-      toast({ title: "Erro ao enviar ícone", description: err.message, variant: "destructive" });
+      sonnerToast({ title: "Erro ao enviar ícone", description: err.message, variant: "destructive" });
     } finally {
       setUploading192(false);
     }
@@ -75,9 +74,9 @@ export function PWASettingsCard({ tenantId, settings, allSettings }: PWASettings
       const { data: urlData } = supabase.storage.from("property-images").getPublicUrl(`pwa/${filename}`);
       setPwaIcon512(urlData.publicUrl);
       setCropper512Open(false);
-      toast({ title: "Ícone 512x512 enviado!" });
+      sonnerToast({ title: "Ícone 512x512 enviado!" });
     } catch (err: any) {
-      toast({ title: "Erro ao enviar ícone", description: err.message, variant: "destructive" });
+      sonnerToast({ title: "Erro ao enviar ícone", description: err.message, variant: "destructive" });
     } finally {
       setUploading512(false);
     }
@@ -107,9 +106,9 @@ export function PWASettingsCard({ tenantId, settings, allSettings }: PWASettings
 
       queryClient.invalidateQueries({ queryKey: ["admin-tenant"] });
       queryClient.invalidateQueries({ queryKey: ["tenant-settings"] });
-      toast({ title: "Configurações do PWA salvas!" });
+      sonnerToast({ title: "Configurações do PWA salvas!" });
     } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      sonnerToast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }

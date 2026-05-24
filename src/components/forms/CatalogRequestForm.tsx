@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
+import { sonnerToast } from "@/components/ui/sonner";
 import { useCatalogRequestWorkflow } from "@/hooks/workflow-hooks";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CheckCircle2, BookOpen, MessageSquare } from "lucide-react";
@@ -47,8 +47,7 @@ const LOCATION_PRESETS = [
 ];
 
 export function CatalogRequestForm({ variant = "card", compact = false }: CatalogRequestFormProps) {
-  const { toast } = useToast();
-  const [submitting, setSubmitting] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -129,12 +128,12 @@ export function CatalogRequestForm({ variant = "card", compact = false }: Catalo
 
       // 3. Show success immediately
       setSubmitted(true);
-      toast({
+      sonnerToast({
         title: "Catálogo solicitado! 📚",
         description: "Você receberá no WhatsApp em instantes. Obrigado pelo interesse!",
       });
     } catch (err: any) {
-      toast({
+      sonnerToast({
         title: "Erro",
         description: err.message || "Erro ao processar solicitação. Tente novamente.",
         variant: "destructive",

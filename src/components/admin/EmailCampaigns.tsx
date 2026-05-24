@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
+import { sonnerToast } from "@/components/ui/sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -56,8 +56,7 @@ const DEFAULT_CAMPAIGN_HTML = `<!DOCTYPE html>
 </html>`;
 
 export default function EmailCampaigns() {
-  const { toast } = useToast();
-  const { session } = useAuth();
+    const { session } = useAuth();
 
   // Compose
   const [subject, setSubject] = useState("");
@@ -112,7 +111,7 @@ export default function EmailCampaigns() {
       if (error) throw error;
       setContacts(data || []);
     } catch {
-      toast({ title: "Erro ao carregar contatos", variant: "destructive" });
+      sonnerToast({ title: "Erro ao carregar contatos", variant: "destructive" });
     } finally {
       setLoadingContacts(false);
     }
@@ -187,9 +186,9 @@ export default function EmailCampaigns() {
       if (error) throw error;
       setCampaigns([]);
       setExpandedCampaign(null);
-      toast({ title: "Histórico limpo com sucesso!" });
+      sonnerToast({ title: "Histórico limpo com sucesso!" });
     } catch {
-      toast({ title: "Erro ao limpar histórico", variant: "destructive" });
+      sonnerToast({ title: "Erro ao limpar histórico", variant: "destructive" });
     } finally {
       setClearingHistory(false);
     }
@@ -209,7 +208,7 @@ export default function EmailCampaigns() {
       if (error) throw error;
       setRecipients(data || []);
     } catch {
-      toast({ title: "Erro ao carregar destinatários", variant: "destructive" });
+      sonnerToast({ title: "Erro ao carregar destinatários", variant: "destructive" });
     } finally {
       setLoadingRecipients(false);
     }
@@ -243,15 +242,15 @@ export default function EmailCampaigns() {
 
   async function handleSend() {
     if (!subject.trim()) {
-      toast({ title: "Preencha o assunto do e-mail", variant: "destructive" });
+      sonnerToast({ title: "Preencha o assunto do e-mail", variant: "destructive" });
       return;
     }
     if (!htmlBody.trim()) {
-      toast({ title: "Preencha o corpo do e-mail", variant: "destructive" });
+      sonnerToast({ title: "Preencha o corpo do e-mail", variant: "destructive" });
       return;
     }
     if (selectedIds.size === 0) {
-      toast({ title: "Selecione ao menos um contato", variant: "destructive" });
+      sonnerToast({ title: "Selecione ao menos um contato", variant: "destructive" });
       return;
     }
 
@@ -269,7 +268,7 @@ export default function EmailCampaigns() {
       if (error) throw error;
 
       const result = data as { message?: string; sent?: number; failed?: number };
-      toast({
+      sonnerToast({
         title: result?.message || "Envio concluído!",
         variant: (result?.failed ?? 0) > 0 ? "destructive" : "default",
       });
@@ -281,7 +280,7 @@ export default function EmailCampaigns() {
       loadHistory();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Erro ao enviar";
-      toast({ title: message, variant: "destructive" });
+      sonnerToast({ title: message, variant: "destructive" });
     } finally {
       setSending(false);
     }

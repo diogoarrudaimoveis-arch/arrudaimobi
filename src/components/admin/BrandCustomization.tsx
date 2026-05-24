@@ -7,7 +7,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { LogoCropper } from "./LogoCropper";
 import { HeroBgCropper } from "./HeroBgCropper";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { sonnerToast } from "@/components/ui/sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, Save, Palette, ImageIcon, Type, Trash2, Eye, RotateCcw, Monitor } from "lucide-react";
 import { updateCachedTenantSettings, type TenantSettings } from "@/hooks/use-tenant-settings";
@@ -49,8 +49,7 @@ function hexToHsl(hex: string): string {
 }
 
 export function BrandCustomization({ tenantId, settings, allSettings }: BrandCustomizationProps) {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+    const queryClient = useQueryClient();
 
   const [primaryColor, setPrimaryColor] = useState(settings.primary_color || "#2563EB");
   const [gradientFrom, setGradientFrom] = useState(settings.gradient_from || "#2563EB");
@@ -102,9 +101,9 @@ export function BrandCustomization({ tenantId, settings, allSettings }: BrandCus
       const { data: urlData } = supabase.storage.from("property-images").getPublicUrl(`logos/${filename}`);
       setLogoUrl(urlData.publicUrl);
       setCropperOpen(false);
-      toast({ title: "Logo enviada com sucesso!" });
+      sonnerToast({ title: "Logo enviada com sucesso!" });
     } catch (err: any) {
-      toast({ title: "Erro ao enviar logo", description: err.message, variant: "destructive" });
+      sonnerToast({ title: "Erro ao enviar logo", description: err.message, variant: "destructive" });
     } finally {
       setUploading(false);
     }
@@ -121,9 +120,9 @@ export function BrandCustomization({ tenantId, settings, allSettings }: BrandCus
       const { data: urlData } = supabase.storage.from("property-images").getPublicUrl(`hero/${filename}`);
       setHeroBgImageUrl(urlData.publicUrl);
       setHeroCropperOpen(false);
-      toast({ title: "Imagem do hero enviada!" });
+      sonnerToast({ title: "Imagem do hero enviada!" });
     } catch (err: any) {
-      toast({ title: "Erro ao enviar imagem", description: err.message, variant: "destructive" });
+      sonnerToast({ title: "Erro ao enviar imagem", description: err.message, variant: "destructive" });
     } finally {
       setUploadingHero(false);
     }
@@ -165,9 +164,9 @@ export function BrandCustomization({ tenantId, settings, allSettings }: BrandCus
 
       queryClient.invalidateQueries({ queryKey: ["admin-tenant"] });
       queryClient.invalidateQueries({ queryKey: ["tenant-settings"] });
-      toast({ title: "Personalização visual salva!" });
+      sonnerToast({ title: "Personalização visual salva!" });
     } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      sonnerToast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
