@@ -264,7 +264,7 @@ function KanbanColumn({
 // Table row (CRM)
 // =============================================================================
 
-function LeadTableRow({ lead, isZpro }: { lead: any; isZpro: boolean }) {
+function LeadTableRow({ lead, isZpro, onDelete }: { lead: any; isZpro: boolean; onDelete: (id: string) => void }) {
   const { toast } = useToast();
 
   const handleBlockedWhatsApp = () => {
@@ -334,7 +334,7 @@ function LeadTableRow({ lead, isZpro }: { lead: any; isZpro: boolean }) {
             variant="ghost"
             className="h-7 w-7 text-destructive"
             title={isZpro ? "Bloqueado (ZPRO)" : "Excluir"}
-            onClick={isZpro ? handleBlockedDelete : undefined}
+            onClick={isZpro ? handleBlockedDelete : (() => onDelete(lead.id))}
           >
             <span className="text-xs">🗑</span>
           </Button>
