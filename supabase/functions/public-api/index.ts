@@ -177,6 +177,137 @@ Deno.serve(async (req) => {
         break;
       }
 
+      // Block 6b: Auto-reply with property catalog
+      // Returns a formatted WhatsApp-friendly catalog of up to 5 properties
+      case "get-property-catalog": {
+        const query = url.searchParams.get("q") || "";
+        const purpose = url.searchParams.get("purpose") || "";
+        const typeId = url.searchParams.get("typeId") || "";
+        const minPrice = Number(url.searchParams.get("minPrice") || 0);
+        const maxPrice = Number(url.searchParams.get("maxPrice") || 0);
+        const bedrooms = Number(url.searchParams.get("bedrooms") || 0);
+        const limit = Math.min(Math.max(1, Number(url.searchParams.get("limit") || 5)), 10);
+
+        let q = supabase
+          .from("properties")
+          .select(`
+            id, title, price, purpose, area, bedrooms, bathrooms, garages,
+            city, neighborhood, property_types(name),
+            property_images(id, url, alt, display_order)
+          `)
+          .eq("status", "available");
+
+        if (purpose) q = q.eq("purpose", purpose);
+        if (typeId) q = q.eq("type_id", typeId);
+        if (minPrice > 0) q = q.gte("price", minPrice);
+        if (maxPrice > 0) q = q.lte("price", maxPrice);
+        if (bedrooms > 0) q = q.gte("bedrooms", bedrooms);
+        if (query) q = q.or(`title.ilike.%${query}%,neighborhood.ilike.%${query}%,city.ilike.%${query}%`);
+
+        q = q.order("featured", { ascending: false }).order("created_at", { ascending: false }).limit(limit);
+
+        const { data: properties, error: propError } = await q;
+        if (propError) throw propError;
+
+        if (!properties || properties.length === 0) {
+          result = { catalog: null, message: "Nenhum imóvel encontrado com esses filtros. Tente outros critérios!" };
+          break;
+        }
+
+        const lines: string[] = [];
+        lines.push("🏠 *Catálogo de Imóveis — Arruda Imobi*");
+        lines.push("");
+        for (const p of properties) {
+          const typeName = (p as any).property_types?.name || "Imóvel";
+          const images = (p as any).property_images || [];
+          const firstImage = images.sort((a: any, b: any) => (a.display_order || 0) - (b.display_order || 0))[0];
+          const imgLine = firstImage ? `📷 https://www.arrudaimobi.com.br/imovel/${p.id}` : `🔗 https://www.arrudaimobi.com.br/imovel/${p.id}`;
+          const priceFormatted = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(p.price));
+          const purposeLabel = p.purpose === "rent" ? "Aluguel" : "Venda";
+          const areaStr = p.area ? ` | 📐 ${p.area}m²` : "";
+          const beds = p.bedrooms ? `🛏 ${p.bedrooms}` : "";
+          const baths = p.bathrooms ? `🛁 ${p.bathrooms}` : "";
+          const garages = p.garages ? `🚗 ${p.garages}` : "";
+          const extras = [beds, baths, garages].filter(Boolean).join(" | ");
+          lines.push(`${purposeLabel} — ${priceFormatted}`);
+          lines.push(`📍 ${p.neighborhood || p.city || "Belo Horizonte"}, ${p.city || "MG"}`);
+          lines.push(`${typeName}${areaStr} ${extras ? `| ${extras}` : ""}`);
+          lines.push(imgLine);
+          lines.push("");
+        }
+        lines.push("👉 https://www.arrudaimobi.com.br/imoveis");
+        lines.push("");
+        lines.push("Gostou de algum? Responda o número do imóvel ou fale com um corretor! 👨‍💼");
+
+        result = {
+          catalog: properties.map((p: any) => ({
+            id: p.id,
+            title: p.title,
+            price: p.price,
+            purpose: p.purpose,
+            purposeLabel: p.purpose === "rent" ? "Aluguel" : "Venda",
+            city: p.city,
+            neighborhood: p.neighborhood,
+            typeName: p.property_types?.name || "Imóvel",
+            url: `https://www.arrudaimobi.com.br/imovel/${p.id}`,
+            imageUrl: (p.property_images || []).sort((a: any, b: any) => (a.display_order || 0) - (b.display_order || 0))[0]?.url || null,
+          })),
+          message: lines.join("\n"),
+        };
+        break;
+      }
+
+      // Block 6b: Get single property formatted for WhatsApp
+      case "get-property-whatsapp": {
+        const id = url.searchParams.get("id");
+        if (!id) throw new Error("id required");
+
+        const { data, error } = await supabase
+          .from("properties")
+          .select(`
+            id, title, price, purpose, area, bedrooms, bathrooms, garages,
+            city, neighborhood, address, description,
+            property_types(name),
+            property_images(id, url, alt, display_order)
+          `)
+          .eq("id", id)
+          .maybeSingle();
+
+        if (error) throw error;
+        if (!data) {
+          result = { message: "Imóvel não encontrado. 😕" };
+          break;
+        }
+
+        const lines: string[] = [];
+        const typeName = (data as any).property_types?.name || "Imóvel";
+        const images = (data as any).property_images || [];
+        const sortedImages = images.sort((a: any, b: any) => (a.display_order || 0) - (b.display_order || 0));
+        const priceFormatted = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(data.price));
+        const purposeLabel = data.purpose === "rent" ? "Aluguel" : "Venda";
+        const areaStr = data.area ? `📐 ${data.area}m²` : "";
+        const beds = data.bedrooms ? `🛏 ${data.bedrooms} quarto${data.bedrooms > 1 ? "s" : ""}` : "";
+        const baths = data.bathrooms ? `🛁 ${data.bathrooms} banheiro${data.bathrooms > 1 ? "s" : ""}` : "";
+        const garages = data.garages ? `🚗 ${data.garages} vaga${data.garages > 1 ? "s" : ""}` : "";
+
+        lines.push(`🏠 *${data.title}*`);
+        lines.push("");
+        lines.push(`${purposeLabel} — ${priceFormatted}`);
+        lines.push(`📍 ${data.neighborhood || data.address || data.city || "Belo Horizonte"}, ${data.city || "MG"}`);
+        const specs = [areaStr, beds, baths, garages].filter(Boolean);
+        if (specs.length > 0) lines.push(specs.join(" | "));
+        lines.push("");
+        if (sortedImages.length > 0) {
+          lines.push(`📷 Veja fotos: https://www.arrudaimobi.com.br/imovel/${data.id}`);
+        }
+        lines.push(`🔗 Mais detalhes: https://www.arrudaimobi.com.br/imovel/${data.id}`);
+        lines.push("");
+        lines.push("👉 Fale com um corretor para mais informações!");
+
+        result = { message: lines.join("\n") };
+        break;
+      }
+
       case "list-agents": {
         const page = Math.max(1, Number(url.searchParams.get("page") || 1));
         const pageSize = Math.min(Math.max(1, Number(url.searchParams.get("pageSize") || 12)), 50);
@@ -754,6 +885,94 @@ Deno.serve(async (req) => {
         break;
       }
 
+
+      // Block 6d: Check WhatsApp opt-in/opt-out status for a phone number
+      case "check-whatsapp-opt": {
+        const phone = url.searchParams.get("phone");
+        if (!phone) throw new Error("phone required");
+
+        const tenantSlug = url.searchParams.get("tenant") || "arruda-imobi";
+
+        const { data: tenant } = await supabase
+          .from("tenants")
+          .select("id")
+          .eq("slug", tenantSlug)
+          .maybeSingle();
+
+        const tenantId = tenant?.id || "00000000-0000-0000-0000-000000000000";
+
+        const { data: optRecord, error: optError } = await supabase
+          .from("whatsapp_opt_status")
+          .select("opted_in, opted_in_at, opted_out_at, source")
+          .eq("tenant_id", tenantId)
+          .eq("phone", phone)
+          .maybeSingle();
+
+        if (optError) throw optError;
+
+        if (!optRecord) {
+          // No record = defaulted to opted-in
+          result = { opted_in: true, status: "default", source: null };
+        } else {
+          result = {
+            opted_in: optRecord.opted_in,
+            opted_in_at: optRecord.opted_in_at,
+            opted_out_at: optRecord.opted_out_at,
+            source: optRecord.source,
+            status: optRecord.opted_in ? "active" : "opted_out",
+          };
+        }
+        break;
+      }
+
+      // Block 6d: Update WhatsApp opt-in/opt-out status (admin or self-service)
+      case "update-whatsapp-opt": {
+        const phone = url.searchParams.get("phone");
+        const action = url.searchParams.get("action"); // "opt_in" | "opt_out"
+        if (!phone) throw new Error("phone required");
+        if (!action || !["opt_in", "opt_out"].includes(action)) {
+          throw new Error("action must be 'opt_in' or 'opt_out'");
+        }
+
+        const tenantSlug = url.searchParams.get("tenant") || "arruda-imobi";
+
+        const { data: tenant } = await supabase
+          .from("tenants")
+          .select("id")
+          .eq("slug", tenantSlug)
+          .maybeSingle();
+
+        const tenantId = tenant?.id || "00000000-0000-0000-0000-000000000000";
+
+        const optedIn = action === "opt_in";
+
+        const { data: updated, error: updateError } = await supabase
+          .from("whatsapp_opt_status")
+          .upsert(
+            {
+              tenant_id: tenantId,
+              phone,
+              opted_in: optedIn,
+              source: "api",
+              opted_out_at: optedIn ? null : new Date().toISOString(),
+            },
+            { onConflict: "tenant_id,phone" }
+          )
+          .select("opted_in, opted_in_at, opted_out_at")
+          .maybeSingle();
+
+        if (updateError) throw updateError;
+
+        result = {
+          ok: true,
+          phone,
+          action,
+          opted_in: updated?.opted_in ?? optedIn,
+          opted_in_at: updated?.opted_in_at ?? null,
+          opted_out_at: updated?.opted_out_at ?? null,
+        };
+        break;
+      }
       default:
         return new Response(JSON.stringify({ error: "unknown action" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },

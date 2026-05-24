@@ -1,15 +1,19 @@
 /**
  * ZPRO Webhook Receiver — Supabase Edge Function
  * Block 6a: WhatsApp webhook receiver setup
+ * Block 6b: Auto-reply with property catalog (integrated)
+ * Block 6d: Opt-in/opt-out handling for LGPD compliance
  *
  * Receives incoming WhatsApp messages from ZPRO and:
- * 1. Logs them to the ZPRO webhook events table
- * 2. Triggers auto-reply based on keywords (Block 6b)
+ * 1. Logs them to the zpro_webhook_events table
+ * 2. Checks opt-in/opt-out status before sending auto-replies
+ * 3. Handles STOP/opt-out keywords and re-subscribe/opt-in keywords
+ * 4. Triggers auto-reply based on keywords
  *
  * ZPRO sends to:
  * https://conv.techatende.com.br/v2/api/external/8de34e32-1154-4479-8cc6-678456e1d741
  *
- * Supabase Edge Function URL (we use as intermediary):
+ * Supabase Edge Function URL:
  * https://udutxbyzrdwucabxqvgg.supabase.co/functions/v1/zpro-webhook
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
@@ -67,6 +71,90 @@ function normalizePhone(raw: string | undefined): string {
   const digits = (raw || "").replace(/\D/g, "");
   return digits.startsWith("55") ? digits : `55${digits}`;
 }
+
+// ---------------------------------------------------------------------------
+// Opt-in / Opt-out helpers
+// ---------------------------------------------------------------------------
+
+/** Check if a phone number has opted out of WhatsApp messages */
+async function isOptedOut(
+  supabase: ReturnType<typeof getSupabase>,
+  tenantId: string,
+  phone: string
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("whatsapp_opt_status")
+    .select("opted_in")
+    .eq("tenant_id", tenantId)
+    .eq("phone", phone)
+    .maybeSingle();
+
+  // If no record found, default to opted-in (no record = can contact)
+  return data !== null && data.opted_in === false;
+}
+
+/** Record opt-out for a phone number */
+async function recordOptOut(
+  supabase: ReturnType<typeof getSupabase>,
+  tenantId: string,
+  phone: string,
+  source: string = "keyword"
+): Promise<void> {
+  await supabase.from("whatsapp_opt_status").upsert(
+    {
+      tenant_id: tenantId,
+      phone,
+      opted_in: false,
+      source,
+      opted_out_at: new Date().toISOString(),
+    },
+    { onConflict: "tenant_id,phone" }
+  );
+}
+
+/** Record opt-in (re-subscribe) for a phone number */
+async function recordOptIn(
+  supabase: ReturnType<typeof getSupabase>,
+  tenantId: string,
+  phone: string,
+  source: string = "keyword"
+): Promise<void> {
+  await supabase.from("whatsapp_opt_status").upsert(
+    {
+      tenant_id: tenantId,
+      phone,
+      opted_in: true,
+      source,
+    },
+    { onConflict: "tenant_id,phone" }
+  );
+}
+
+/** Detect opt-out intent from message text */
+function detectOptOut(text: string): boolean {
+  const t = text.toLowerCase().trim();
+  const optOutPatterns = [
+    "parar", "stop", "cancelar", "desinscrever", "desativar",
+    "nao quero", "não quero", "remover", "sair", "bloquear",
+    "unsubscribe", "opt-out", "optout", "desliga", "desligar",
+  ];
+  return optOutPatterns.some((p) => t === p || t.includes(p));
+}
+
+/** Detect opt-in / re-subscribe intent from message text */
+function detectOptIn(text: string): boolean {
+  const t = text.toLowerCase().trim();
+  const optInPatterns = [
+    "retornar", "voltar", "reativar", "inscrever", "subscrever",
+    "quero receber", "ativa", "ativar", "sim", "continuar",
+    "opt-in", "optin", "subscribe", "reenable",
+  ];
+  return optInPatterns.some((p) => t === p || t.includes(p));
+}
+
+// ---------------------------------------------------------------------------
+// Auto-reply builder (from Block 6b)
+// ---------------------------------------------------------------------------
 
 function buildAutoReply(message: string): string | null {
   const text = (message || "").toLowerCase().trim();
@@ -128,6 +216,51 @@ function buildAutoReply(message: string): string | null {
   // Default: no keyword match
   return null;
 }
+
+// ---------------------------------------------------------------------------
+// Send WhatsApp message via Evolution API
+// ---------------------------------------------------------------------------
+
+async function sendWhatsAppReply(
+  supabase: ReturnType<typeof getSupabase>,
+  tenantId: string,
+  phone: string,
+  text: string
+): Promise<void> {
+  const { data: config } = await supabase
+    .from("evolution_config")
+    .select("base_url, api_key, instance_name")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+
+  if (!config?.base_url || !config?.api_key || !config?.instance_name) {
+    console.warn("[zpro-webhook] No Evolution config found — skipping reply");
+    return;
+  }
+
+  const baseUrl = config.base_url.replace(/\/+$/, "");
+  const instanceName = config.instance_name;
+
+  try {
+    await fetch(`${baseUrl}/message/sendText/${instanceName}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: config.api_key,
+      },
+      body: JSON.stringify({
+        number: phone,
+        text,
+      }),
+    });
+  } catch (err) {
+    console.error("[zpro-webhook] Auto-reply failed:", err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Main request handler
+// ---------------------------------------------------------------------------
 
 Deno.serve(async (req) => {
   const origin = req.headers.get("origin");
@@ -194,7 +327,7 @@ Deno.serve(async (req) => {
       ).select("id");
     }
 
-    // Log webhook event to zpro_webhook_events table (idempotent — insert only if not exists by messageId)
+    // Log webhook event to zpro_webhook_events table (idempotent)
     const { error: logError } = await supabase
       .from("zpro_webhook_events")
       .upsert(
@@ -221,35 +354,62 @@ Deno.serve(async (req) => {
       console.error("[zpro-webhook] Failed to log event:", logError.message);
     }
 
-    // ── Auto-reply logic (Block 6b) ───────────────────────────────────────
+    // ── 6d: Opt-in / Opt-out handling ─────────────────────────────────────
+    // Only process for actual incoming messages (not session events)
     if (message && event === "message") {
+      const text = message.toLowerCase().trim();
+
+      // ── Opt-out detection ───────────────────────────────────────────────
+      if (detectOptOut(text)) {
+        await recordOptOut(supabase, tenantId, phone, "keyword");
+
+        const optOutReply =
+          "🔕 *Desativado*\n\n" +
+          "Você não receberá mais mensagens automática da Arruda Imobi via WhatsApp.\n\n" +
+          "Para reativar, envie *SIM* a qualquer momento.\n\n" +
+          "Esta ação está em conformidade com a LGPD.";
+
+        await sendWhatsAppReply(supabase, tenantId, phone, optOutReply);
+
+        return new Response(JSON.stringify({ ok: true, event, messageId, action: "opted_out" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // ── Opt-in / re-subscribe detection ────────────────────────────────
+      if (detectOptIn(text)) {
+        await recordOptIn(supabase, tenantId, phone, "keyword");
+
+        const optInReply =
+          "✅ *Reativado*\n\n" +
+          "Bem-vindo de volta! 👋\n\n" +
+          "Suas mensagens foram reativadas. A Arruda Imobi está pronta para atendê-lo!\n\n" +
+          "🏠 Explore nossos imóveis:\n" +
+          "👉 https://www.arrudaimobi.com.br/imoveis";
+
+        await sendWhatsAppReply(supabase, tenantId, phone, optInReply);
+
+        return new Response(JSON.stringify({ ok: true, event, messageId, action: "opted_in" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // ── Check opt status before sending auto-reply ─────────────────────
+      const optedOut = await isOptedOut(supabase, tenantId, phone);
+
+      if (optedOut) {
+        // Silently acknowledge — do NOT send marketing auto-replies to opted-out numbers
+        console.log(`[zpro-webhook] Phone ${phone} is opted out — skipping auto-reply`);
+        return new Response(JSON.stringify({ ok: true, event, messageId, action: "skipped_opted_out" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // ── Auto-reply logic (Block 6b) — only if opted in ─────────────────
       const replyText = buildAutoReply(message);
 
       if (replyText) {
-        // Send reply via Evolution API (which is already configured in send-message function)
-        const { data: config } = await supabase
-          .from("evolution_config")
-          .select("base_url, api_key, instance_name")
-          .eq("tenant_id", tenantId)
-          .maybeSingle();
-
-        if (config?.base_url && config?.api_key && config?.instance_name) {
-          const baseUrl = config.base_url.replace(/\/+$/, "");
-          const instanceName = config.instance_name;
-
-          // Fire-and-forget — don't block the webhook response
-          fetch(`${baseUrl}/message/sendText/${instanceName}`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              apikey: config.api_key,
-            },
-            body: JSON.stringify({
-              number: phone,
-              text: replyText,
-            }),
-          }).catch((err) => console.error("[zpro-webhook] Auto-reply failed:", err));
-        }
+        await sendWhatsAppReply(supabase, tenantId, phone, replyText);
       }
     }
 
