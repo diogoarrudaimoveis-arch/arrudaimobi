@@ -30,7 +30,6 @@ import {
 import { useCrmLeads, filterLeads, CrmStage } from "@/hooks/use-crm-leads";
 import { useContacts } from "@/hooks/use-contacts";
 import { toast as sonnerToast } from "sonner";
-import { toast } from "@/hooks/use-toast";
 
 const TABLE_PAGE_SIZE = 20;
 
@@ -358,7 +357,7 @@ export default function AdminContacts() {
     if (!lead) return;
 
     if (lead.source === "zpro" || lead.origin === "zpro") {
-      toast({ title: "Bloqueado", description: "Lead ZPRO não pode ser movido pelo CRM.", variant: "default" });
+      sonnerToast({ title: "Bloqueado", description: "Lead ZPRO não pode ser movido pelo CRM.", variant: "default" });
       setDraggedId(null); setDragOverStage(null);
       return;
     }
@@ -370,7 +369,7 @@ export default function AdminContacts() {
     try {
       const { data: session } = await supabase.auth.getSession();
       if (!session?.session?.access_token) {
-        toast({ title: "Erro", description: "Sessão não encontrada." });
+        sonnerToast({ title: "Erro", description: "Sessão não encontrada." });
         return;
       }
       const res = await fetch(
@@ -386,13 +385,13 @@ export default function AdminContacts() {
       );
       const json = await res.json();
       if (!res.ok || json.error) {
-        toast({ title: "Erro ao mover lead", description: json.error || "Falha", variant: "destructive" });
+        sonnerToast({ title: "Erro ao mover lead", description: json.error || "Falha", variant: "destructive" });
       } else {
-        toast({ title: "Lead movido", description: `${lead.name || "Lead"} → ${targetStage}` });
+        sonnerToast({ title: "Lead movido", description: `${lead.name || "Lead"} → ${targetStage}` });
         refetch?.();
       }
     } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      sonnerToast({ title: "Erro", description: err.message, variant: "destructive" });
     }
     setDraggedId(null); setDragOverStage(null);
   };
@@ -419,7 +418,7 @@ export default function AdminContacts() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => { refetch?.(); toast({ title: "Sincronizando ZPRO..." }); }}
+                onClick={() => { refetch?.(); sonnerToast({ title: "Sincronizando ZPRO..." }); }}
                 disabled={crmLoading}
               >
                 <RefreshCw className={`h-4 w-4 mr-1.5 ${crmLoading ? "animate-spin" : ""}`} />
