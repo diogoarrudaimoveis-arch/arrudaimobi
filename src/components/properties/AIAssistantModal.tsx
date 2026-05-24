@@ -28,8 +28,10 @@ import {
   AlertCircle,
   RefreshCcw,
   Check,
+  Zap,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { createOmniRouteClient, type PropertyContext } from "@/integrations/omniroute/client";
 
 interface AIAssistantModalProps {
   isOpen: boolean;
@@ -52,7 +54,30 @@ const PROVIDERS = [
   { id: "openai", label: "GPT-4 / 3.5 (OpenAI)" },
   { id: "gemini", label: "Google Gemini" },
   { id: "groq", label: "Groq Llama 3" },
+  { id: "omniroute", label: "OmniRoute (Auto-Route)" },
 ];
+
+const OMNIRoute_KEY = import.meta.env.VITE_OMNIRoute_API_KEY as string;
+
+/**
+ * Map human-readable context (from AdminProperties "Gerar com IA" button)
+ * to PropertyContext expected by OmniRoute client.
+ */
+function toPropertyContext(ctx: Record<string, string | number | undefined>): PropertyContext {
+  return {
+    tipo: String(ctx["Tipo"] || ""),
+    bairro: String(ctx["Bairro"] || ""),
+    cidade: String(ctx["Cidade"] || ""),
+    preco: Number(ctx["Preço Base (R$)"]) || undefined,
+    dormitorios: Number(ctx["Dormitórios"]) || undefined,
+    banheiros: Number(ctx["Banheiros"]) || undefined,
+    vagas: Number(ctx["Vagas de Garagem"]) || Number(ctx["Vagas"]) || undefined,
+    area: Number(ctx["Área Útil (m²)"]) || undefined,
+    descricao: String(ctx["Descrição"] || ""),
+    // title/description for LLM context
+    descricao_curta: String(ctx["Título"] || ""),
+  };
+}
 
 export function AIAssistantModal({
   isOpen,
@@ -78,6 +103,21 @@ export function AIAssistantModal({
         throw new Error("Tenant não definido. Recarregue a página e tente novamente.");
       }
 
+      // ── OmniRoute path: direct client call ─────────────────────────────────
+      if (provider === "omniroute") {
+        if (!OMNIRoute_KEY) {
+          throw new Error("OmniRoute API key não configurada (VITE_OMNIRoute_API_KEY).");
+        }
+        const client = createOmniRouteClient({ apiKey: OMNIRoute_KEY });
+        const ctx = toPropertyContext(propertyContext);
+        const toneText = tone;
+        const result = await client.generateDescription(ctx, toneText, ctx);
+        setGeneratedText(result);
+        setIsGenerating(false);
+        return;
+      }
+
+      // ── Standard Supabase Edge Function path ───────────────────────────────
       const payload = {
         tenant_id: tenantId,
         feature: "property_description",
@@ -115,9 +155,10 @@ export function AIAssistantModal({
       } else {
         throw new Error("A resposta da IA veio vazia.");
       }
-    } catch (err: any) {
-      console.log("[AIAssistant] Falha na Geração Controlada:", err.message);
-      let eMsg = err.message || "Falha na geração.";
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.log("[AIAssistant] Falha na Geração:", errMsg);
+      let eMsg = errMsg;
       if (eMsg.includes("Edge Function returned a non-2xx status code")) {
         eMsg = "Função de IA indisponível. Verifique se a função está implantada no Supabase e se o nome da rota está correto.";
       }
@@ -144,10 +185,10 @@ export function AIAssistantModal({
         <DialogHeader className="p-6 border-b border-[#2A2D3C] bg-gradient-to-r from-[#1A1D27] to-[#1E2230]">
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Sparkles className="h-5 w-5 text-blue-400" />
-            Assistente de IA
+            Assistente de IA — Descrição de Imóvel
           </DialogTitle>
           <DialogDescription className="text-gray-400">
-            Gerando descrição profissional para seu imóvel
+            Gere descrições profissionais e persuasivas usando OmniRoute ou provedores padrão
           </DialogDescription>
         </DialogHeader>
 
@@ -188,14 +229,27 @@ export function AIAssistantModal({
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center gap-2 w-[220px]">
+            <div className="flex items-center gap-2 w-[240px]">
               <Label className="text-gray-400 font-normal shrink-0">Provedor:</Label>
               <Select value={provider} onValueChange={setProvider} disabled={isGenerating}>
                 <SelectTrigger className="h-8 bg-[#212431] border-[#2A2D3C]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-[#212431] border-[#2A2D3C] text-gray-200">
-                  {PROVIDERS.map(p => <SelectItem key={p.id} value={p.id} className="focus:bg-[#2A2D3C] focus:text-white">{p.label}</SelectItem>)}
+                  {PROVIDERS.map(p => (
+                    <SelectItem
+                      key={p.id}
+                      value={p.id}
+                      className="focus:bg-[#2A2D3C] focus:text-white"
+                      disabled={p.id === "omniroute" && !OMNIRoute_KEY}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        {p.id === "omniroute" && <Zap className="h-3 w-3 text-purple-400" />}
+                        {p.label}
+                        {p.id === "omniroute" && !OMNIRoute_KEY && <span className="text-gray-500 text-xs">(sem key)</span>}
+                      </span>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
