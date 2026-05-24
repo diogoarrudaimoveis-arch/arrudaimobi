@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { trackLead } from "@/integrations/meta-pixel";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -65,7 +66,7 @@ export function PropertyContactForm({ propertyId, propertyTitle, agentId, tenant
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erro ao enviar");
 
-      onTrackMarketingEvent?.("Lead", { property_id: propertyId });
+      trackLead(propertyId, propertyTitle);
       setSubmitted(true);
       toast({ title: "Mensagem enviada!", description: "O agente entrará em contato." });
     } catch (err: any) {

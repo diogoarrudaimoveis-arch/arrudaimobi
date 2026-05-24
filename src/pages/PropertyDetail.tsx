@@ -24,6 +24,7 @@ import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { PropertyCardDb } from "@/components/properties/PropertyCardDb";
 import { useQuery } from "@tanstack/react-query";
+import { trackViewContent } from "@/integrations/meta-pixel";
 
 function getUniqueIds(ids: Array<string | null | undefined>) {
   return Array.from(new Set(ids.filter(Boolean))) as string[];
