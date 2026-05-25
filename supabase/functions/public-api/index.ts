@@ -1057,6 +1057,51 @@ Retorne APENAS JSON valido (sem texto antes ou depois):
         break;
       }
 
+
+      case "generate-blog-cover": {
+        // POST body: { topic, tenant_id }
+        let body: any = {};
+        try { body = await req.json(); } catch { throw new Error("Invalid JSON body"); }
+        const { topic } = body;
+        if (!topic?.trim()) throw new Error("topic obrigatorio");
+
+        const OMNI_KEY = "sk-611d5b3c2cca0507-7a32b3-0e17b59f";
+        const OMNI_BASE = "http://206.183.129.200:20128";
+
+        let imageUrl = null;
+        try {
+          const genRes = await fetch(`${OMNI_BASE}/v1/images/generations`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${OMNI_KEY}` },
+            body: JSON.stringify({
+              model: "antigravity/gemini-3.1-flash-image",
+              prompt: `Professional real estate photo for blog cover: ${topic}. Modern building, clean facade, high quality, Brazil real estate. No text, no people, no watermark.`,
+              size: "1:1",
+              n: 1,
+            }),
+          });
+          if (genRes.ok) {
+            const genJson = await genRes.json();
+            const b64 = genJson?.data?.[0]?.b64_json;
+            if (b64) {
+              // Decode and upload to Supabase Storage
+              const imgData = Buffer.from(b64, "base64");
+              const filename = `blog-cover-${Date.now()}.png`;
+              const { data: uploadData, error: uploadErr } = await supabase.storage
+                .from("property-images")
+                .upload(`blog/${filename}`, imgData, { contentType: "image/png", upsert: true });
+              if (!uploadErr && uploadData) {
+                const { data: urlData } = supabase.storage.from("property-images").getPublicUrl(`blog/${filename}`);
+                imageUrl = urlData.publicUrl;
+              }
+            }
+          }
+        } catch (e) { console.log("Image gen error:", e); }
+
+        result = { ok: true, data: { cover_image_url: imageUrl } };
+        break;
+      }
+
 default:
         return new Response(JSON.stringify({ error: "unknown action" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },

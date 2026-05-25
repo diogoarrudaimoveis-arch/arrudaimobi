@@ -70,6 +70,8 @@ export default function AdminBlog() {
   const [genCategory, setGenCategory] = useState(BLOG_CATEGORIES[0]);
   const [genLoading, setGenLoading] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
+  const [genCoverLoading, setGenCoverLoading] = useState(false);
+  const [genCoverUrl, setGenCoverUrl] = useState<string | null>(null);
   const [generated, setGenerated] = useState<GeneratedPreview | null>(null);
 
   const openNew = () => {
@@ -162,6 +164,36 @@ export default function AdminBlog() {
   };
 
   // --- AI Generator ---
+  
+
+  const handleGenerateCover = async () => {
+    if (!genTopic.trim() || !tenantId) return;
+    setGenCoverLoading(true);
+    try {
+      const res = await fetch(
+        `https://udutxbyzrdwucabxqvgg.supabase.co/functions/v1/public-api?action=generate-blog-cover`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || ""}`,
+          },
+          body: JSON.stringify({ topic: genTopic.trim(), tenant_id: tenantId }),
+        }
+      );
+      const json = await res.json();
+      if (json.ok && json.data?.cover_image_url) {
+        setGenCoverUrl(json.data.cover_image_url);
+        sonnerToast({ title: "Imagem de capa gerada!" });
+      } else {
+        sonnerToast({ title: "Erro ao gerar imagem", description: json.error, variant: "destructive" });
+      }
+    } catch (err: any) {
+      sonnerToast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally {
+      setGenCoverLoading(false);
+    }
+  };
   const handleGenerate = async () => {
     if (!genTopic.trim()) {
       sonnerToast({ title: "Informe o tema do post", variant: "destructive" }); return;
@@ -216,7 +248,7 @@ export default function AdminBlog() {
         slug: generated.slug,
         excerpt: generated.excerpt || undefined,
         content: generated.content,
-        cover_image_url: generated.cover_image_url || undefined,
+        cover_image_url: genCoverUrl || generated.cover_image_url || undefined,
         published: false,
         tenant_id: tenantId,
         author_id: user.id,
@@ -517,7 +549,15 @@ export default function AdminBlog() {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="rounded-lg border border-border bg-secondary/20 p-4 space-y-3">
+              {generated.cover_image_url && (
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Imagem de Capa</Label>
+                <div className="rounded-lg overflow-hidden border border-border h-48">
+                  <img src={generated.cover_image_url} alt="Capa" className="w-full h-full object-cover" />
+                </div>
+              </div>
+            )}
+            <div className="rounded-lg border border-border bg-secondary/20 p-4 space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1 flex-1">
                     <Label className="text-xs text-muted-foreground">Título</Label>
@@ -533,6 +573,16 @@ export default function AdminBlog() {
                 )}
                 {generated.tags.length > 0 && (
                   <div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGenerateCover}
+                      disabled={genCoverLoading || !genTopic.trim()}
+                      className="gap-1.5 mb-2"
+                    >
+                      {genCoverLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImageIcon className="h-3.5 w-3.5" />}
+                      Gerar Imagem de Capa
+                    </Button>
                     <Label className="text-xs text-muted-foreground">Tags</Label>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {generated.tags.map(tag => (
