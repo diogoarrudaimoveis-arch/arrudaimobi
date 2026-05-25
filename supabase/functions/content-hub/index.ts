@@ -86,11 +86,29 @@ function pollinationsImage(prompt: string, width = 1024, height = 1024): string 
 // ─── Prompt Builders ────────────────────────────────────────────────────────
 
 const TONE_MAP: Record<string, string> = {
-  professional: "Descrição técnica clara e dados objetivos. Tom confiável e profissional.",
-  luxury: "Tom sofisticado e premium. Palavras: exclusivo, privilégio, único, refinado.",
-  family: "Tom acolhedor e familiar. Espaço, segurança, comunidade, vida em família.",
-  urgent: "Tom urgente e persuasivo. Escassez, oportunidade única, última chance, não perca.",
-  modern: "Tom moderno e minimalista. Design limpo, linguagem contemporânea.",
+  luxury: `Você é um Diretor de Criação de uma agência de marketing premium brasileira.
+Linguagem: cinematográfica, aspiracional, emocional, sensorial.
+Estilo: arquitetura de luxo, lifestyle de sucesso, exclusividade, sonho.
+Evocações permitted: golden hour, drone shot, slow motion, volumétrica, iluminação cinematográfica.
+Consistência: SEMPRE respeite a arquitetura, cores, estilo e mood do imóvel fotografado.
+Nunca invente móveis, paisagem ou elementos que não existam na propriedade.
+Tom: sofisticado, elegante, persuasivo, emocional. O cliente está comprando um ESTILO DE VIDA, não um imóvel.`,
+  family: `Você é copywriter premium para famílias exigentes.
+Linguagem: acolhedora, segura, calorosa, aspiracional.
+Foco: espaço para crescer, segurança, comunidade, momentos em família.
+Estilo: lifestyle familiar de alto padrão, área externa kids-friendly, integração ambiente interno/externo.
+Nunca mencione segurança de forma genérica — seja sensorial e específica.`,
+  urgent: `Você é copywriter de alta conversão para urgência real.
+Linguagem: impacto imediato, escassez genuína, oportunidade inegável.
+Estilo: copywriting de precisão — urgência real, não artificial.
+Jamais use "última chance" genérico. Identifique o MOTIVO real da urgência.`,
+  modern: `Você é copywriter de design de interiores premium.
+Linguagem: clean, contemporânea, técnica precisa, minimalista.
+Foco: arquitetura contemporânea, materiais nobres, linhas limpas, design internacional.
+Tom: confiança discreta, expertise, sofisticação sem ostentação.`,
+  professional: `Você é copywriter institucional de alto padrão para público corporativo e investidores.
+Linguagem: técnica, objetiva, dados de mercado, ROI, investimento seguro.
+Tom: credibilidade, solidez, retorno, patrimonial.`,
 };
 
 function propContext(p: any, imgs: string[]): string {
@@ -116,16 +134,28 @@ function propContext(p: any, imgs: string[]): string {
 
 async function genBlogPost(p: any, imgs: string[], tone: string, custom: string) {
   const ctx = propContext(p, imgs);
-  const sys = `Você é copywriter especialista em imóveis brasileiro. Gere artigo de blog SEO.
-Regras: título max 60 chars com hook emocional, 3-4 parágrafos (features, localização, diferenciais), CTA suave, HTML leve.
-Responda JSON: { "title": "...", "excerpt": "...", "content": "...", "hashtags": ["#tag"] }
-Urgente.`;
+  const sys = `Você é Diretor de Criação de uma agência premium brasileira — tom cinematográfico e aspiracional.
+GERE UM ARTIGO DE BLOG SEO DE ALTA QUALIDADE para imóvel de luxo.
+Estrutura:
+1. TÍTULO (max 60 chars): headline emocional + hook poderoso. Exemplo: "Onde o Pôr do Sol Merece Ser Morado" ou "O Endereço Queothers只Sonham"
+2. EXCERPT (150 chars): síntese sensorial e emocional do imóvel
+3. CONTEÚDO: 3-4 parágrafos cinematográficos — use描写 sensorial (iluminação, texturas, paisagem, texturas)
+4. HASHTAGS: 8 hashtags de luxo + localização
+
+REGRAS ABSOLUTAS:
+- NUNCA use frases genéricas ("óximo à praia", "comodidades completas")
+- use描写 específica: "varanda gourmet com pôr do sol dourado sobre a skyline", "piscina infinita que se dissolve no horizonte"
+- O artigo deve fazer o leitor SENTIR o imóvel, não apenas ler especificações
+- Respeite o estilo arquitetônico e cores do imóvel (dados fornecidos)
+
+Responda APENAS JSON válido:
+{ "title": "...", "excerpt": "...", "content": "...html...", "hashtags": ["#tag1", "#tag2"] }`;
   const raw = await omniChat([
     { role: "system", content: sys },
-    { role: "user", content: custom ? `${ctx}\n\nINSTRUÇÕES: ${custom}` : ctx },
+    { role: "user", content: custom ? `${ctx}\n\nDIRETRIZ CRIATIVA: ${custom}` : ctx },
   ]);
   const j = parseJson(raw);
-  const imgPrompt = `Luxury Brazilian real estate, modern interior, bright living room, professional photography, golden hour lighting, no text, no people`;
+  const imgPrompt = `Ultra realistic, 8K cinematic photography. Brazilian luxury penthouse interior at golden hour. Volumetric light rays streaming through floor-to-ceiling windows. Warm ambient interior lighting, leather sofas, contemporary design, marble floors, curated art. Wide angle lens, shallow depth of field, architectural photography. No text, no people, no watermarks.`;
   return {
     type: "blog_post",
     title: j?.title || p?.title || "Blog Post",
@@ -139,20 +169,35 @@ Urgente.`;
 
 async function genSocialPost(p: any, imgs: string[], tone: string, platform: string, custom: string) {
   const ctx = propContext(p, imgs);
-  const t = TONE_MAP[tone] || TONE_MAP.professional;
+  const t = TONE_MAP[tone] || TONE_MAP.luxury;
   const specs: Record<string, string> = {
-    instagram: "Caption Instagram: hook linha 1, descrição linha 2, CTA linha 3. Max 2200 chars. 5-10 hashtags.",
-    facebook: "Post Facebook: informal, conversacional, 2-3 parágrafos curtos. 3-5 hashtags.",
-    whatsapp: "WhatsApp: curta e direta, max 500 chars, sem hashtags.",
-    all: "Multi-plataforma adaptável.",
+    instagram: `LEGEND PARA INSTAGRAM PREMIUM — formato:
+LINHA 1 (HOOK): uma frase cinematográfica que парализу o scroll. Evocação sensorial ou pergunta provocativa.
+LINHA 2-3 (CORPO): 2-3 linhas que constroem o lifestyle. Use描写 sensorial — não liste cômodos.
+LINHA 4 (CTA): convite elegante para ação. Max 2200 caracteres total. 8-12 hashtags de luxo.`,
+    facebook: `POST FACEBOOK elegante: 2-3 parágrafos curtos. Tom cinematográfico e conversacional. 3-5 hashtags de marca. Integração com lifestyle.`,
+    whatsapp: `MENSAGEM WHATSAPP: curta e impactante. Max 500 caracteres. Tom VIP, quase sussurrado — exclusividade. Sem hashtags. Pergunta que gera curiosidade.`,
+    all: `Multi-plataforma adaptável com linguagem cinematográfica premium.`,
   };
-  const sys = `Social media manager especialista em imóveis. ${specs[platform] || specs.all}\nTom: ${t}\nResponda JSON: { "caption": "...", "hashtags": [...] }`;
+  const sys = `DIRETOR DE CRIAÇÃO PREMIUM para marketing imobiliário brasileiro de alto padrão.
+${specs[platform] || specs.all}
+
+${t}
+
+REGRAS DE OURO:
+- HOOK deve парализовать o scroll — primeira linha é TUDO
+- NUNCA liste "3 suítes, 2 vagas" — isso é especificações, não lifestyle
+- Use描写: iluminação dourada, texturas, sensações, paisagem, aroma de madeira, som da água
+- O imóvel é um CAPÍTULO DE VIDA, não um produto
+- hashtag de localização: sempre inclua a cidade/região em português
+
+Responda JSON: { "caption": "...", "hashtags": [...] }`;
   const raw = await omniChat([
     { role: "system", content: sys },
-    { role: "user", content: custom ? `${ctx}\n\n${custom}` : ctx },
+    { role: "user", content: custom ? `${ctx}\n\nDIRETRIZ: ${custom}` : ctx },
   ]);
   const j = parseJson(raw);
-  const imgPrompt = `Modern luxury Brazilian home, warm inviting interior, professional real estate photo, Instagram-worthy, golden hour, no text, no people`;
+  const imgPrompt = `Professional luxury real estate photography. Cinematic golden hour interior. Warm volumetric lighting, Brazilian modern architecture. Living room with floor-to-ceiling windows overlooking city skyline. Designer furniture, natural materials, marble countertops. Shallow depth of field, editorial quality. Instagram-worthy, aspirational lifestyle. No text, no people, no watermarks.`;
   return {
     type: "social_post",
     platform,
@@ -166,16 +211,30 @@ async function genSocialPost(p: any, imgs: string[], tone: string, platform: str
 
 async function genStory(p: any, imgs: string[], tone: string, custom: string) {
   const ctx = propContext(p, imgs);
-  const sys = `Designer de carrossel Instagram para imóveis. 6-8 slides: HOOK → features → CTA.
-Cada slide: headline max 8 palavras, body max 20 palavras. Use emojis.
-Responda JSON: { "slides": [{ "heading": "...", "body": "...", "imgPrompt": "english for AI" }], "caption": "...", "hashtags": [...] }`;
+  const sys = `DIRETOR DE CRIAÇÃO PREMIUM — designer de carrossel Instagram para imóveis de luxo.
+CINEMA EM 6-8 SLIDES:
+Slide 1 — HOOK: headline cinematográfico que парализу o espectador. Máximo 7 palavras. Evocação sensorial ou pergunta que queima.
+Slide 2 — APRESENTAÇÃO: nome do imóvel/endereço + tagline aspiracional. Máximo 8 palavras.
+Slides 3-6 — TOUR SENSORIAL: cada slide = 1 cômodo/espaço. Headline poético (5 palavras) + body感官 (15 palavras). Evocações: "luz dourada que entra pela janela", "mármore que reflete o pôr do sol", "varanda onde o tempo para".
+Slide 7 — DADOS DE IMPACTO: preço, metragem, diferenciais — apresentado de forma cinematográfica, não tabular.
+Slide 8 — CTA: convite elegante para ação. DM, link, contato.
+
+CADA SLIDE PRECISA DE:
+- headline cinematográfica (max 8 palavras, linguagem poetic, não descritiva)
+- body感官 (max 20 palavras,描写 sensorial do espaço)
+- imgPrompt: PROMPT ULTRA-DETALHADO em inglês para IA de imagem (estilo Freepik/Magnific AI)
+  → Formato: "tipo de foto, iluminação, ângulo, estilo, cores dominantes, mood, detalhes arquitetônicos, qualidade"
+  → Exemplo: "Luxury penthouse terrace at sunset, drone shot, golden hour volumetric lighting, tropical plants, infinity pool merging with ocean horizon, wide angle, 8k, cinematic color grading, no text, no people"
+  → IMPORTANTE: imgPrompt deve refletir O ESTILO DO IMÓVEL real (moderno, clássico, industrial, etc.)
+
+Responda JSON: { "slides": [{ "heading": "...", "body": "...", "imgPrompt": "..." }], "caption": "...", "hashtags": [...] }`;
   const raw = await omniChat([
     { role: "system", content: sys },
-    { role: "user", content: custom ? `${ctx}\n\n${custom}` : ctx },
+    { role: "user", content: custom ? `${ctx}\n\nDIRETRIZ: ${custom}` : ctx },
   ]);
   const j = parseJson(raw);
   const slides = j?.slides || [];
-  const firstPrompt = slides[0]?.imgPrompt || `Luxury Brazilian real estate, professional photography, vibrant colors`;
+  const firstPrompt = slides[0]?.imgPrompt || `Luxury Brazilian real estate, drone shot, golden hour, cinematic, volumetric lighting, professional photography, 8k`;
   return {
     type: "story",
     title: "Story Carrossel",
@@ -188,27 +247,157 @@ Responda JSON: { "slides": [{ "heading": "...", "body": "...", "imgPrompt": "eng
   };
 }
 
+// ─── MiniMax Hailuo Image-to-Video Prompt Builder ─────────────────────────────────
+
+/**
+ * Constrói um prompt perfeito para MiniMax Hailuo Image-to-Video.
+ * Template: cinematográfico premium, estilo Architectural Digest + Netflix doc.
+ * Regras: first-frame da foto real, câmera cinematográfica 8-12s,
+ *         golden hour, movimento sutil, mood aspiracional.
+ */
+function buildHailuoVideoPrompt(p: any, refImg: string): string {
+  const type = (p as any).type || "luxury property";
+  const neighborhood = (p as any).neighborhood || "";
+  const city = (p as any).city || "Rio de Janeiro";
+  const style = (p as any).style || (p as any).architecture || "modern luxury";
+
+  const hasPool = (p as any).amenities?.some((a: string) =>
+    /piscina|pool|aquecimento|heated|infinity/i.test(a)
+  );
+  const hasGarden = (p as any).amenities?.some((a: string) =>
+    /jardim|garden|área verde|verde|park/i.test(a)
+  );
+  const hasOcean = /mar|oceano|praia|beach|rio|baía/i.test(`${neighborhood} ${city}`);
+
+  // First frame
+  const firstFrame = refImg
+    ? `First frame: ${refImg} — stunning high-resolution architectural photograph of a luxurious ${style} ${type} in ${neighborhood}, ${city}${hasPool ? " with infinity pool" : ""}${hasOcean ? " and ocean view" : ""}.`
+    : `First frame: stunning high-resolution architectural photograph of a luxurious ${style} ${type} in ${neighborhood}, ${city}${hasPool ? " with infinity pool" : ""}${hasOcean ? " and ocean view" : ""}.`;
+
+  // Camera choreography — conditionally adjust based on amenities
+  const poolShot = hasPool
+    ? "Smooth circular orbit around the infinity pool showcasing beautiful reflections."
+    : "Smooth circular orbit around the terrace area showcasing golden light reflections.";
+
+  const cameraChoreography = [
+    `1. Slow ascending drone shot revealing the full ${type}${hasPool ? ", infinity pool" : ""} and ${hasOcean ? "breathtaking ocean view" : "city view"} at golden hour.`,
+    "2. Elegant slow push-in through large glass windows into the sophisticated living room.",
+    `3. ${poolShot}`,
+    "4. Parallax tracking shot gliding through the open terrace, highlighting seamless indoor-outdoor connection.",
+    `5. Graceful drone pull-back shot embracing the entire property against the ${hasOcean ? "vibrant Rio skyline at sunset" : "city skyline at golden hour"}.`
+  ].join("\n");
+
+  // Atmospheric motion — conditional
+  const motionLines: string[] = [];
+  if (hasPool) motionLines.push("- Crystal clear pool water with soft, mesmerizing ripples reflecting golden sunlight.");
+  if (hasGarden) motionLines.push("- Palm leaves and lush tropical foliage swaying gently in the breeze.");
+  if (hasOcean) motionLines.push("- Distant ocean shimmering with natural wave movement.");
+  motionLines.push("- Sheer white curtains flowing elegantly with the wind inside the property.");
+  motionLines.push("- Warm golden sunlight slowly moving across polished marble floors and glass surfaces.");
+  motionLines.push("- Delicate dust particles floating in volumetric god rays.");
+
+  const motionBlock = motionLines.join("\n");
+
+  const lightingBlock = [
+    "- Magical golden hour lighting with strong volumetric god rays and warm amber highlights.",
+    "- Soft cinematic shadows, subtle lens flares, dreamy atmosphere.",
+    "- Cinematic color grading: rich teal shadows and warm orange/golden highlights, filmic look."
+  ].join("\n");
+
+  const techBlock = [
+    "- 8K photorealistic, hyper-detailed, impeccable architectural photography.",
+    "- Subtle film grain, anamorphic lens characteristics, shallow depth of field, beautiful bokeh.",
+    "- Volumetric lighting, light bloom, cinematic color grading.",
+    "- Ultra smooth camera movements with Hollywood-level cinematography."
+  ].join("\n");
+
+  const styleRefs = [
+    "Architectural Digest",
+    "Luxe Interiors",
+    "Roger Deakins lighting",
+    "Yann Arthus-Bertrand aerial photography",
+    "Denis Villeneuve cinematic style",
+    "Netflix luxury real estate documentaries"
+  ].join(", ");
+
+  return [
+    "Cinematic luxury real estate video for MiniMax Hailuo Image-to-Video.",
+    "",
+    firstFrame,
+    "",
+    "Camera choreography (smooth, emotional and cinematic, 8-12 seconds total):",
+    cameraChoreography,
+    "",
+    "Atmosphere & subtle motion:",
+    motionBlock,
+    "",
+    "Lighting & mood:",
+    lightingBlock,
+    "",
+    "Technical specifications:",
+    techBlock,
+    "",
+    `Style references: ${styleRefs}.`,
+    "",
+    "Mood: aspirational, serene, luxurious, emotional, sophisticated, dreamlike.",
+    "",
+    "No people, no text, no logos, no watermarks. Perfect seamless loop possible.",
+    "",
+    "Masterpiece, best quality, ultra realistic, award-winning cinematography."
+  ].join("\n");
+}
+
+// ─── Video Script Generator ───────────────────────────────────────────────────
+
 async function genVideoScript(p: any, imgs: string[], tone: string, custom: string) {
   const ctx = propContext(p, imgs);
-  const sys = `Roteirista de vídeos imobiliários profissionais. Roteiro 60-90s:
-1. HOOK 5s: pergunta ou dado impactante
-2. APRESENTAÇÃO 20s: imóvel, tipo, localização
-3. TOUR 40s: principais cômodos
-4. ENCERRAMENTO 15s: preço + CTA
+  const sys = `ROTEIRISTA CINEMATOGRÁFICO PREMIUM para vídeos imobiliários de alto padrão.
+Você escreve roteiros para filmes de arquitetura de luxo — não vídeos de corretores.
+
+ESTRUTURA DRAMÁTICA (60-90 segundos):
+
+[HOOK — 0-8s]
+Abertura em BLACK. Som ambiente: vento, água, cidade silenciosa.
+Primeira imagem: detalhe arquitetônico (maçaneta, luz, textura) + texto poético narração.
+Câmera: close-up → establishing shot (slow motion, 2 segundos de silêncio antes do nome).
+
+[APRESENTAÇÃO — 8-25s]
+Nome do imóvel + bairro icônico. Drone shot cinematográfico.
+Narração: "Este não é apenas um endereço. É uma declaração."
+Cut para: living room com iluminação volumétrica dourada.
+
+[TOUR SENSORIAL — 25-65s]
+Cada câmera vai a um espaço. Narração descreve SENSações, não metros.
+- "A luz que entra pela varanda às 17h... transforma a sala em ouro líquido"
+- "A cozinha onde o Chef mora — mármore que guarda o calor do sol"
+都用描写 sensorial. Câmera: slow motion, rack focus.
+
+[CTA — 65-90s]
+Preço apresentado de forma cinematográfica (não tabular).
+Narração: "Alguns endereços não estão à venda. Estão à espera."
+Cut final: pôr do sol pela janela + fade to logo.
+
+REGRAS:
+- Narração em português, voz em OFF (sempre no presente do subjuntivo poético)
+- Duração estimada: 75 segundos
+- videoPrompt: Use a função buildHailuoVideoPrompt para gerar o prompt de Image-to-Video
+
 Responda JSON: { "title": "...", "script": "...", "duration_estimate": 75, "hashtags": [...] }`;
   const raw = await omniChat([
     { role: "system", content: sys },
     { role: "user", content: custom ? `${ctx}\n\n${custom}` : ctx },
   ]);
   const j = parseJson(raw);
+  const refImg = imgs?.[0] || "";
+  const videoPrompt = buildHailuoVideoPrompt(p, refImg);
   return {
     type: "video_script",
     title: j?.title || p?.title || "Roteiro de Vídeo",
     script: j?.script || raw,
     hashtags: j?.hashtags || [],
     duration: j?.duration_estimate || 60,
-    imageUrl: imgs?.[0] || pollinationsImage(`Real estate video thumbnail: ${p?.title || "luxury property"}`, 1280, 720),
-    videoPrompt: `Cinematic real estate showcase: ${p?.title || ""}`,
+    imageUrl: refImg || pollinationsImage(`Luxury Brazilian ${(p as any)?.type || "property"} at golden hour, volumetric lighting, cinematic`, 1280, 720),
+    videoPrompt,
   };
 }
 
