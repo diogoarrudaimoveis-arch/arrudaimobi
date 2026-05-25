@@ -1059,7 +1059,7 @@ Retorne APENAS JSON valido (sem texto antes ou depois):
 
 
       case "generate-blog-cover": {
-        // POST body: { topic, tenant_id }
+        // POST body: { topic }
         let body: any = {};
         try { body = await req.json(); } catch { throw new Error("Invalid JSON body"); }
         const { topic } = body;
@@ -1068,7 +1068,9 @@ Retorne APENAS JSON valido (sem texto antes ou depois):
         const OMNI_KEY = "sk-611d5b3c2cca0507-7a32b3-0e17b59f";
         const OMNI_BASE = "http://206.183.129.200:20128";
 
-        let imageUrl = null;
+        let coverDataUrl: string | null = null;
+        let genError: string | null = null;
+
         try {
           const genRes = await fetch(`${OMNI_BASE}/v1/images/generations`, {
             method: "POST",
@@ -1080,25 +1082,25 @@ Retorne APENAS JSON valido (sem texto antes ou depois):
               n: 1,
             }),
           });
-          if (genRes.ok) {
+
+          if (!genRes.ok) {
+            const errText = await genRes.text();
+            genError = `OmniRoute error ${genRes.status}: ${errText.slice(0, 200)}`;
+          } else {
             const genJson = await genRes.json();
             const b64 = genJson?.data?.[0]?.b64_json;
             if (b64) {
-              // Decode and upload to Supabase Storage
-              const imgData = Buffer.from(b64, "base64");
-              const filename = `blog-cover-${Date.now()}.png`;
-              const { data: uploadData, error: uploadErr } = await supabase.storage
-                .from("property-images")
-                .upload(`blog/${filename}`, imgData, { contentType: "image/png", upsert: true });
-              if (!uploadErr && uploadData) {
-                const { data: urlData } = supabase.storage.from("property-images").getPublicUrl(`blog/${filename}`);
-                imageUrl = urlData.publicUrl;
-              }
+              coverDataUrl = `data:image/png;base64,${b64}`;
+            } else {
+              genError = "No image data in OmniRoute response";
             }
           }
-        } catch (e) { console.log("Image gen error:", e); }
+        } catch (e: any) {
+          genError = e.message;
+          console.log("generate-blog-cover error:", e);
+        }
 
-        result = { ok: true, data: { cover_image_url: imageUrl } };
+        result = { ok: true, data: { cover_data_url: coverDataUrl, gen_error: genError } };
         break;
       }
 
