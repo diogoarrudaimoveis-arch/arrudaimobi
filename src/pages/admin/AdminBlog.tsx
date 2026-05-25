@@ -549,11 +549,11 @@ export default function AdminBlog() {
             </div>
           ) : (
             <div className="space-y-4">
-              {generated.cover_image_url && (
+              {(generated.cover_image_url || genCoverUrl) && (
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">Imagem de Capa</Label>
-                <div className="rounded-lg overflow-hidden border border-border h-48">
-                  <img src={generated.cover_image_url} alt="Capa" className="w-full h-full object-cover" />
+                <div className="rounded-lg overflow-hidden border border-border h-48 bg-secondary">
+                  <img src={genCoverUrl || generated.cover_image_url} alt="Capa" className="w-full h-full object-cover" />
                 </div>
               </div>
             )}
@@ -574,14 +574,18 @@ export default function AdminBlog() {
                 {generated.tags.length > 0 && (
                   <div>
                     <Button
-                      variant="outline"
+                      variant="default"
                       size="sm"
                       onClick={handleGenerateCover}
-                      disabled={genCoverLoading || !genTopic.trim()}
-                      className="gap-1.5 mb-2"
+                      disabled={genCoverLoading || !generated}
+                      className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
                     >
-                      {genCoverLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImageIcon className="h-3.5 w-3.5" />}
-                      Gerar Imagem de Capa
+                      {genCoverLoading ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Sparkles className="h-3.5 w-3.5" />
+                      )}
+                      Gerar Imagem de Capa por IA
                     </Button>
                     <Label className="text-xs text-muted-foreground">Tags</Label>
                     <div className="flex flex-wrap gap-1 mt-1">
