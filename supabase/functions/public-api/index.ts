@@ -1161,7 +1161,7 @@ case "generate-content": {
               const aiRes = await fetch(`${OMNI_BASE}/chat/completions`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${OMNI_KEY}` },
-                body: JSON.stringify({ model: "minimax/MiniMax-M2.7", stream: false, messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }], max_tokens: 4096, temperature: 0.7 }),
+                body: JSON.stringify({ model: "MiniMax-M2.7", stream: false, messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }], max_tokens: 4096, temperature: 0.7 }),
               });
               if (aiRes.ok) {
                 const json = await aiRes.json();
