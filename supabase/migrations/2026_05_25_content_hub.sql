@@ -106,20 +106,20 @@ ALTER TABLE public.content_templates   ENABLE ROW LEVEL SECURITY;
 -- Tenant users see only their tenant's content
 CREATE POLICY "content_gen_tenant_read" ON public.content_generations
   FOR SELECT USING (
-    EXISTS (SELECT 1 FROM public.tenants WHERE id = tenant_id AND owner_id = auth.uid())
+    public.has_tenant_role(auth.uid(), tenant_id, 'admin'::app_role)
   );
 
 CREATE POLICY "content_gen_tenant_insert" ON public.content_generations
   FOR INSERT WITH CHECK (
-    EXISTS (SELECT 1 FROM public.tenants WHERE id = tenant_id AND owner_id = auth.uid())
+    public.has_tenant_role(auth.uid(), tenant_id, 'admin'::app_role)
   );
 
 CREATE POLICY "content_templates_tenant_read" ON public.content_templates
   FOR SELECT USING (
-    EXISTS (SELECT 1 FROM public.tenants WHERE id = tenant_id AND owner_id = auth.uid())
+    public.has_tenant_role(auth.uid(), tenant_id, 'admin'::app_role)
   );
 
 CREATE POLICY "content_templates_tenant_all" ON public.content_templates
   FOR ALL USING (
-    EXISTS (SELECT 1 FROM public.tenants WHERE id = tenant_id AND owner_id = auth.uid())
+    public.has_tenant_role(auth.uid(), tenant_id, 'admin'::app_role)
   );

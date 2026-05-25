@@ -26,3 +26,9 @@ verify_jwt = false
 
 [functions.generate-blog-post]
 verify_jwt = false
+
+[functions.content-hub]
+verify_jwt = false
+
+[functions.content-hub-migrate]
+verify_jwt = false

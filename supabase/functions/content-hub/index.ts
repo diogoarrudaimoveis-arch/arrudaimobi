@@ -44,24 +44,35 @@ function getSupabase() {
 // ─── JSON Parser ───────────────────────────────────────────────────────────
 
 function parseJson(text: string): any {
-  try {
-    const m = text.match(/```json\n?([\s\S]*?)```/) || text.match(/```\n?([\s\S]*?)```/) || text.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
-    return JSON.parse(m ? m[1] || m[0] : text);
-  } catch { return null; }
+  if (!text || !text.trim()) return null;
+  try { return JSON.parse(text); } catch { /* skip */ }
+  // Try to strip markdown code blocks
+  const stripped = text.replace(/^```json\s*/i, "").replace(/\s*```$/, "").replace(/^```\s*/i, "").replace(/\s*```$/, "").trim();
+  if (stripped) {
+    try { return JSON.parse(stripped); } catch { /* skip */ }
+  }
+  // Try to find JSON object in text
+  const m = text.match(/\{[\s\S]*\}/);
+  if (m) {
+    try { return JSON.parse(m[0]); } catch { /* skip */ }
+  }
+  return null;
 }
 
 // ─── OmniRoute LLM (text generation) ────────────────────────────────────────
 
 async function omniChat(messages: { role: string; content: string }[], maxTokens = 2048) {
+  const omniBody = JSON.stringify({ model: "MiniMax-M2.7", messages, max_tokens: maxTokens, temperature: 0.75, stream: false });
   const res = await fetch(`${OMNI_BASE}/chat/completions`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${OMNI_KEY}` },
-    body: JSON.stringify({ model: "MiniMax-M2.7", messages, max_tokens: maxTokens, temperature: 0.75 }),
+    body: omniBody,
   });
   if (!res.ok) throw new Error(`OmniRoute ${res.status}: ${await res.text()}`);
   const body = await res.text();
-  const json = parseJson(body);
-  if (!json) throw new Error("Empty response from OmniRoute");
+  let json: any;
+  try { json = JSON.parse(body); } catch { json = null; }
+  if (!json) throw new Error("OmniRoute response is not valid JSON: " + body.slice(0, 100));
   return json.choices?.[0]?.message?.content || "";
 }
 
@@ -340,13 +351,19 @@ serve(async (req) => {
         try {
           switch (ct) {
             case "blog_post": result = await genBlogPost(propData, property_images || [], tone || "professional", custom_prompt || ""); break;
-            case "social_post": result = await genSocialPost(propData, property_images || [], tone || "professional", platform || "instagram", custom_prompt || ""); break;
+            case "social_post":
+            case "instagram_post":
+            case "facebook_post":
+            case "whatsapp_post": result = await genSocialPost(propData, property_images || [], tone || "professional", platform || "instagram", custom_prompt || ""); break;
             case "story": result = await genStory(propData, property_images || [], tone || "professional", custom_prompt || ""); break;
-            case "video_script": result = await genVideoScript(propData, property_images || [], tone || "professional", custom_prompt || ""); break;
+            case "video_script":
+            case "video": result = await genVideoScript(propData, property_images || [], tone || "professional", custom_prompt || ""); break;
             case "voiceover": result = await genVoiceover(propData, tone || "professional"); break;
             case "music": result = await genMusic(propData, tone || "professional"); break;
-            case "property_description": result = await genPropertyDescription(propData, tone || "professional"); break;
-            case "ad_copy": result = await genAdCopy(propData, tone || "professional"); break;
+            case "property_description":
+            case "description": result = await genPropertyDescription(propData, tone || "professional"); break;
+            case "ad_copy":
+            case "ad": result = await genAdCopy(propData, tone || "professional"); break;
             default: result = { type: ct, text: "Tipo não suportado" };
           }
         } catch (e: any) {
