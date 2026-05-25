@@ -23,7 +23,7 @@
   ],
   "regions": ["gru1"],
   "github": {
-    "autoRedeploy": false,
-    "silent": true
+    "autoRedeploy": true,
+    "silent": false
   }
 }
