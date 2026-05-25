@@ -13,7 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   Sparkles, ImageIcon, FileText, Video, Loader2, Copy,
   Instagram, Youtube, FileImage, Layers, RefreshCw, CheckCircle2,
-  Home, PenLine, Image, Eye, Save
+  Home, PenLine, Eye, Save
 } from "lucide-react";
 
 const CONTENT_TYPES = [
@@ -55,8 +55,9 @@ export default function AdminContentGenerator() {
   const { tenantId, user } = useAuth();
 
   const [properties, setProperties] = useState<{ id: string; title: string; city: string; price: number }[]>([]);
-  const [selectedProperty, setSelectedProperty] = useState<PropertyData | null>(null);
-  const [propertyImages, setPropertyImages] = useState<string[]>([]);
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
+  const [propertyData, setPropertyData] = useState<PropertyData | null>(null);
+  const [propertyLoading, setPropertyLoading] = useState(false);
   const [selectedType, setSelectedType] = useState<typeof CONTENT_TYPES[0] | null>(null);
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
@@ -78,64 +79,98 @@ export default function AdminContentGenerator() {
       .then(({ data }) => { if (data) setProperties(data); });
   }, [tenantId]);
 
-  // Load full property data + images when property changes
+  // Load full property data when propertyId changes
   useEffect(() => {
-    if (!selectedProperty?.id) return;
+    if (!selectedPropertyId) {
+      setPropertyData(null);
+      return;
+    }
+
+    setPropertyLoading(true);
+    setPropertyData(null);
 
     supabase
       .from("properties")
       .select("*, property_images(url, display_order)")
-      .eq("id", selectedProperty.id)
+      .eq("id", selectedPropertyId)
       .single()
-      .then(({ data }) => {
-        if (!data) return;
+      .then(({ data, error }) => {
+        setPropertyLoading(false);
+        if (error || !data) {
+          sonnerToast({ title: "Erro ao carregar imóvel", description: error?.message, variant: "destructive" });
+          return;
+        }
+
         const sortedImages = (data.property_images || [])
           .sort((a: any, b: any) => (a.display_order || 0) - (b.display_order || 0))
           .map((i: any) => i.url)
           .filter(Boolean);
-        setSelectedProperty({
-          id: data.id, title: data.title || "", description: data.description || "",
-          city: data.city || "", state: data.state || "", price: data.price || 0,
-          type: data.type || "", bedrooms: data.bedrooms, bathrooms: data.bathrooms,
-          area: data.area || data.area_usable, images: sortedImages,
-        });
-        setPropertyImages(sortedImages);
 
-        // Auto-generate when both property + type are selected
-        if (selectedType) {
-          setTimeout(() => triggerGenerate(data), 500);
+        const fullProperty: PropertyData = {
+          id: data.id,
+          title: data.title || "",
+          description: data.description || "",
+          city: data.city || "",
+          state: data.state || "",
+          price: data.price || 0,
+          type: data.type || "",
+          bedrooms: data.bedrooms,
+          bathrooms: data.bathrooms,
+          area: data.area || data.area_usable,
+          images: sortedImages,
+        };
+
+        setPropertyData(fullProperty);
+
+        // Pre-fill prompt with property description
+        if (!prompt.trim()) {
+          const parts: string[] = [];
+          if (data.title) parts.push(data.title);
+          if (data.description) parts.push(data.description);
+          if (data.city || data.state) parts.push(`Localização: ${[data.city, data.state].filter(Boolean).join(", ")}`);
+          if (data.price) parts.push(`Preço: R$ ${Number(data.price).toLocaleString("pt-BR")}`);
+          if (data.bedrooms) parts.push(`${data.bedrooms} quarto(s)`);
+          if (data.bathrooms) parts.push(`${data.bathrooms} banheiro(s)`);
+          if (data.area) parts.push(`Área: ${data.area}m²`);
+          setPrompt(parts.join(". "));
         }
       });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedProperty?.id]);
+  }, [selectedPropertyId]);
 
-  // Auto-generate when type changes (if property already selected)
-  useEffect(() => {
-    if (!selectedType || !selectedProperty?.id || loading) return;
-    setTimeout(() => triggerGenerate(selectedProperty), 300);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedType?.id]);
-
-  const triggerGenerate = useCallback(async (propertyData?: any) => {
+  const triggerGenerate = useCallback(async () => {
     if (!selectedType) return;
-    const prop = propertyData || selectedProperty;
-    if (!prop) return;
+
+    // Wait for property data to be fully loaded if property is selected
+    if (selectedPropertyId && !propertyData && !propertyLoading) {
+      sonnerToast({ title: "Aguarde", description: "Carregando dados do imóvel..." });
+      return;
+    }
 
     setLoading(true);
 
-    // Build description from property fields
-    const descParts: string[] = [];
-    if (prop.title) descParts.push(prop.title);
-    if (prop.description) descParts.push(prop.description);
-    if (prop.city || prop.state) descParts.push(`Localização: ${[prop.city, prop.state].filter(Boolean).join(", ")}`);
-    if (prop.price) descParts.push(`Preço: R$ ${Number(prop.price).toLocaleString("pt-BR")}`);
-    if (prop.bedrooms) descParts.push(`${prop.bedrooms} quarto(s)`);
-    if (prop.bathrooms) descParts.push(`${prop.bathrooms} banheiro(s)`);
-    if (prop.area) descParts.push(`Área: ${prop.area}m²`);
-    if (prop.type) descParts.push(`Tipo: ${prop.type}`);
+    const prop = propertyData;
 
-    const propertyPrompt = descParts.join(". ");
-    const fullPrompt = prompt.trim() || propertyPrompt;
+    // Build prompt from property + user input
+    const propertyPrompt = prop
+      ? [
+          prop.title,
+          prop.description,
+          prop.city || prop.state ? `Localização: ${[prop.city, prop.state].filter(Boolean).join(", ")}` : null,
+          prop.price ? `Preço: R$ ${Number(prop.price).toLocaleString("pt-BR")}` : null,
+          prop.bedrooms ? `${prop.bedrooms} quarto(s)` : null,
+          prop.bathrooms ? `${prop.bathrooms} banheiro(s)` : null,
+          prop.area ? `Área: ${prop.area}m²` : null,
+          prop.type ? `Tipo: ${prop.type}` : null,
+        ].filter(Boolean).join(". ")
+      : "";
+
+    const finalPrompt = prompt.trim() || propertyPrompt;
+
+    if (!finalPrompt.trim()) {
+      setLoading(false);
+      sonnerToast({ title: "Prompt vazio", description: "Informe uma descrição ou selecione um imóvel com descrição.", variant: "destructive" });
+      return;
+    }
 
     const session = (await supabase.auth.getSession()).data.session;
 
@@ -143,12 +178,12 @@ export default function AdminContentGenerator() {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token || ""}` },
       body: JSON.stringify({
-        prompt: fullPrompt,
+        prompt: finalPrompt,
         content_types: [selectedType.id],
         tenant_id: tenantId,
         author_id: user?.id || "",
-        property_id: prop.id || null,
-        property_images: propertyImages.length > 0 ? propertyImages : [],
+        property_id: selectedPropertyId || null,
+        property_images: prop?.images?.length ? prop.images : [],
       }),
     })
       .then(res => res.json())
@@ -164,7 +199,24 @@ export default function AdminContentGenerator() {
         sonnerToast({ title: "Erro", description: err.message, variant: "destructive" });
       })
       .finally(() => setLoading(false));
-  }, [selectedType, selectedProperty, prompt, propertyImages, tenantId, user]);
+  }, [selectedType, propertyData, propertyLoading, selectedPropertyId, prompt, tenantId, user]);
+
+  // Auto-generate when type is selected AND property data is fully loaded
+  useEffect(() => {
+    if (!selectedType || !selectedPropertyId) return;
+    // Only trigger if property data is fully loaded (not loading, has data)
+    if (propertyLoading) return;
+
+    // If property is selected, we need its data. If we have it, trigger.
+    if (selectedPropertyId && !propertyData && !propertyLoading) return;
+
+    // If user already typed a custom prompt, don't auto-generate - let them click
+    if (prompt.trim() && prompt.trim().length > 20) return;
+
+    const timer = setTimeout(() => triggerGenerate(), 800);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedType?.id, selectedPropertyId, propertyData?.id]);
 
   const generateImage = async (item: GeneratedItem, index: number) => {
     if (!item.prompt) { sonnerToast({ title: "Prompt não disponível", variant: "destructive" }); return; }
@@ -209,8 +261,8 @@ export default function AdminContentGenerator() {
   };
 
   const resetFlow = () => {
-    setSelectedProperty(null);
-    setPropertyImages([]);
+    setSelectedPropertyId("");
+    setPropertyData(null);
     setSelectedType(null);
     setPrompt("");
     setResults([]);
@@ -224,13 +276,13 @@ export default function AdminContentGenerator() {
       <AdminPageShell>
         <AdminPageHeader
           title="Gerador de Conteúdo IA"
-          subtitle="Selecione o imóvel e tipo de conteúdo. A descrição e fotos são usadas automaticamente para gerar."
+          subtitle="Selecione o imóvel para usar sua descrição e fotos. Escolha o tipo de conteúdo e clique em Gerar."
         />
 
         <div className="space-y-6">
 
           {/* Step 1: Select Property */}
-          <Card className="border-2 border-green-200 dark:border-green-900">
+          <Card className={`border-2 ${propertyData ? "border-green-300 dark:border-green-700" : "border-border"}`}>
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
@@ -238,24 +290,19 @@ export default function AdminContentGenerator() {
                 </div>
                 <div>
                   <CardTitle>Selecionar Imóvel</CardTitle>
-                  <CardDescription>Escolha um imóvel para usar sua descrição e fotos como referência na geração de conteúdo.</CardDescription>
+                  <CardDescription>Escolha um imóvel para usar sua descrição e fotos como referência.</CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <select
-                value={selectedProperty?.id || ""}
+                value={selectedPropertyId}
                 onChange={(e) => {
-                  const p = properties.find(x => x.id === e.target.value);
-                  if (p) {
-                    setSelectedProperty({ id: p.id, title: p.title, city: p.city, price: p.price, description: "", state: "", type: "", images: [] });
-                    setResults([]);
-                    setSelectedType(null);
-                  } else {
-                    setSelectedProperty(null);
-                    setPropertyImages([]);
-                    setResults([]);
-                  }
+                  setSelectedPropertyId(e.target.value);
+                  setPropertyData(null);
+                  setPrompt("");
+                  setResults([]);
+                  setSelectedType(null);
                 }}
                 className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
               >
@@ -265,49 +312,52 @@ export default function AdminContentGenerator() {
                 ))}
               </select>
 
-              {/* Property info */}
-              {selectedProperty && (
+              {/* Property info + images */}
+              {propertyLoading && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Carregando dados do imóvel...
+                </div>
+              )}
+
+              {propertyData && (
                 <div className="bg-green-50 dark:bg-green-950/20 rounded-xl p-4 border border-green-200 dark:border-green-800 space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-semibold text-green-800 dark:text-green-400">{selectedProperty.title}</p>
-                      <p className="text-sm text-green-600/80">{selectedProperty.city}{selectedProperty.state ? `, ${selectedProperty.state}` : ""}</p>
+                      <p className="font-semibold text-green-800 dark:text-green-400">{propertyData.title}</p>
+                      <p className="text-sm text-green-600/80">{propertyData.city}{propertyData.state ? `, ${propertyData.state}` : ""}</p>
                     </div>
-                    <Badge className="bg-green-600 text-white">R$ {Number(selectedProperty.price).toLocaleString("pt-BR")}</Badge>
+                    <Badge className="bg-green-600 text-white">R$ {Number(propertyData.price).toLocaleString("pt-BR")}</Badge>
                   </div>
-                  {selectedProperty.description && (
+
+                  {propertyData.description && (
                     <div>
                       <Label className="text-xs text-green-700 dark:text-green-400 flex items-center gap-1 mb-1">
-                        <FileText className="h-3 w-3" /> Descrição
+                        <FileText className="h-3 w-3" /> Descrição do imóvel
                       </Label>
-                      <p className="text-sm bg-white/50 dark:bg-black/20 rounded-lg p-2 max-h-24 overflow-y-auto">
-                        {selectedProperty.description.slice(0, 400)}{selectedProperty.description.length > 400 ? "..." : ""}
+                      <p className="text-sm bg-white/50 dark:bg-black/20 rounded-lg p-2 max-h-28 overflow-y-auto">
+                        {propertyData.description.slice(0, 500)}{propertyData.description.length > 500 ? "..." : ""}
                       </p>
                     </div>
                   )}
-                  {propertyImages.length > 0 && (
+
+                  {propertyData.images.length > 0 && (
                     <div>
                       <Label className="text-xs text-green-700 dark:text-green-400 flex items-center gap-1 mb-1">
-                        <ImageIcon className="h-3 w-3" /> {propertyImages.length} foto(s) carregada(s)
+                        <ImageIcon className="h-3 w-3" /> {propertyData.images.length} foto(s) carregada(s)
                       </Label>
                       <div className="flex gap-2 overflow-x-auto pb-1">
-                        {propertyImages.slice(0, 8).map((url, i) => (
+                        {propertyData.images.slice(0, 8).map((url, i) => (
                           <div key={i} className="w-16 h-16 rounded-lg overflow-hidden border border-green-300 shrink-0">
                             <img src={url} alt="" className="w-full h-full object-cover" />
                           </div>
                         ))}
-                        {propertyImages.length > 8 && (
+                        {propertyData.images.length > 8 && (
                           <div className="w-16 h-16 rounded-lg border border-green-300 bg-green-100 dark:bg-green-900 flex items-center justify-center shrink-0">
-                            <span className="text-xs text-green-700 dark:text-green-400">+{propertyImages.length - 8}</span>
+                            <span className="text-xs text-green-700 dark:text-green-400">+{propertyData.images.length - 8}</span>
                           </div>
                         )}
                       </div>
                     </div>
-                  )}
-                  {!propertyImages.length && !selectedProperty.description && (
-                    <p className="text-sm text-green-600/60 flex items-center gap-1">
-                      <Loader2 className="h-3 w-3 animate-spin" /> Carregando dados do imóvel...
-                    </p>
                   )}
                 </div>
               )}
@@ -323,9 +373,7 @@ export default function AdminContentGenerator() {
                 </div>
                 <div>
                   <CardTitle>Tipo de Conteúdo</CardTitle>
-                  <CardDescription>
-                    Selecione o formato. A geração inicia automaticamente ao selecionar.
-                  </CardDescription>
+                  <CardDescription>Selecione o formato desejado, depois clique em Gerar.</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -336,7 +384,6 @@ export default function AdminContentGenerator() {
                     key={type.id}
                     type="button"
                     onClick={() => setSelectedType(type)}
-                    disabled={loading}
                     className={`relative flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all text-center ${selectedType?.id === type.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 bg-secondary/30"}`}
                   >
                     <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${type.color} flex items-center justify-center`}>
@@ -357,43 +404,48 @@ export default function AdminContentGenerator() {
             </CardContent>
           </Card>
 
-          {/* Step 3: Prompt */}
-          {(selectedType || results.length > 0) && (
-            <Card className="border-2 border-purple-200 dark:border-purple-900">
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
-                    <PenLine className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <CardTitle>Prompt / Descrição</CardTitle>
-                    <CardDescription>
-                      {selectedProperty?.description ? "Descrição do imóvel carregada automaticamente. Edite se quiser algo diferente." : "Edite ou acrescente uma descrição personalizada."}
-                      {selectedType && <span className="text-primary ml-1">• {selectedType.label} selecionado</span>}
-                    </CardDescription>
-                  </div>
+          {/* Step 3: Prompt + Generate */}
+          <Card className="border-2 border-purple-200 dark:border-purple-900">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
+                  <PenLine className="h-5 w-5 text-white" />
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Textarea
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Ex: Gerar post de divulgação para chácara de alto padrão..."
-                  rows={4}
-                  className="text-sm"
-                />
-                <div className="flex items-center justify-between">
-                  <Button variant="outline" onClick={resetFlow} className="gap-1">
-                    <RefreshCw className="h-4 w-4" /> Reiniciar
-                  </Button>
-                  <Button onClick={() => triggerGenerate()} disabled={loading || !selectedType} className="gap-2 px-6" size="lg">
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                    {loading ? "Gerando..." : "Gerar Conteúdo"}
-                  </Button>
+                <div>
+                  <CardTitle>Prompt / Descrição</CardTitle>
+                  <CardDescription>
+                    {propertyData?.description
+                      ? "Descrição do imóvel carregada automaticamente. Edite se necessário."
+                      : "Escreva uma descrição ou selecione um imóvel acima."}
+                    {selectedType && <span className="text-primary ml-1">• {selectedType.label} selecionado</span>}
+                  </CardDescription>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Textarea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="Descreva o conteúdo que deseja gerar..."
+                rows={5}
+                className="text-sm"
+              />
+              <div className="flex items-center justify-between">
+                <Button variant="outline" onClick={resetFlow} className="gap-1">
+                  <RefreshCw className="h-4 w-4" /> Reiniciar
+                </Button>
+                <Button
+                  onClick={triggerGenerate}
+                  disabled={loading || !selectedType || !prompt.trim()}
+                  className="gap-2 px-6"
+                  size="lg"
+                >
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  {loading ? "Gerando..." : "Gerar Conteúdo"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Loading */}
           {loading && (
@@ -403,7 +455,9 @@ export default function AdminContentGenerator() {
                   <Loader2 className="h-7 w-7 animate-spin text-primary" />
                 </div>
                 <p className="font-semibold">Gerando conteúdo com IA...</p>
-                <p className="text-sm text-muted-foreground mt-1">Aguarde um momento</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {propertyData ? `Usando: ${propertyData.title}` : "Sem referência de imóvel"}
+                </p>
               </CardContent>
             </Card>
           )}
@@ -441,8 +495,8 @@ export default function AdminContentGenerator() {
                           </Button>
                         </div>
                         {item.title && <p className="font-semibold text-sm line-clamp-2">{item.title}</p>}
-                        {item.text && <p className="text-xs text-muted-foreground line-clamp-3">{item.text}</p>}
-                        {item.content && !item.text && <p className="text-xs text-muted-foreground line-clamp-3" dangerouslySetInnerHTML={{ __html: item.content.slice(0, 200) }} />}
+                        {item.text && <p className="text-xs text-muted-foreground line-clamp-4">{item.text}</p>}
+                        {item.content && !item.text && <p className="text-xs text-muted-foreground line-clamp-4" dangerouslySetInnerHTML={{ __html: item.content.slice(0, 200) }} />}
                         {item.hashtags && item.hashtags.length > 0 && (
                           <div className="flex flex-wrap gap-1">
                             {item.hashtags.slice(0, 5).map((tag, i) => (
