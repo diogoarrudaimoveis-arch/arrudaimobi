@@ -1104,7 +1104,152 @@ Retorne APENAS JSON valido (sem texto antes ou depois):
         break;
       }
 
-default:
+case "generate-content": {
+        let body: any = {};
+        try { body = await req.json(); } catch { throw new Error("Invalid JSON body"); }
+        const { prompt, content_types, tenant_id, author_id, property_id, property_images } = body;
+        if (!prompt?.trim()) throw new Error("prompt obrigatorio");
+        if (!tenant_id?.trim()) throw new Error("tenant_id obrigatorio");
+
+        const OMNI_KEY = "sk-611d5b3c2cca0507-7a32b3-0e17b59f";
+        const OMNI_BASE = "http://206.183.129.200:20128/v1";
+
+        const results: any[] = [];
+
+        for (const contentType of (content_types || [])) {
+          try {
+            let systemPrompt = "";
+            let userPrompt = "";
+            let genImage = false;
+            let imagePrompt = "";
+            let aspectRatio = "1:1";
+
+            if (contentType === "post") {
+              systemPrompt = "Voce um redator inmobiliario especializado. Crie artigos em Portugues do Brasil. Use HTML tags: <h2>, <p>, <ul>, <li>, <strong>. Minimo 400 palavras. Responda JSON com: title (ate 65 chars), slug, excerpt (160-200 chars), content (HTML), tags (array de strings), text (resumo simples).";
+              userPrompt = `Tema: ${prompt}\n${property_images?.length ? "Fotos de referencia: " + property_images.join(", ") + "\n" : ""}Retorne APENAS JSON valido.`;
+            } else if (contentType === "story") {
+              systemPrompt = "Voce um roteirista de Instagram para mercado imobiliario. Crie conteudo para story/carrossel em Portugues. max 15 slides. Responda JSON com: title, text (array de textos para cada slide), captions (legendas), hashtags (array), prompt (para geracao de imagem por slide).";
+              userPrompt = `Tema: ${prompt}\n${property_images?.length ? "Fotos de referencia: " + property_images.join(", ") + "\n" : ""}Retorne APENAS JSON valido.`;
+              genImage = true;
+              imagePrompt = `Instagram story slide for: ${prompt}. Modern real estate, vibrant colors, clean design, Brazil. No text, no people.`;
+              aspectRatio = "9:16";
+            } else if (contentType === "reel") {
+              systemPrompt = "Voce um roteirista de Reels para Instagram. Crie roteiro para video vertical 9:16 em Portugues. Aprox 30-60 segundos. Responda JSON com: title, script (roteiro completo com timed cues), captions (legendas separadas por slide), hashtags (array).";
+              userPrompt = `Tema: ${prompt}\n${property_images?.length ? "Fotos de referencia: " + property_images.join(", ") + "\n" : ""}Retorne APENAS JSON valido.`;
+            } else if (contentType === "youtube_thumb") {
+              systemPrompt = "Voce um designer de thumbnails para YouTube no nicho imobiliario. Crie descricoes de thumbnail em Portugues. Responda JSON com: title, text (texto principal da thumb), prompt (prompt detalhado para geracao de imagem 1280x720), hashtags (array).";
+              userPrompt = `Tema: ${prompt}\n${property_images?.length ? "Fotos de referencia: " + property_images.join(", ") + "\n" : ""}Retorne APENAS JSON valido.`;
+              genImage = true;
+              imagePrompt = `YouTube thumbnail for: ${prompt}. Real estate, bold text, vibrant colors, high contrast, clickbait style. No faces, no people.`;
+              aspectRatio = "16:9";
+            } else if (contentType === "youtube_cover") {
+              systemPrompt = "Voce um designer de banners para canal YouTube inmobiliario. Crie conceitos de banner em Portugues. Responda JSON com: title, text (texto do banner), prompt (para geracao de imagem 2560x1440), hashtags (array).";
+              userPrompt = `Tema: ${prompt}\nRetorne APENAS JSON valido.`;
+              genImage = true;
+              imagePrompt = `YouTube channel banner for: ${prompt}. Professional real estate brand, clean design, Brazil real estate.`;
+              aspectRatio = "16:9";
+            } else if (contentType === "property_card") {
+              systemPrompt = "Voce um copywriter para cartoes promocionais de imoveis. Crie textos curtos e impactantes em Portugues. max 150 chars por texto. Responda JSON com: title, text (legenda curta), captions (array de 3 opcoes), hashtags (array).";
+              userPrompt = `Imovel: ${prompt}\n${property_images?.length ? "Fotos: " + property_images.join(", ") + "\n" : ""}Retorne APENAS JSON valido.`;
+              genImage = true;
+              imagePrompt = `Property promotional card for: ${prompt}. Modern real estate, clean design, Brazil real estate.`;
+              aspectRatio = "1:1";
+            }
+
+            let text = "";
+            try {
+              const aiRes = await fetch(`${OMNI_BASE}/chat/completions`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${OMNI_KEY}` },
+                body: JSON.stringify({ model: "minimax/MiniMax-M2.7", stream: false, messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }], max_tokens: 4096, temperature: 0.7 }),
+              });
+              if (aiRes.ok) {
+                const json = await aiRes.json();
+                text = json.choices?.[0]?.message?.content || "";
+              }
+            } catch (e) { console.log("OmniRoute error:", e); }
+
+            let parsed: any = null;
+            try { const match = text.match(/\{[\s\S]*\}/); if (match) parsed = JSON.parse(match[0]); } catch {}
+
+            if (parsed) {
+              const result: any = { type: contentType, prompt: parsed.prompt || imagePrompt };
+              if (parsed.title) result.title = parsed.title;
+              if (parsed.slug) result.slug = parsed.slug;
+              if (parsed.excerpt) result.text = parsed.excerpt;
+              if (parsed.content) result.content = parsed.content;
+              if (parsed.text) result.text = Array.isArray(parsed.text) ? parsed.text.join("\n\n") : parsed.text;
+              if (parsed.script) result.script = parsed.script;
+              if (parsed.captions) result.captions = parsed.captions;
+              if (parsed.hashtags) result.hashtags = parsed.hashtags;
+              if (genImage && imagePrompt) {
+                result.prompt = imagePrompt;
+              }
+              results.push(result);
+            } else {
+              results.push({ type: contentType, text: text || "Conteudo gerado sem formatacao", title: prompt.slice(0, 60) });
+            }
+          } catch (e) {
+            results.push({ type: contentType, text: `Erro: ${e.message}` });
+          }
+        }
+
+        result = { ok: true, data: { results } };
+        break;
+      }
+
+
+      case "generate-content-image": {
+        let body: any = {};
+        try { body = await req.json(); } catch { throw new Error("Invalid JSON body"); }
+        const { prompt, type } = body;
+        if (!prompt?.trim()) throw new Error("prompt obrigatorio");
+
+        const OMNI_KEY = "sk-611d5b3c2cca0507-7a32b3-0e17b59f";
+        const OMNI_BASE = "http://206.183.129.200:20128";
+
+        let size = "1:1";
+        if (type === "story" || type === "reel") size = "9:16";
+        else if (type === "youtube_thumb" || type === "youtube_cover") size = "16:9";
+
+        let imageUrl: string | null = null;
+        let genError: string | null = null;
+
+        try {
+          const genRes = await fetch(`${OMNI_BASE}/v1/images/generations`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${OMNI_KEY}` },
+            body: JSON.stringify({
+              model: "antigravity/gemini-3.1-flash-image",
+              prompt: prompt,
+              size: size,
+              n: 1,
+            }),
+          });
+
+          if (!genRes.ok) {
+            const errText = await genRes.text();
+            genError = `OmniRoute error ${genRes.status}: ${errText.slice(0, 200)}`;
+          } else {
+            const genJson = await genRes.json();
+            const b64 = genJson?.data?.[0]?.b64_json;
+            if (b64) {
+              imageUrl = `data:image/png;base64,${b64}`;
+            } else {
+              genError = "No image data in response";
+            }
+          }
+        } catch (e: any) {
+          genError = e.message;
+          console.log("generate-content-image error:", e);
+        }
+
+        result = { ok: true, data: { image_url: imageUrl, error: genError } };
+        break;
+      }
+
+
+      default:
         return new Response(JSON.stringify({ error: "unknown action" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });

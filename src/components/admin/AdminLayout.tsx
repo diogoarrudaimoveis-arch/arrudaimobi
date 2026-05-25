@@ -11,7 +11,7 @@ import {
   MessageSquare, LogOut, X, Menu, Sun, Moon, Image, Send,
   PanelLeftClose, PanelLeftOpen, ChevronRight, FileText, Download, Globe,
   Calendar as CalendarIcon, Target, BarChart3, BrainCircuit, Bot, Workflow,
-  ScrollText, HeartPulse, GitBranch, LayoutGrid, CreditCard
+  ScrollText, HeartPulse, GitBranch, LayoutGrid, CreditCard, Layers
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -38,6 +38,7 @@ const allMenuItems: AdminMenuItem[] = [
   { key: "messages", label: "Mensagens", path: "/admin/mensagens", icon: Send, section: "CRM & Atendimento" },
   // Marketing Digital — admin and developer only (techOnly)
   { key: "ai-config", label: "Configurações de IA", path: "/admin/configuracoes-ia", icon: Sparkles, section: "Marketing Digital", techOnly: true },
+  { key: "content-generator", label: "Gerador de Conteúdo", path: "/admin/conteudo-ia", icon: Layers, section: "Marketing Digital" },
   { key: "portals", label: "Portais Imobiliários", path: "/admin/portais", icon: Globe, section: "Marketing Digital", techOnly: true },
   { key: "tracking", label: "Rastreamento do Portal", path: "/admin/marketing-portal", icon: Target, section: "Marketing Digital", techOnly: true },
   { key: "performance", label: "Performance de Imóveis", path: "/admin/performance", icon: BarChart3, section: "Marketing Digital", techOnly: true },
@@ -64,7 +65,7 @@ const menuSections = [
   { label: "Principal", keys: ["dashboard", "owners", "properties", "agenda"] },
   { label: "Gestão Básica", keys: ["agents", "property-types", "amenities", "media", "blog", "mostruario"] },
   { label: "CRM & Atendimento", keys: ["contacts", "messages"] },
-  { label: "Marketing Digital", keys: ["ai-config", "portals", "tracking", "performance"] },
+  { label: "Marketing Digital", keys: ["ai-config", "content-generator", "portals", "tracking", "performance"] },
   { label: "IA Operacional", keys: ["central-ai", "ai-agents", "n8n", "logs", "health", "devops", "meta-ads", "supabase"] },
   { label: "Sistema", keys: ["profile", "email-config", "settings", "menu-permissions"] },
   { label: "Desenvolvedor", keys: ["planos-limites"] },

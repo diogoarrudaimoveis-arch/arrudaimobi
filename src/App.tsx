@@ -50,6 +50,7 @@ const AdminMediaLibrary = lazy(() => import("./pages/admin/AdminMediaLibrary"));
 const AdminEmailSettings = lazy(() => import("./pages/admin/AdminEmailSettings"));
 const AdminMessages = lazy(() => import("./pages/admin/AdminMessages"));
 const AdminBlog = lazy(() => import("./pages/admin/AdminBlog"));
+const AdminContentGenerator = lazy(() => import("./pages/admin/AdminContentGenerator"));
 const AdminPortals = lazy(() => import("./pages/admin/AdminPortals"));
 const AdminPortalMarketing = lazy(() => import("./pages/admin/AdminPortalMarketing"));
 const AdminAgenda = lazy(() => import("./pages/admin/AdminAgenda"));
@@ -164,6 +165,7 @@ export function App() {
                           <Route path="/admin/permissoes-menu" element={<ErrorBoundary section="AdminMenuPermissions"><ProtectedRoute requireAdmin><AdminMenuPermissions /></ProtectedRoute></ErrorBoundary>} />
                           <Route path="/admin/configuracoes" element={<ErrorBoundary section="AdminSettings"><ProtectedRoute requireAdmin><AdminSettings /></ProtectedRoute></ErrorBoundary>} />
                           <Route path="/admin/blog" element={<ErrorBoundary section="AdminBlog"><ProtectedRoute requireAdmin><AdminBlog /></ProtectedRoute></ErrorBoundary>} />
+                          <Route path="/admin/conteudo-ia" element={<ErrorBoundary section="AdminContentGenerator"><ProtectedRoute requireAdmin><AdminContentGenerator /></ProtectedRoute></ErrorBoundary>} />
                           <Route path="/admin/midias" element={<ErrorBoundary section="AdminMediaLibrary"><ProtectedRoute requireAdmin><AdminMediaLibrary /></ProtectedRoute></ErrorBoundary>} />
                           <Route path="/admin/portais" element={<ErrorBoundary section="AdminPortals"><ProtectedRoute requireAdmin><AdminPortals /></ProtectedRoute></ErrorBoundary>} />
                           <Route path="/admin/marketing-portal" element={<ErrorBoundary section="AdminPortalMarketing"><ProtectedRoute requireAdmin><AdminPortalMarketing /></ProtectedRoute></ErrorBoundary>} />
