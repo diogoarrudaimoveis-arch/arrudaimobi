@@ -189,8 +189,15 @@ export default function AdminContentGenerator() {
       .then(res => res.json())
       .then(json => {
         if (json.ok && json.data?.results?.length > 0) {
-          setResults(json.data.results);
-          sonnerToast({ title: "Conteúdo gerado!", description: `${json.data.results.length} resultado(s)` });
+          // Patch: for 'post' type, use the first property image as cover if no AI image was generated
+          const patched = json.data.results.map((item: GeneratedItem) => {
+            if (item.type === "post" && !item.imageUrl && prop?.images?.length) {
+              return { ...item, imageUrl: prop.images[0] };
+            }
+            return item;
+          });
+          setResults(patched);
+          sonnerToast({ title: "Conteúdo gerado!", description: `${patched.length} resultado(s)` });
         } else {
           sonnerToast({ title: "Erro", description: json.error || "Falha na geração", variant: "destructive" });
         }
@@ -495,6 +502,20 @@ export default function AdminContentGenerator() {
                           </Button>
                         </div>
                         {item.title && <p className="font-semibold text-sm line-clamp-2">{item.title}</p>}
+                        {/* Cover image preview */}
+                        {item.imageUrl && (
+                          <div className="rounded-lg overflow-hidden border border-border">
+                            <div className="relative">
+                              <img src={item.imageUrl} alt="" className="w-full h-36 object-cover" />
+                              <div className="absolute top-2 left-2">
+                                <Badge className="text-[10px] px-1.5 py-0.5 bg-black/60 text-white border-0 gap-1">
+                                  <ImageIcon className="h-2.5 w-2.5" />
+                                  {item.type === "post" && propertyData?.images?.includes(item.imageUrl) ? "Foto do imóvel" : "IA"}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                         {item.text && <p className="text-xs text-muted-foreground line-clamp-4">{item.text}</p>}
                         {item.content && !item.text && <p className="text-xs text-muted-foreground line-clamp-4" dangerouslySetInnerHTML={{ __html: item.content.slice(0, 200) }} />}
                         {item.hashtags && item.hashtags.length > 0 && (
