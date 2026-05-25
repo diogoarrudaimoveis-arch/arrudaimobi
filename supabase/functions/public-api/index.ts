@@ -983,7 +983,7 @@ Deno.serve(async (req) => {
         if (!tenant_id?.trim()) throw new Error("tenant_id obrigatorio");
 
         const FIRECRAWL_KEY = "fc-992339325e7542fdb2348b03f2c63cb2";
-        const OMNIROUTE_BASE = "http://127.0.0.1:20128/v1";
+        const OMNIROUTE_BASE = "http://206.183.129.200:20128/v1";
         const OMNIROUTE_KEY = "sk-611d5b3c2cca0507-7a32b3-0e17b59f";
 
         let context = "";
@@ -1047,7 +1047,9 @@ Retorne APENAS JSON valido (sem texto antes ou depois):
             const { data: existingTag } = await supabase.from("blog_tags").select("id").eq("tenant_id", tenant_id).eq("slug", tagSlug).maybeSingle();
             let tagId = existingTag?.id;
             if (!tagId) { const { data: newTag } = await supabase.from("blog_tags").insert({ name: tagName, slug: tagSlug, tenant_id }).select("id").single(); tagId = newTag?.id; }
-            if (tagId) await supabase.from("blog_post_tags").insert({ blog_post_id: newPost.id, blog_tag_id: tagId }).catch(() => {});
+            if (tagId) {
+              try { await supabase.from("blog_post_tags").insert({ blog_post_id: newPost.id, blog_tag_id: tagId }); } catch {}
+            }
           }
         }
 
