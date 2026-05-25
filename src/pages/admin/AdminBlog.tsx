@@ -574,25 +574,34 @@ export default function AdminBlog() {
                 )}
                 {generated.tags.length > 0 && (
                   <div>
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={handleGenerateCover}
-                      disabled={genCoverLoading || !genTopic.trim()}
-                      className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
-                    >
-                      {genCoverLoading ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Sparkles className="h-3.5 w-3.5" />
-                      )}
-                      Gerar Imagem de Capa por IA
-                    </Button>
-                    <Label className="text-xs text-muted-foreground">Tags</Label>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {generated.tags.map(tag => (
-                        <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
-                      ))}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={handleGenerateCover}
+                          disabled={genCoverLoading || !genTopic.trim()}
+                          className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+                        >
+                          {genCoverLoading ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Sparkles className="h-3.5 w-3.5" />
+                          )}
+                          Gerar Imagem de Capa por IA
+                        </Button>
+                        {genCoverUrl && (
+                          <span className="text-xs text-green-600 font-medium">✅ Pronta</span>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Tags</Label>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {generated.tags.map(tag => (
+                          <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}
