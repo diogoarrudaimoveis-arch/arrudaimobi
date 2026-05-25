@@ -382,7 +382,6 @@ const POST_MODERN: TemplateConfig = {
     }
   },
 
-  imageArea: { x: 0, y: 0, w: 700, h: 628 },
 
   brandingArea: { x: 704, y: 0, w: 496, h: 628 },
 
