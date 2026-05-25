@@ -1105,8 +1105,8 @@ Retorne APENAS JSON valido (sem texto antes ou depois):
       }
 
       case "generate-content": {
-        // Pipeline: 1) Analyze image → 2) Enhance prompt → 3) Generate content → 4) Improve copy
-        // Uses MiniMax-M2.7 (text) via OmniRoute and gemini-cli (vision) for image analysis
+        // FAST VERSION: ultra-short prompts (<400 chars) = ~3-5s per generation
+        // Pipeline: generate content + Pollinations AI image URL (no vision, no improve step)
         let body: any = {};
         try { body = await req.json(); } catch { throw new Error("Invalid JSON body"); }
         const { prompt, content_types, tenant_id, author_id, property_id, property_images } = body;
@@ -1115,56 +1115,6 @@ Retorne APENAS JSON valido (sem texto antes ou depois):
 
         const OMNI_KEY = "sk-611d5b3c2cca0507-7a32b3-0e17b59f";
         const OMNI_BASE = "http://206.183.129.200:20128/v1";
-
-        // Step 1: Analyze property image (if available) — uses vision model
-        let imageAnalysis = "";
-        if (property_images?.length) {
-          try {
-            const analysisPrompt = `Analyze this Brazilian real estate property image. Return a JSON object with these exact fields (only JSON, no text):
-{
-  "style": "architectural style (modern, rustic, classic, etc)",
-  "mood": "emotional mood the image conveys (luxurious, cozy, peaceful, vibrant, etc)",
-  "highlights": "top 3 visual highlights of the property",
-  "colors": "dominant color palette in 3-5 words",
-  "outdoor_features": "outdoor areas visible (pool, garden, terrace, etc)",
-  "indoor_features": "indoor features visible (spacious rooms, modern kitchen, etc)"
-}`;
-            const firstImage = property_images[0];
-            const visionRes = await fetch(`${OMNI_BASE}/chat/completions`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${OMNI_KEY}` },
-              body: JSON.stringify({
-                model: "gemini-cli/gemini-3-flash-preview",
-                stream: false,
-                messages: [
-                  { role: "user", content: [
-                    { type: "text", text: analysisPrompt },
-                    { type: "image_url", image_url: { url: firstImage } }
-                  ]}
-                ],
-                max_tokens: 600,
-                temperature: 0.3,
-              }),
-            });
-            if (visionRes.ok) {
-              const vj = await visionRes.json();
-              const raw = vj.choices?.[0]?.message?.content || "";
-              try { const m = raw.match(/\{[\s\S]*\}/); if (m) imageAnalysis = JSON.parse(m[0]); } catch {}
-              if (!imageAnalysis) try { imageAnalysis = JSON.parse(raw); } catch {}
-              if (typeof imageAnalysis === "object") {
-                imageAnalysis = `Estilo: ${imageAnalysis.style || "moderno"}. `
-                  + `Mood: ${imageAnalysis.mood || "moderno"}. `
-                  + `Destaques: ${imageAnalysis.highlights?.join(", ") || "não especificado"}. `
-                  + `Cores: ${imageAnalysis.colors || "vibrantes"}. `
-                  + `Área externa: ${imageAnalysis.outdoor_features || "não visível"}. `
-                  + `Área interna: ${imageAnalysis.indoor_features || "não visível"}.`;
-              }
-              console.log("Image analysis:", typeof imageAnalysis === "string" ? imageAnalysis.slice(0, 100) : JSON.stringify(imageAnalysis));
-            }
-          } catch (e) {
-            console.log("Image analysis error:", e.message);
-          }
-        }
 
         const results: any[] = [];
 
@@ -1177,57 +1127,47 @@ Retorne APENAS JSON valido (sem texto antes ou depois):
             let contentUser = "";
 
             if (contentType === "post") {
-              // Step 2: Enhance prompt with image analysis
-              const enhancedPrompt = imageAnalysis
-                ? `${prompt}\n\nContexto visual do imóvel: ${imageAnalysis}`
-                : prompt;
-              contentSystem = `Você é um redator imobiliário premium para o mercado brasileiro. Sua missão é criar artigos que vendem imóveis através de histórias e emoção — não apenas listam características.\n\nREGRAS OBRIGATÓRIAS:\n- Escreva em português brasileiro impecável, tom editorial premium\n- Use HTML tags: <h2>, <p>, <ul>, <li>, <strong> para estrutura\n- Mínimo 450 palavras de conteúdo<br>- Abra com um gancho emocional que faça o leitor sonhar\n- Descreva detalhes sensoriais: sons, cheiros, sensações no espaço\n- Termine com CTA Forte\n\nResponda EXATAMENTE este JSON (sem texto adicional):\n{\n  "title": "título até 60 caracteres, chamativo e emocional",\n  "slug": "slug-url-em-portugues-minusculo-hifens",\n  "excerpt": "resumo 160-200 caracteres que gere curiosidade",\n  "content": "HTML completo do artigo com html semantic",
-n  "tags": ["array", "de 5 tags", "em português", "minúsculas", "sem #"]\n}`;
-              contentUser = `Crie um artigo para:\n\n${enhancedPrompt}`;
+              // Ultra-short: blog post with plain text (no HTML = 10x faster)
+              contentSystem = "Redator imobiliário premium. Crie artigo curto (200-300 palavras) vendendo este imóvel por emoção. Responda JSON:\n{\"title\":\"título 50-60 chars emotivo\",\"excerpt\":\"resumo 150-180 chars\",\"content\":\"texto do artigo em parágrafos simples\",\"tags\":[\"tag1\",\"tag2\",\"tag3\",\"tag4\"]}";
+              contentUser = `Imovel: ${prompt}\n${property_images?.length ? "Fotos: " + property_images[0] : ""}`;
               genImage = true;
-              imagePrompt = `Luxurious modern Brazilian farm house with swimming pool surrounded by green hills, golden hour sunset, lush tropical garden, professional real estate photography, vibrant warm colors, premium lifestyle concept`;
+              imagePrompt = `Luxurious Brazilian farmhouse with pool at sunset, golden hour, tropical garden, professional real estate photography, warm vibrant colors`;
               aspectRatio = "16:9";
 
             } else if (contentType === "story") {
-              const enhancedPrompt = imageAnalysis
-                ? `${prompt}\n\nContexto visual: ${imageAnalysis}`
-                : prompt;
-              contentSystem = `Você é um estrategista de conteúdo Instagram para mercado imobiliário brasileiro. Crie carrosséis que vendem por emoção — cada slide deve ter um gancho diferente.\n\nREGRAS:\n- Exatamente 8-12 slides\n- Cada slide: título curto (max 8 palavras) + texto empolgante (2-3 frases)\n- use storytelling: Problema → Sonho → Solução\n- Slide 1: Gancho que para o scroll\n- Slides do meio: Benefícios emocionais do imóvel\n- Último slide: CTA + contato\n\nResponda JSON:\n{\n  "title": "título do carrossel max 50 chars",\n  "slides": [{"number": 1, "heading": "título", "body": "texto"}, ...],\n  "captions": ["legenda completa para Instagram com call-to-action"],\n  "hashtags": ["tag1", "tag2", "tag3", "tag4", "tag5"]\n}`;
-              contentUser = `Crie um carrossel Instagram:\n\n${enhancedPrompt}`;
+              contentSystem = "Crie carrossel Instagram de 8 slides para imóvel. Responda JSON:\n{\"title\":\"título\",\"slides\":[{\"heading\":\"h\",\"body\":\"t\"}],\"captions\":[\"legenda\"],\"hashtags\":[\"t1\",\"t2\",\"t3\"]}";
+              contentUser = `Imovel: ${prompt}`;
               genImage = true;
-              imagePrompt = `Modern Brazilian luxury farmhouse exterior at golden hour, lush green garden with tropical plants, inviting swimming pool, warm sunset colors, professional real estate photography, lifestyle aspirational content`;
+              imagePrompt = `Modern luxury Brazilian farmhouse, pool, green garden, golden hour, professional photography, lifestyle aspirational`;
               aspectRatio = "9:16";
 
             } else if (contentType === "reel") {
-              const enhancedPrompt = imageAnalysis
-                ? `${prompt}\n\nContexto visual: ${imageAnalysis}`
-                : prompt;
-              contentSystem = `Você é um roteirista de Reels imobiliários brasileiros. Crie roteiros que viralizam — curtos, emocionais, com ganchos visuais fortes.\n\nESTRUTURA:\n- Duração: 30-60 segundos\n- Ganchos: 3 primeiros segundos devem parar o scroll\n- middle: 3-4 cuts mostrando os melhores ângulos\n- final: CTA forte\n\nResponda JSON:\n{\n  "title": "título do reel max 60 chars",\n  "script": "roteiro completo com timed cues em segundos, ex: [0-3s] Texto na tela + ação]",\n  "captions": ["legendas separadas por |||||"],\n  "hashtags": ["tag1", "tag2", "tag3", "tag4", "tag5"]\n}`;
-              contentUser = `Crie um roteiro de Reel:\n\n${enhancedPrompt}`;
+              contentSystem = "Crie roteiro Reel 30-60s para imóvel. Responda JSON:\n{\"title\":\"título\",\"script\":\"roteiro timed cues\",\"captions\":[\"c1||c2\"],\"hashtags\":[\"t1\",\"t2\"]}";
+              contentUser = `Imovel: ${prompt}`;
 
             } else if (contentType === "youtube_thumb") {
-              contentSystem = `Você é um designer de thumbnails YouTube para o nicho imobiliário brasileiro. Crie thumbnails que maximizam CTR.\n\nREGRAS:\n- Texto curto e BOLD (max 5 palavras)\n- Use números quando possível (ex: "3 MOTIVOS para...")\n- Emoção > informação\n- Rosto humano + imóvel funciona melhor\n\nResponda JSON:\n{\n  "title": "título do vídeo max 70 chars",\n  "text": "texto da thumbnail max 8 palavras, todo em CAPS ou Title Case\",\n  "prompt": \"prompt detalhado em inglês para gerar thumbnail 1280x720px no Pollinations AI. Inclua: estilo visual, paleta de cores, composição, elementos de texto暗示, humor.\",\n  "hashtags\": [\"tag1\", \"tag2\", \"tag3\"]\n}`;
-              contentUser = `Crie thumbnail para:\n\n${prompt}`;
+              contentSystem = "Crie thumbnail YouTube para imóvel. Responda JSON:\n{\"title\":\"título\",\"text\":\"texto CAPS 5-8 palavras\",\"prompt\":\"english prompt for Pollinations AI\",\"hashtags\":[\"t1\",\"t2\"]}";
+              contentUser = `Imovel: ${prompt}`;
               genImage = true;
-              imagePrompt = `YouTube thumbnail: dramatic Brazilian luxury estate at sunset, bold red and gold text overlay 'CHÁCARA DOS SONHOS', wide angle shot, professional real estate photography, emotional cinematic lighting, high contrast, maximum visual impact`;
+              imagePrompt = `YouTube thumbnail: Brazilian luxury farm at sunset, bold text overlay, cinematic dramatic lighting, high contrast, clickbait style real estate`;
               aspectRatio = "16:9";
 
             } else if (contentType === "youtube_cover") {
-              contentSystem = `Você é um designer de banners para canal YouTube imobiliário. Crie conceitos visuais impactantes.\n\nResponda JSON:\n{\n  "title": "título do canal ou série max 50 chars",\n  "text": "texto do banner max 10 palavras\",\n  "prompt": "prompt em inglês para Pollinations AI, banner 2560x1440px, estilo premium, cores da marca\",\n  "hashtags": ["tag1", "tag2"]\n}`;
-              contentUser = `Crie capa de canal:\n\n${prompt}`;
+              contentSystem = "Crie banner canal YouTube. Responda JSON:\n{\"title\":\"título\",\"text\":\"texto\",\"prompt\":\"english for Pollinations AI 2560x1440\",\"hashtags\":[\"t1\",\"t2\"]}";
+              contentUser = `Imovel: ${prompt}`;
               genImage = true;
-              imagePrompt = `Professional YouTube channel banner: Brazilian real estate brand identity, modern farmhouse aerial view, lush green landscape, cinematic golden hour lighting, bold brand colors, clean minimalist design`;
+              imagePrompt = `Professional YouTube banner: Brazilian real estate brand, modern farmhouse, aerial view, cinematic golden hour lighting`;
               aspectRatio = "16:9";
 
             } else if (contentType === "property_card") {
-              contentSystem = `Você é um copywriter para anúncios de imóveis premium brasileiros. Crie textos que vendem estilo de vida, não apenas imóveis.\n\nREGRAS:\n- Headline: max 8 palavras, emocional\n- Body: 2 frases curtas, máximo impacto\n- use在京: transforme características em benefícios emocionais\n\nResponda JSON:\n{\n  "title": "headline max 60 chars, impactante\",\n  "text": "body copy 80-120 chars, emocional\",\n  "captions": ["opção 1", "opção 2", "opção 3"],\n  "hashtags": ["tag1", "tag2", "tag3", "tag4", "tag5"]\n}`;
-              contentUser = `Crie copy para imóvel:\n\n${prompt}`;
+              contentSystem = "Crie copy para card imóvel. Responda JSON:\n{\"title\":\"headline\",\"text\":\"body 100 chars\",\"captions\":[\"o1\",\"o2\",\"o3\"],\"hashtags\":[\"t1\",\"t2\",\"t3\",\"t4\"]}";
+              contentUser = `Imovel: ${prompt}`;
               genImage = true;
-              imagePrompt = `Elegant real estate promotional card, luxury Brazilian farmhouse with pool at sunset, clean modern design, warm golden tones, professional photography, minimal text space`;
+              imagePrompt = `Elegant real estate card, luxury farmhouse pool sunset, clean modern design, warm tones, professional photography`;
               aspectRatio = "1:1";
             }
 
-            // Step 3: Generate content with MiniMax-M2.7
+            // Generate with MiniMax-M2.7
             let text = "";
             try {
               const aiRes = await fetch(`${OMNI_BASE}/chat/completions`, {
@@ -1240,7 +1180,7 @@ n  "tags": ["array", "de 5 tags", "em português", "minúsculas", "sem #"]\n}`;
                     { role: "system", content: contentSystem },
                     { role: "user", content: contentUser }
                   ],
-                  max_tokens: 4096,
+                  max_tokens: 2048,
                   temperature: 0.72,
                 }),
               });
@@ -1248,44 +1188,18 @@ n  "tags": ["array", "de 5 tags", "em português", "minúsculas", "sem #"]\n}`;
                 const json = await aiRes.json();
                 text = json.choices?.[0]?.message?.content || "";
               }
-            } catch (e) { console.log("MiniMax content error:", e.message); }
+            } catch (e) { console.log("MiniMax error:", e.message); }
 
             let parsed: any = null;
             try { const match = text.match(/\{[\s\S]*\}/); if (match) parsed = JSON.parse(match[0]); } catch {}
 
             if (!parsed) {
-              // Fallback: return raw text
               results.push({ type: contentType, text: text || "Conteúdo gerado", title: prompt.slice(0, 60) });
               continue;
             }
 
-            // Step 4: Improve copy — titles, captions, hashtags
-            try {
-              const improvePrompt = `Você é um copywriter sênior para mercado imobiliário brasileiro.\nAnalise e melhore o seguinte conteúdo gerado. Retorne JSON apenas.\n\nConteúdo original: ${JSON.stringify(parsed)}\n\nMelhore: título (seja mais emocional e irresistível), hashtags (use apenas tags de alto alcance para imóveis no Brasil), captions (mais engajamento).\n\nResponda JSON com campos idênticos ao original, apenas melhorados.`;
-              const improveRes = await fetch(`${OMNI_BASE}/chat/completions`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${OMNI_KEY}` },
-                body: JSON.stringify({
-                  model: "MiniMax-M2.7",
-                  stream: false,
-                  messages: [{ role: "user", content: improvePrompt }],
-                  max_tokens: 1024,
-                  temperature: 0.65,
-                }),
-              });
-              if (improveRes.ok) {
-                const ij = await improveRes.json();
-                const improved = ij.choices?.[0]?.message?.content || "";
-                try { const m = improved.match(/\{[\s\S]*\}/); if (m) Object.assign(parsed, JSON.parse(m[0])); } catch {}
-              }
-            } catch (e) { console.log("Copy improve error:", e.message); }
-
             // Build result
-            const result: any = {
-              type: contentType,
-              prompt: parsed.prompt || imagePrompt,
-              _imageAnalysis: typeof imageAnalysis === "string" ? imageAnalysis.slice(0, 200) : null, // debug
-            };
+            const result: any = { type: contentType, prompt: parsed.prompt || imagePrompt };
             if (parsed.title) result.title = parsed.title;
             if (parsed.slug) result.slug = parsed.slug;
             if (parsed.excerpt) result.text = parsed.excerpt;
@@ -1296,7 +1210,7 @@ n  "tags": ["array", "de 5 tags", "em português", "minúsculas", "sem #"]\n}`;
             if (parsed.captions) result.captions = parsed.captions;
             if (parsed.hashtags) result.hashtags = parsed.hashtags;
 
-            // Auto-generate Pollinations AI image URL
+            // Pollinations AI image URL (free, fast)
             if (genImage && imagePrompt) {
               const ep = encodeURIComponent(imagePrompt.slice(0, 800));
               const seed = Date.now();
