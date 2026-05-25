@@ -244,9 +244,25 @@ export default function AdminBlog() {
 
     setSaving(true);
     try {
+      // Check and make slug unique if needed
+      let slugToUse = generated.slug;
+      const baseSlug = generated.slug;
+      let counter = 1;
+      while (true) {
+        const { data: existing } = await supabase
+          .from("blog_posts")
+          .select("id")
+          .eq("tenant_id", tenantId)
+          .eq("slug", slugToUse)
+          .maybeSingle();
+        if (!existing) break;
+        slugToUse = `${baseSlug}-${counter}`;
+        counter++;
+      }
+
       await createPost.mutateAsync({
         title: generated.title,
-        slug: generated.slug,
+        slug: slugToUse,
         excerpt: generated.excerpt || undefined,
         content: generated.content,
         cover_image_url: genCoverUrl || generated.cover_image_url || undefined,
