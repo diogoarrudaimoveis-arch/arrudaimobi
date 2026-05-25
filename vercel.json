@@ -1,7 +1,9 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
-  "framework": "vite",
+  "buildCommand": "echo 'skipping build' && exit 0",
+  "outputDirectory": "dist",
+  "framework": null,
+  "installCommand": "echo 'skipping install' && exit 0",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ],
