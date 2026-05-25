@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminPageShell, AdminPageHeader } from "@/components/admin/shared/AdminComponents";
 import { Button } from "@/components/ui/button";
@@ -12,19 +12,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Sparkles, ImageIcon, FileText, Video, Download, Loader2, Copy, Check,
-  Instagram, Youtube, FileImage, Layers, Wand2, RefreshCw, ChevronDown
+  Instagram, Youtube, FileImage, Layers, Wand2, RefreshCw
 } from "lucide-react";
 
 const CONTENT_TYPES = [
-  { id: "post", label: "Post de Blog", icon: FileText, color: "bg-blue-500", desc: "Artigo completo com título, conteúdo e tags" },
-  { id: "story", label: "Story Instagram", icon: Instagram, color: "bg-gradient-instagram", desc: "Carrossel de imagens para story 1080x1920" },
-  { id: "reel", label: "Reel Instagram", icon: Video, color: "bg-gradient-reel", desc: "Roteiro para vídeo vertical 9:16" },
-  { id: "youtube_thumb", label: "Thumbnail YouTube", icon: Youtube, color: "bg-red-600", desc: "Imagem de capa 1280x720 para vídeo" },
-  { id: "youtube_cover", label: "Capa YouTube", icon: Layers, color: "bg-red-500", desc: "Banner de canal com texto" },
-  { id: "property_card", label: "Cartão de Imóvel", icon: ImageIcon, color: "bg-green-600", desc: "Card promocional para imóvel específico" },
+  { id: "post", label: "Post de Blog", icon: FileText, color: "from-blue-500 to-blue-600", desc: "Artigo completo com título, conteúdo e tags" },
+  { id: "story", label: "Story Instagram", icon: Instagram, color: "from-purple-500 via-pink-500 to-orange-400", desc: "Carrossel de imagens para story 1080x1920" },
+  { id: "reel", label: "Reel Instagram", icon: Video, color: "from-pink-500 via-red-400 to-yellow-400", desc: "Roteiro para vídeo vertical 9:16" },
+  { id: "youtube_thumb", label: "Thumbnail YouTube", icon: Youtube, color: "from-red-600 to-red-700", desc: "Imagem de capa 1280x720 para vídeo" },
+  { id: "youtube_cover", label: "Capa YouTube", icon: Layers, color: "from-red-500 to-red-600", desc: "Banner de canal com texto" },
+  { id: "property_card", label: "Cartão de Imóvel", icon: ImageIcon, color: "from-green-600 to-green-700", desc: "Card promocional para imóvel específico" },
 ];
 
-interface GeneratedContent {
+interface PropertyOption {
+  id: string;
+  title: string;
+  city: string;
+  price: number;
+}
+
+interface GeneratedItem {
   type: string;
   title?: string;
   text?: string;
@@ -40,28 +47,38 @@ interface GeneratedContent {
 export default function AdminContentGenerator() {
   const { tenantId, user } = useAuth();
   const [prompt, setPrompt] = useState("");
-  const [selectedTypes, setSelectedTypes] = useState<string[]>(["post"]);
-  const [propertyId, setPropertyId] = useState<string>("");
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(["story"]);
+  const [propertyId, setPropertyId] = useState("");
   const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<GeneratedContent[]>([]);
+  const [results, setResults] = useState<GeneratedItem[]>([]);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewContent, setPreviewContent] = useState<GeneratedContent | null>(null);
+  const [previewItem, setPreviewItem] = useState<GeneratedItem | null>(null);
   const [copied, setCopied] = useState(false);
   const [loadingImage, setLoadingImage] = useState<string | null>(null);
-  const [properties, setProperties] = useState<any[]>([]);
+  const [properties, setProperties] = useState<PropertyOption[]>([]);
+  const [savedIds, setSavedIds] = useState<Set<number>>(new Set());
 
-  // Load properties for reference
-  useState(() => {
+  // Load properties
+  useEffect(() => {
     if (!tenantId) return;
-    supabase.from("properties").select("id, title, city, price, property_images(url)").eq("status", "available").limit(50)
-      .then(({ data }) => setProperties(data || []));
-  });
+    supabase
+      .from("properties")
+      .select("id, title, city, price")
+      .eq("tenant_id", tenantId)
+      .eq("status", "available")
+      .order("created_at", { ascending: false })
+      .limit(100)
+      .then(({ data, error }) => {
+        if (error) console.log("Erro ao carregar imóveis:", error);
+        else setProperties(data || []);
+      });
+  }, [tenantId]);
 
-  const toggleType = (type: string) => {
+  const toggleType = useCallback((type: string) => {
     setSelectedTypes(prev =>
       prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
     );
-  };
+  }, []);
 
   const generateAll = async () => {
     if (!prompt.trim()) {
@@ -70,30 +87,34 @@ export default function AdminContentGenerator() {
     if (!selectedTypes.length) {
       sonnerToast({ title: "Selecione pelo menos um tipo de conteúdo", variant: "destructive" }); return;
     }
-    if (!tenantId) return;
+    if (!tenantId) {
+      sonnerToast({ title: "Tenant ID não encontrado", variant: "destructive" }); return;
+    }
 
     setLoading(true);
     setResults([]);
 
     try {
-      const propertyImages: string[] = [];
+      // Get property images if selected
+      let propertyImages: string[] = [];
       if (propertyId) {
-        const { data: prop } = await supabase
+        const { data: propImgs } = await supabase
           .from("property_images")
           .select("url")
           .eq("property_id", propertyId)
           .order("display_order")
           .limit(10);
-        if (prop) propertyImages.push(...prop.map(p => p.url));
+        if (propImgs) propertyImages = propImgs.map(p => p.url);
       }
 
+      const session = (await supabase.auth.getSession()).data.session;
       const res = await fetch(
         `https://udutxbyzrdwucabxqvgg.supabase.co/functions/v1/public-api?action=generate-content`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || ""}`,
+            "Authorization": `Bearer ${session?.access_token || ""}`,
           },
           body: JSON.stringify({
             prompt: prompt.trim(),
@@ -109,8 +130,9 @@ export default function AdminContentGenerator() {
       const json = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error || "Erro na geração");
 
-      setResults(json.data.results || []);
-      sonnerToast({ title: "Conteúdo gerado!", description: `${(json.data.results || []).length} itens criados` });
+      const newResults = json.data.results || [];
+      setResults(newResults);
+      sonnerToast({ title: "Conteúdo gerado!", description: `${newResults.length} item(s) criado(s)` });
     } catch (err: any) {
       sonnerToast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
@@ -118,8 +140,10 @@ export default function AdminContentGenerator() {
     }
   };
 
-  const generateImage = async (item: GeneratedContent, index: number) => {
-    if (!item.prompt) return;
+  const generateImage = async (item: GeneratedItem, index: number) => {
+    if (!item.prompt) {
+      sonnerToast({ title: "Prompt não disponível", variant: "destructive" }); return;
+    }
     setLoadingImage(`${item.type}-${index}`);
 
     try {
@@ -145,12 +169,44 @@ export default function AdminContentGenerator() {
     }
   };
 
-  const copyText = (text: string) => {
+  const saveToDatabase = async (item: GeneratedItem, index: number) => {
+    if (!tenantId || !user) return;
+
+    try {
+      const slugBase = (item.title || prompt || "content").toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
+      const slug = `${slugBase}-${Date.now()}`;
+
+      const { data, error } = await supabase
+        .from("blog_posts")
+        .insert({
+          tenant_id: tenantId,
+          author_id: user.id,
+          title: item.title || prompt.slice(0, 60),
+          slug: slug,
+          excerpt: item.text?.slice(0, 200) || item.script?.slice(0, 200) || null,
+          content: item.content || item.script || item.text || `<p>${item.title || ""}</p>`,
+          cover_image_url: item.imageUrl || null,
+          published: false,
+        })
+        .select("id")
+        .single();
+
+      if (error) throw error;
+      setSavedIds(prev => new Set([...prev, index]));
+      sonnerToast({ title: "Salvo no banco!", description: `Post ID: ${data.id.slice(0, 8)}...` });
+    } catch (err: any) {
+      sonnerToast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const copyText = useCallback((text: string) => {
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
-  };
+  }, []);
 
   const getTypeInfo = (type: string) => CONTENT_TYPES.find(t => t.id === type);
 
@@ -159,17 +215,24 @@ export default function AdminContentGenerator() {
       <AdminPageShell>
         <AdminPageHeader
           title="Gerador de Conteúdo IA"
-          subtitle="Gere posts de blog, stories, reels, thumbnails e capas para YouTube usando IA. Use fotos dos imóveis como referência."
+          subtitle="Gere posts de blog, stories, reels, thumbnails e capas para YouTube. Use fotos dos imóveis como referência."
           actions={
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => { setResults([]); setPrompt(""); setSelectedTypes(["post"]); setPropertyId(""); }} className="gap-2">
-                <RefreshCw className="h-4 w-4" /> Limpar
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setResults([]);
+                setPrompt("");
+                setSelectedTypes(["story"]);
+                setPropertyId("");
+                setSavedIds(new Set());
+              }}
+              className="gap-2"
+            >
+              <RefreshCw className="h-4 w-4" /> Limpar
+            </Button>
           }
         />
 
-        {/* Main editor */}
         <div className="space-y-6">
           {/* Prompt input */}
           <Card>
@@ -179,7 +242,7 @@ export default function AdminContentGenerator() {
                 <Textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Ex: Apartamento de 3 quartos no Funcionários com varanda gourmet, próximo ao parque. gerar conteudo para instagram e youtube..."
+                  placeholder="Ex: Apartamento de 3 quartos no Funcionários com varanda gourmet, próximo ao parque. Gerar conteúdo para Instagram e YouTube..."
                   rows={4}
                   disabled={loading}
                   className="text-sm"
@@ -204,6 +267,9 @@ export default function AdminContentGenerator() {
                     </option>
                   ))}
                 </select>
+                {properties.length === 0 && !loading && (
+                  <p className="text-xs text-muted-foreground">Nenhum imóvel encontrado</p>
+                )}
               </div>
 
               {/* Content types */}
@@ -213,6 +279,7 @@ export default function AdminContentGenerator() {
                   {CONTENT_TYPES.map(type => (
                     <button
                       key={type.id}
+                      type="button"
                       onClick={() => toggleType(type.id)}
                       disabled={loading}
                       className={`relative flex flex-col items-center gap-2 rounded-xl border-2 p-3 transition-all text-center ${
@@ -221,7 +288,7 @@ export default function AdminContentGenerator() {
                           : "border-border hover:border-primary/50 bg-secondary/30"
                       }`}
                     >
-                      <div className={`w-10 h-10 rounded-xl ${type.color} flex items-center justify-center`}>
+                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${type.color} flex items-center justify-center`}>
                         <type.icon className="h-5 w-5 text-white" />
                       </div>
                       <span className="text-xs font-medium leading-tight">{type.label}</span>
@@ -243,11 +310,7 @@ export default function AdminContentGenerator() {
                   className="gap-2 px-6"
                   size="lg"
                 >
-                  {loading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Sparkles className="h-4 w-4" />
-                  )}
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                   {loading ? "Gerando..." : "Gerar Conteúdo"}
                 </Button>
               </div>
@@ -269,50 +332,53 @@ export default function AdminContentGenerator() {
           {/* Results */}
           {results.length > 0 && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-display font-semibold">Resultados ({results.length})</h2>
-              </div>
+              <h2 className="text-lg font-display font-semibold">Resultados ({results.length})</h2>
 
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {results.map((item, idx) => {
                   const typeInfo = getTypeInfo(item.type);
+                  const isSaved = savedIds.has(idx);
                   return (
                     <Card key={idx} className="overflow-hidden">
-                      <div className="p-4 space-y-3">
+                      <CardContent className="p-4 space-y-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             {typeInfo && (
-                              <div className={`w-8 h-8 rounded-lg ${typeInfo.color} flex items-center justify-center`}>
+                              <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${typeInfo.color} flex items-center justify-center`}>
                                 <typeInfo.icon className="h-4 w-4 text-white" />
                               </div>
                             )}
                             <Badge variant="outline" className="text-xs">{typeInfo?.label || item.type}</Badge>
+                            {isSaved && <Badge variant="default" className="text-xs bg-green-600">Salvo ✓</Badge>}
                           </div>
                         </div>
 
                         {/* Image preview */}
                         {item.imageUrl && (
-                          <div className="rounded-lg overflow-hidden border border-border h-40 bg-secondary">
-                            <img src={item.imageUrl} alt={item.title || item.type} className="w-full h-full object-cover" />
+                          <div className="rounded-lg overflow-hidden border border-border h-48 bg-secondary">
+                            <img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
                           </div>
                         )}
 
-                        {/* Text content */}
+                        {/* Title */}
                         {item.title && (
                           <p className="font-semibold text-sm line-clamp-2">{item.title}</p>
                         )}
 
+                        {/* Text */}
                         {item.text && (
-                          <p className="text-xs text-muted-foreground line-clamp-3">{item.text}</p>
+                          <p className="text-xs text-muted-foreground line-clamp-3 whitespace-pre-wrap">{item.text}</p>
                         )}
 
+                        {/* Script */}
                         {item.script && (
                           <div className="bg-muted/50 rounded-lg p-3">
                             <p className="text-xs font-medium mb-1">Roteiro</p>
-                            <p className="text-xs text-muted-foreground line-clamp-4">{item.script}</p>
+                            <p className="text-xs text-muted-foreground line-clamp-4 whitespace-pre-wrap">{item.script}</p>
                           </div>
                         )}
 
+                        {/* Hashtags */}
                         {item.hashtags && item.hashtags.length > 0 && (
                           <div className="flex flex-wrap gap-1">
                             {item.hashtags.slice(0, 5).map((tag, i) => (
@@ -324,14 +390,14 @@ export default function AdminContentGenerator() {
                         )}
 
                         {/* Actions */}
-                        <div className="flex gap-2 pt-2">
+                        <div className="flex flex-wrap gap-2 pt-2">
                           {!item.imageUrl && item.prompt && (
                             <Button
-                              variant="outline"
+                              variant="default"
                               size="sm"
                               onClick={() => generateImage(item, idx)}
                               disabled={loadingImage === `${item.type}-${idx}`}
-                              className="gap-1.5 flex-1"
+                              className="gap-1.5"
                             >
                               {loadingImage === `${item.type}-${idx}` ? (
                                 <Loader2 className="h-3 w-3 animate-spin" />
@@ -342,32 +408,36 @@ export default function AdminContentGenerator() {
                             </Button>
                           )}
 
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => { setPreviewItem(item); setPreviewOpen(true); }}
+                            className="gap-1.5"
+                          >
+                            <Wand2 className="h-3 w-3" /> Ver
+                          </Button>
+
                           {item.text && (
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => copyText(item.text || "")}
+                              onClick={() => copyText(item.text)}
                               className="gap-1.5"
                             >
-                              {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                              {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
                             </Button>
                           )}
 
-                          {(item.title || item.text) && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setPreviewContent(item);
-                                setPreviewOpen(true);
-                              }}
-                              className="gap-1.5"
-                            >
-                              <Wand2 className="h-3 w-3" />
-                            </Button>
-                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => saveToDatabase(item, idx)}
+                            className="gap-1.5 text-green-600 hover:text-green-700 hover:border-green-300"
+                          >
+                            <Download className="h-3 w-3" /> Salvar
+                          </Button>
                         </div>
-                      </div>
+                      </CardContent>
                     </Card>
                   );
                 })}
@@ -386,51 +456,52 @@ export default function AdminContentGenerator() {
               Preview do Conteúdo
             </DialogTitle>
           </DialogHeader>
-          {previewContent && (
+          {previewItem && (
             <div className="space-y-4">
-              {previewContent.imageUrl && (
+              {previewItem.imageUrl && (
                 <div className="rounded-xl overflow-hidden border border-border">
-                  <img src={previewContent.imageUrl} alt="" className="w-full" />
+                  <img src={previewItem.imageUrl} alt="" className="w-full" />
                 </div>
               )}
-              {previewContent.title && (
+
+              {previewItem.title && (
                 <div>
                   <Label className="text-xs text-muted-foreground">Título</Label>
-                  <p className="font-display font-semibold">{previewContent.title}</p>
+                  <p className="font-display font-semibold">{previewItem.title}</p>
                 </div>
               )}
-              {previewContent.text && (
+              {previewItem.text && (
                 <div>
                   <Label className="text-xs text-muted-foreground">Texto</Label>
-                  <div className="bg-secondary/30 rounded-lg p-3 text-sm whitespace-pre-wrap">{previewContent.text}</div>
+                  <div className="bg-secondary/30 rounded-lg p-3 text-sm whitespace-pre-wrap max-h-60 overflow-y-auto">{previewItem.text}</div>
                 </div>
               )}
-              {previewContent.script && (
+              {previewItem.script && (
                 <div>
                   <Label className="text-xs text-muted-foreground">Roteiro</Label>
-                  <div className="bg-secondary/30 rounded-lg p-3 text-sm whitespace-pre-wrap">{previewContent.script}</div>
+                  <div className="bg-secondary/30 rounded-lg p-3 text-sm whitespace-pre-wrap max-h-60 overflow-y-auto">{previewItem.script}</div>
                 </div>
               )}
-              {previewContent.captions && previewContent.captions.length > 0 && (
+              {previewItem.captions && previewItem.captions.length > 0 && (
                 <div>
                   <Label className="text-xs text-muted-foreground">Captions</Label>
-                  <div className="space-y-2">
-                    {previewContent.captions.map((cap, i) => (
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {previewItem.captions.map((cap, i) => (
                       <div key={i} className="bg-secondary/30 rounded-lg p-3 text-sm">{cap}</div>
                     ))}
                   </div>
                 </div>
               )}
-              {previewContent.hashtags && (
+              {previewItem.hashtags && (
                 <div>
                   <Label className="text-xs text-muted-foreground">Hashtags</Label>
-                  <p className="text-sm">{previewContent.hashtags.map(t => `#${t}`).join(" ")}</p>
+                  <p className="text-sm">{previewItem.hashtags.map(t => `#${t}`).join(" ")}</p>
                 </div>
               )}
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setPreviewOpen(false)}>Fechar</Button>
-                {previewContent.text && (
-                  <Button variant="default" onClick={() => { copyText(previewContent.text || ""); sonnerToast({ title: "Copiado!" }); }} className="gap-1.5">
+                {previewItem.text && (
+                  <Button variant="default" onClick={() => { copyText(previewItem.text); sonnerToast({ title: "Copiado!" }); }} className="gap-1.5">
                     <Copy className="h-4 w-4" /> Copiar Texto
                   </Button>
                 )}
