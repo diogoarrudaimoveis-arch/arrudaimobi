@@ -3,6 +3,6 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "routes": [
-    { "src": "/((?!api/).*)", "dest": "/index.html" }
+    { "src": "/(?!assets/|api/)(.*)", "dest": "/index.html" }
   ]
 }
