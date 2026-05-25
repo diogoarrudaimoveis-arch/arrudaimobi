@@ -183,10 +183,11 @@ export default function AdminBlog() {
       );
       const json = await res.json();
       if (json.ok && json.data?.cover_data_url) {
-        setGenCoverUrl(json.data.cover_image_url);
+        setGenCoverUrl(json.data.cover_data_url);
         sonnerToast({ title: "Imagem de capa gerada!" });
       } else {
-        sonnerToast({ title: "Erro ao gerar imagem", description: json.error, variant: "destructive" });
+        const errMsg = json.data?.gen_error || json.error || "Erro desconhecido";
+        sonnerToast({ title: "Erro ao gerar imagem", description: errMsg, variant: "destructive" });
       }
     } catch (err: any) {
       sonnerToast({ title: "Erro", description: err.message, variant: "destructive" });
