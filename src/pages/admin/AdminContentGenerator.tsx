@@ -44,6 +44,7 @@ interface GeneratedItem {
   title?: string;
   text?: string;
   imageUrl?: string;
+  imageUrlWithLogo?: string; // final image with logo overlay
   script?: string;
   hashtags?: string[];
   captions?: string[];
@@ -65,6 +66,8 @@ export default function AdminContentGenerator() {
   const [savedIds, setSavedIds] = useState<Set<number>>(new Set());
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewItem, setPreviewItem] = useState<GeneratedItem | null>(null);
+  const [tenantLogoUrl, setTenantLogoUrl] = useState<string | null>(null);
+  const [logoLoading, setLogoLoading] = useState<Record<number, boolean>>({});
 
   // Load properties list
   useEffect(() => {
@@ -79,7 +82,51 @@ export default function AdminContentGenerator() {
       .then(({ data }) => { if (data) setProperties(data); });
   }, [tenantId]);
 
-  // Load full property data when propertyId changes
+  // Load tenant logo from visual_identity
+  useEffect(() => {
+    if (!tenantId) return;
+    supabase
+      .from("visual_identity")
+      .select("logo_url")
+      .eq("tenant_id", tenantId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.logo_url) setTenantLogoUrl(data.logo_url);
+      });
+  }, [tenantId]);
+
+  // Composite: draw image onto canvas, overlay logo in bottom-right, return data URL
+  const compositeImageWithLogo = async (
+    imageUrl: string,
+    logoUrl: string
+  ): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(img, 0, 0);
+        const logo = new Image();
+        logo.crossOrigin = "anonymous";
+        logo.onload = () => {
+          const maxH = Math.round(img.height * 0.18);
+          const ratio = maxH / logo.height;
+          const lw = Math.round(logo.width * ratio);
+          const lh = maxH;
+          const pad = Math.round(img.width * 0.02);
+          ctx.drawImage(logo, img.width - lw - pad, img.height - lh - pad, lw, lh);
+          resolve(canvas.toDataURL("image/png"));
+        };
+        logo.onerror = () => resolve(imageUrl); // fallback: return original
+        logo.src = logoUrl;
+      };
+      img.onerror = () => reject(new Error("Failed to load image"));
+      img.src = imageUrl;
+    });
+  };
   useEffect(() => {
     if (!selectedPropertyId) {
       setPropertyData(null);
@@ -252,12 +299,29 @@ export default function AdminContentGenerator() {
     try {
       const slugBase = (item.title || prompt || "content").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
       const slug = `${slugBase}-${Date.now()}`;
+
+      // Resolve final image URL: logo-composited takes priority
+      let finalImageUrl: string | null = item.imageUrlWithLogo || item.imageUrl || null;
+
+      // If image is a data URL (from Canvas), upload to Supabase storage first
+      if (finalImageUrl?.startsWith("data:")) {
+        const ext = "png";
+        const path = `blog-covers/${tenantId}/${Date.now()}.${ext}`;
+        const buf = Uint8Array.from(atob(finalImageUrl.split(",")[1]), c => c.charCodeAt(0));
+        const { error: uploadError } = await supabase.storage
+          .from("blog-covers")
+          .upload(path, buf, { contentType: "image/png", upsert: true });
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage.from("blog-covers").getPublicUrl(path);
+        finalImageUrl = urlData.publicUrl;
+      }
+
       const { data, error } = await supabase.from("blog_posts").insert({
         tenant_id: tenantId, author_id: user.id,
         title: item.title || prompt.slice(0, 60), slug,
         excerpt: item.text?.slice(0, 200) || item.script?.slice(0, 200) || null,
         content: item.content || item.script || item.text || `<p>${item.title || ""}</p>`,
-        cover_image_url: item.imageUrl || null, published: false,
+        cover_image_url: finalImageUrl, published: false,
       }).select("id").single();
       if (error) throw error;
       setSavedIds(prev => new Set([...prev, index]));
@@ -502,15 +566,15 @@ export default function AdminContentGenerator() {
                           </Button>
                         </div>
                         {item.title && <p className="font-semibold text-sm line-clamp-2">{item.title}</p>}
-                        {/* Cover image preview */}
-                        {item.imageUrl && (
+                        {/* Cover image preview — prefer logo-composited, fallback to AI or property photo */}
+                        {(item.imageUrlWithLogo || item.imageUrl) && (
                           <div className="rounded-lg overflow-hidden border border-border">
                             <div className="relative">
-                              <img src={item.imageUrl} alt="" className="w-full h-36 object-cover" />
+                              <img src={item.imageUrlWithLogo || item.imageUrl} alt="" className="w-full h-36 object-cover" />
                               <div className="absolute top-2 left-2">
                                 <Badge className="text-[10px] px-1.5 py-0.5 bg-black/60 text-white border-0 gap-1">
                                   <ImageIcon className="h-2.5 w-2.5" />
-                                  {item.type === "post" && propertyData?.images?.includes(item.imageUrl) ? "Foto do imóvel" : "IA"}
+                                  {item.imageUrlWithLogo ? "Com logo" : item.type === "post" && propertyData?.images?.includes(item.imageUrl!) ? "Foto do imóvel" : "IA"}
                                 </Badge>
                               </div>
                             </div>
@@ -525,13 +589,55 @@ export default function AdminContentGenerator() {
                             ))}
                           </div>
                         )}
-                        <div className="flex gap-2 pt-1">
-                          {item.prompt && !item.imageUrl && (
-                            <Button variant="default" size="sm" onClick={() => generateImage(item, idx)} disabled={loading} className="gap-1.5 flex-1">
-                              {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <ImageIcon className="h-3 w-3" />} Gerar Imagem
+                        <div className="flex gap-2 pt-1 flex-wrap">
+                          {/* Regenerate image */}
+                          {item.prompt && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                // Clear existing image so regenerate shows loading
+                                setResults(prev => prev.map((r, i) => i === idx ? { ...r, imageUrl: undefined, imageUrlWithLogo: undefined } : r));
+                                setTimeout(() => generateImage(item, idx), 50);
+                              }}
+                              disabled={loading || !!logoLoading[idx]}
+                              className="gap-1.5"
+                            >
+                              <RefreshCw className="h-3 w-3" /> Regenerar
                             </Button>
                           )}
-                          <Button variant="outline" size="sm" onClick={() => saveToDatabase(item, idx)} className="gap-1.5 text-green-600">
+                          {/* Add logo overlay */}
+                          {tenantLogoUrl && (item.imageUrl || item.imageUrlWithLogo) && !item.imageUrlWithLogo && (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={async () => {
+                                setLogoLoading(prev => ({ ...prev, [idx]: true }));
+                                try {
+                                  const src = item.imageUrl!;
+                                  const composited = await compositeImageWithLogo(src, tenantLogoUrl!);
+                                  setResults(prev => prev.map((r, i) => i === idx ? { ...r, imageUrlWithLogo: composited } : r));
+                                  sonnerToast({ title: "Logo adicionado!", description: "Imagem com marca d'água salva." });
+                                } catch {
+                                  sonnerToast({ title: "Erro ao adicionar logo", variant: "destructive" });
+                                } finally {
+                                  setLogoLoading(prev => ({ ...prev, [idx]: false }));
+                                }
+                              }}
+                              disabled={!!logoLoading[idx]}
+                              className="gap-1.5"
+                            >
+                              {logoLoading[idx] ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileImage className="h-3 w-3" />}
+                              {logoLoading[idx] ? "Aplicando..." : "Adicionar Logo"}
+                            </Button>
+                          )}
+                          {/* Logo applied indicator */}
+                          {item.imageUrlWithLogo && (
+                            <Badge className="text-xs gap-1 bg-green-600 text-white">
+                              <CheckCircle2 className="h-3 w-3" /> Logo aplicado
+                            </Badge>
+                          )}
+                          <Button variant="outline" size="sm" onClick={() => saveToDatabase(item, idx)} className="gap-1.5 text-green-600 ml-auto">
                             <Save className="h-3 w-3" /> Salvar no Blog
                           </Button>
                         </div>

@@ -1183,7 +1183,13 @@ case "generate-content": {
               if (parsed.captions) result.captions = parsed.captions;
               if (parsed.hashtags) result.hashtags = parsed.hashtags;
               if (genImage && imagePrompt) {
-                result.prompt = imagePrompt;
+                // Auto-generate Pollinations AI image URL (free, direct)
+                const ep = encodeURIComponent(imagePrompt.slice(0, 800));
+                const seed = Date.now();
+                let w = 1024, h = 1024;
+                if (aspectRatio === "9:16") { w = 768; h = 1368; }
+                else if (aspectRatio === "16:9") { w = 1280; h = 720; }
+                result.imageUrl = `https://image.pollinations.ai/prompt/${ep}?width=${w}&height=${h}&nologo=true&seed=${seed}`;
               }
               results.push(result);
             } else {
@@ -1200,51 +1206,38 @@ case "generate-content": {
 
 
       case "generate-content-image": {
+        // Uses Pollininations AI directly — free, no key needed
+        // Returns a public URL that the browser can load and the frontend can composite with logo
         let body: any = {};
         try { body = await req.json(); } catch { throw new Error("Invalid JSON body"); }
         const { prompt, type } = body;
         if (!prompt?.trim()) throw new Error("prompt obrigatorio");
 
-        const OMNI_KEY = "sk-611d5b3c2cca0507-7a32b3-0e17b59f";
-        const OMNI_BASE = "http://206.183.129.200:20128";
-
-        let size = "1:1";
-        if (type === "story" || type === "reel") size = "9:16";
-        else if (type === "youtube_thumb" || type === "youtube_cover") size = "16:9";
-
-        let imageUrl: string | null = null;
-        let genError: string | null = null;
-
-        try {
-          const genRes = await fetch(`${OMNI_BASE}/v1/images/generations`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${OMNI_KEY}` },
-            body: JSON.stringify({
-              model: "antigravity/gemini-3.1-flash-image",
-              prompt: prompt,
-              size: size,
-              n: 1,
-            }),
-          });
-
-          if (!genRes.ok) {
-            const errText = await genRes.text();
-            genError = `OmniRoute error ${genRes.status}: ${errText.slice(0, 200)}`;
-          } else {
-            const genJson = await genRes.json();
-            const b64 = genJson?.data?.[0]?.b64_json;
-            if (b64) {
-              imageUrl = `data:image/png;base64,${b64}`;
-            } else {
-              genError = "No image data in response";
-            }
-          }
-        } catch (e: any) {
-          genError = e.message;
-          console.log("generate-content-image error:", e);
+        // Size mapping: content type → Pollinations AI dimensions
+        let width = 1024, height = 1024;
+        if (type === "story" || type === "reel") {
+          width = 768; height = 1368; // 9:16 vertical
+        } else if (type === "youtube_thumb" || type === "youtube_cover") {
+          width = 1280; height = 720; // 16:9 landscape
         }
 
-        result = { ok: true, data: { image_url: imageUrl, error: genError } };
+        // Build Pollinations AI URL (public, no auth needed)
+        const encodedPrompt = encodeURIComponent(
+          prompt.slice(0, 800) + (prompt.length > 800 ? "..." : "")
+        );
+        const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&nologo=true&seed=${Date.now()}`;
+
+        // Return URL immediately (browser can load this directly)
+        result = {
+          ok: true,
+          data: {
+            image_url: pollinationsUrl,
+            image_pollinations_url: pollinationsUrl,
+            width,
+            height,
+            error: null,
+          },
+        };
         break;
       }
 
