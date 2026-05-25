@@ -182,7 +182,7 @@ export default function AdminBlog() {
         }
       );
       const json = await res.json();
-      if (json.ok && json.data?.cover_image_url) {
+      if (json.ok && json.data?.cover_data_url) {
         setGenCoverUrl(json.data.cover_image_url);
         sonnerToast({ title: "Imagem de capa gerada!" });
       } else {
@@ -577,7 +577,7 @@ export default function AdminBlog() {
                       variant="default"
                       size="sm"
                       onClick={handleGenerateCover}
-                      disabled={genCoverLoading || !generated}
+                      disabled={genCoverLoading || !genTopic.trim()}
                       className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
                     >
                       {genCoverLoading ? (
