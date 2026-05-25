@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/hooks/use-toast";
+import { sonnerToast } from "@/components/ui/sonner";
 import { useOwners, useCreateOwnerMutation, useUpdateOwnerMutation, useDeleteOwnerMutation } from "@/hooks/use-owners";
 import { useTenantSettings } from "@/hooks/use-tenant-settings";
 import { Plus, Pencil, Trash2, Loader2, User, Landmark, Home, FileText, Download, Save, X, Signature, Search } from "lucide-react";
@@ -27,8 +27,7 @@ const DEFAULT_PAGE_SIZE = 10;
 
 const AdminOwners = () => {
   const { tenantId, isReady, session } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+    const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingOwner, setEditingOwner] = useState<any>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -142,7 +141,7 @@ const AdminOwners = () => {
 
   const saveSignature = async () => {
     if (sigCanvas.current?.isEmpty()) {
-      toast({ title: "Assinatura vazia", variant: "destructive" });
+      sonnerToast({ title: "Assinatura vazia", variant: "destructive" });
       return;
     }
 
@@ -163,9 +162,9 @@ const AdminOwners = () => {
         .getPublicUrl(fileName);
 
       setForm({ ...form, signature_url: publicUrl });
-      toast({ title: "Assinatura capturada com sucesso!" });
+      sonnerToast({ title: "Assinatura capturada com sucesso!" });
     } catch (error: any) {
-      toast({ title: "Erro ao salvar assinatura", description: error.message, variant: "destructive" });
+      sonnerToast({ title: "Erro ao salvar assinatura", description: error.message, variant: "destructive" });
     } finally {
       setIsSaving(false);
     }
@@ -218,7 +217,7 @@ const AdminOwners = () => {
     }
 
     doc.save(`Autorizacao_${form.name.replace(/\s+/g, "_")}.pdf`);
-    toast({ title: "PDF gerado com sucesso!" });
+    sonnerToast({ title: "PDF gerado com sucesso!" });
   };
 
 

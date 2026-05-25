@@ -8,15 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useToast } from "@/hooks/use-toast";
+import { sonnerToast } from "@/components/ui/sonner";
 import { Loader2, Save, Mail, KeyRound, Camera, User } from "lucide-react";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { isPasswordValid } from "@/lib/password-validation";
 
 const AdminProfile = () => {
   const { user, profile, refreshProfile } = useAuth();
-  const { toast } = useToast();
-
+  
   const [name, setName] = useState(profile?.full_name || "");
   const [phone, setPhone] = useState(profile?.phone || "");
   const [bio, setBio] = useState(profile?.bio || "");
@@ -37,11 +36,11 @@ const AdminProfile = () => {
     if (!file || !user) return;
 
     if (!file.type.startsWith("image/")) {
-      toast({ title: "Arquivo inválido", description: "Selecione uma imagem.", variant: "destructive" });
+      sonnerToast({ title: "Arquivo inválido", description: "Selecione uma imagem.", variant: "destructive" });
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
-      toast({ title: "Arquivo muito grande", description: "Máximo 2MB.", variant: "destructive" });
+      sonnerToast({ title: "Arquivo muito grande", description: "Máximo 2MB.", variant: "destructive" });
       return;
     }
 
@@ -66,9 +65,9 @@ const AdminProfile = () => {
       if (updateErr) throw updateErr;
 
       await refreshProfile();
-      toast({ title: "Foto atualizada!" });
+      sonnerToast({ title: "Foto atualizada!" });
     } catch (err: any) {
-      toast({ title: "Erro ao enviar foto", description: err.message, variant: "destructive" });
+      sonnerToast({ title: "Erro ao enviar foto", description: err.message, variant: "destructive" });
     } finally {
       setUploadingAvatar(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -77,7 +76,7 @@ const AdminProfile = () => {
 
   const handleSaveProfile = async () => {
     if (!name.trim() || name.trim().length < 2) {
-      toast({ title: "Nome inválido", description: "Mínimo 2 caracteres.", variant: "destructive" });
+      sonnerToast({ title: "Nome inválido", description: "Mínimo 2 caracteres.", variant: "destructive" });
       return;
     }
     setSavingProfile(true);
@@ -88,44 +87,44 @@ const AdminProfile = () => {
     }).eq("user_id", profile?.user_id);
     setSavingProfile(false);
     if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      sonnerToast({ title: "Erro", description: error.message, variant: "destructive" });
     } else {
       await refreshProfile();
-      toast({ title: "Perfil atualizado!" });
+      sonnerToast({ title: "Perfil atualizado!" });
     }
   };
 
   const handleUpdateEmail = async () => {
     const trimmed = email.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      toast({ title: "Email inválido", variant: "destructive" });
+      sonnerToast({ title: "Email inválido", variant: "destructive" });
       return;
     }
     if (trimmed === user?.email) {
-      toast({ title: "O email é o mesmo", variant: "destructive" });
+      sonnerToast({ title: "O email é o mesmo", variant: "destructive" });
       return;
     }
     setSavingEmail(true);
     const { error } = await supabase.auth.updateUser({ email: trimmed });
     setSavingEmail(false);
     if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      sonnerToast({ title: "Erro", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Verifique seu email", description: "Um link de confirmação foi enviado para o novo email." });
+      sonnerToast({ title: "Verifique seu email", description: "Um link de confirmação foi enviado para o novo email." });
     }
   };
 
   const handleChangePassword = async () => {
     if (!currentPw) {
-      toast({ title: "Informe a senha atual", variant: "destructive" });
+      sonnerToast({ title: "Informe a senha atual", variant: "destructive" });
       return;
     }
     if (!isPasswordValid(newPw)) {
-      toast({ title: "Nova senha não atende aos requisitos", variant: "destructive" });
+      sonnerToast({ title: "Nova senha não atende aos requisitos", variant: "destructive" });
       return;
     }
     if (newPw !== confirmPw) {
-      toast({ title: "As senhas não coincidem", variant: "destructive" });
+      sonnerToast({ title: "As senhas não coincidem", variant: "destructive" });
       return;
     }
     setSavingPw(true);
@@ -135,18 +134,18 @@ const AdminProfile = () => {
     });
     if (signInErr) {
       setSavingPw(false);
-      toast({ title: "Senha atual incorreta", variant: "destructive" });
+      sonnerToast({ title: "Senha atual incorreta", variant: "destructive" });
       return;
     }
     const { error } = await supabase.auth.updateUser({ password: newPw });
     setSavingPw(false);
     if (error) {
-      toast({ title: "Erro ao alterar senha", description: error.message, variant: "destructive" });
+      sonnerToast({ title: "Erro ao alterar senha", description: error.message, variant: "destructive" });
     } else {
       setCurrentPw("");
       setNewPw("");
       setConfirmPw("");
-      toast({ title: "Senha alterada com sucesso!" });
+      sonnerToast({ title: "Senha alterada com sucesso!" });
     }
   };
 

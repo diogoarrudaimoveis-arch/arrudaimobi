@@ -5,13 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
+import { sonnerToast } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Home, Phone, Mail, User, Building, Key, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 
 const CaptarImovel = () => {
-  const { toast } = useToast();
-  const navigate = useNavigate();
+    const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -92,7 +91,7 @@ const CaptarImovel = () => {
       const portalToken = result.portal_token || btoa(result.owner_id);
 
       setSubmitted(true);
-      toast({
+      sonnerToast({
         title: "Cadastro enviado!",
         description: "Nossa equipe entrará em contato em breve.",
       });
@@ -102,7 +101,7 @@ const CaptarImovel = () => {
       }, 1200);
 
     } catch (err: any) {
-      toast({
+      sonnerToast({
         title: "Erro",
         description: err.message || "Erro ao enviar cadastro. Tente novamente.",
         variant: "destructive",

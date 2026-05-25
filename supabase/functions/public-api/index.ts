@@ -177,6 +177,137 @@ Deno.serve(async (req) => {
         break;
       }
 
+      // Block 6b: Auto-reply with property catalog
+      // Returns a formatted WhatsApp-friendly catalog of up to 5 properties
+      case "get-property-catalog": {
+        const query = url.searchParams.get("q") || "";
+        const purpose = url.searchParams.get("purpose") || "";
+        const typeId = url.searchParams.get("typeId") || "";
+        const minPrice = Number(url.searchParams.get("minPrice") || 0);
+        const maxPrice = Number(url.searchParams.get("maxPrice") || 0);
+        const bedrooms = Number(url.searchParams.get("bedrooms") || 0);
+        const limit = Math.min(Math.max(1, Number(url.searchParams.get("limit") || 5)), 10);
+
+        let q = supabase
+          .from("properties")
+          .select(`
+            id, title, price, purpose, area, bedrooms, bathrooms, garages,
+            city, neighborhood, property_types(name),
+            property_images(id, url, alt, display_order)
+          `)
+          .eq("status", "available");
+
+        if (purpose) q = q.eq("purpose", purpose);
+        if (typeId) q = q.eq("type_id", typeId);
+        if (minPrice > 0) q = q.gte("price", minPrice);
+        if (maxPrice > 0) q = q.lte("price", maxPrice);
+        if (bedrooms > 0) q = q.gte("bedrooms", bedrooms);
+        if (query) q = q.or(`title.ilike.%${query}%,neighborhood.ilike.%${query}%,city.ilike.%${query}%`);
+
+        q = q.order("featured", { ascending: false }).order("created_at", { ascending: false }).limit(limit);
+
+        const { data: properties, error: propError } = await q;
+        if (propError) throw propError;
+
+        if (!properties || properties.length === 0) {
+          result = { catalog: null, message: "Nenhum imóvel encontrado com esses filtros. Tente outros critérios!" };
+          break;
+        }
+
+        const lines: string[] = [];
+        lines.push("🏠 *Catálogo de Imóveis — Arruda Imobi*");
+        lines.push("");
+        for (const p of properties) {
+          const typeName = (p as any).property_types?.name || "Imóvel";
+          const images = (p as any).property_images || [];
+          const firstImage = images.sort((a: any, b: any) => (a.display_order || 0) - (b.display_order || 0))[0];
+          const imgLine = firstImage ? `📷 https://www.arrudaimobi.com.br/imovel/${p.id}` : `🔗 https://www.arrudaimobi.com.br/imovel/${p.id}`;
+          const priceFormatted = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(p.price));
+          const purposeLabel = p.purpose === "rent" ? "Aluguel" : "Venda";
+          const areaStr = p.area ? ` | 📐 ${p.area}m²` : "";
+          const beds = p.bedrooms ? `🛏 ${p.bedrooms}` : "";
+          const baths = p.bathrooms ? `🛁 ${p.bathrooms}` : "";
+          const garages = p.garages ? `🚗 ${p.garages}` : "";
+          const extras = [beds, baths, garages].filter(Boolean).join(" | ");
+          lines.push(`${purposeLabel} — ${priceFormatted}`);
+          lines.push(`📍 ${p.neighborhood || p.city || "Belo Horizonte"}, ${p.city || "MG"}`);
+          lines.push(`${typeName}${areaStr} ${extras ? `| ${extras}` : ""}`);
+          lines.push(imgLine);
+          lines.push("");
+        }
+        lines.push("👉 https://www.arrudaimobi.com.br/imoveis");
+        lines.push("");
+        lines.push("Gostou de algum? Responda o número do imóvel ou fale com um corretor! 👨‍💼");
+
+        result = {
+          catalog: properties.map((p: any) => ({
+            id: p.id,
+            title: p.title,
+            price: p.price,
+            purpose: p.purpose,
+            purposeLabel: p.purpose === "rent" ? "Aluguel" : "Venda",
+            city: p.city,
+            neighborhood: p.neighborhood,
+            typeName: p.property_types?.name || "Imóvel",
+            url: `https://www.arrudaimobi.com.br/imovel/${p.id}`,
+            imageUrl: (p.property_images || []).sort((a: any, b: any) => (a.display_order || 0) - (b.display_order || 0))[0]?.url || null,
+          })),
+          message: lines.join("\n"),
+        };
+        break;
+      }
+
+      // Block 6b: Get single property formatted for WhatsApp
+      case "get-property-whatsapp": {
+        const id = url.searchParams.get("id");
+        if (!id) throw new Error("id required");
+
+        const { data, error } = await supabase
+          .from("properties")
+          .select(`
+            id, title, price, purpose, area, bedrooms, bathrooms, garages,
+            city, neighborhood, address, description,
+            property_types(name),
+            property_images(id, url, alt, display_order)
+          `)
+          .eq("id", id)
+          .maybeSingle();
+
+        if (error) throw error;
+        if (!data) {
+          result = { message: "Imóvel não encontrado. 😕" };
+          break;
+        }
+
+        const lines: string[] = [];
+        const typeName = (data as any).property_types?.name || "Imóvel";
+        const images = (data as any).property_images || [];
+        const sortedImages = images.sort((a: any, b: any) => (a.display_order || 0) - (b.display_order || 0));
+        const priceFormatted = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(data.price));
+        const purposeLabel = data.purpose === "rent" ? "Aluguel" : "Venda";
+        const areaStr = data.area ? `📐 ${data.area}m²` : "";
+        const beds = data.bedrooms ? `🛏 ${data.bedrooms} quarto${data.bedrooms > 1 ? "s" : ""}` : "";
+        const baths = data.bathrooms ? `🛁 ${data.bathrooms} banheiro${data.bathrooms > 1 ? "s" : ""}` : "";
+        const garages = data.garages ? `🚗 ${data.garages} vaga${data.garages > 1 ? "s" : ""}` : "";
+
+        lines.push(`🏠 *${data.title}*`);
+        lines.push("");
+        lines.push(`${purposeLabel} — ${priceFormatted}`);
+        lines.push(`📍 ${data.neighborhood || data.address || data.city || "Belo Horizonte"}, ${data.city || "MG"}`);
+        const specs = [areaStr, beds, baths, garages].filter(Boolean);
+        if (specs.length > 0) lines.push(specs.join(" | "));
+        lines.push("");
+        if (sortedImages.length > 0) {
+          lines.push(`📷 Veja fotos: https://www.arrudaimobi.com.br/imovel/${data.id}`);
+        }
+        lines.push(`🔗 Mais detalhes: https://www.arrudaimobi.com.br/imovel/${data.id}`);
+        lines.push("");
+        lines.push("👉 Fale com um corretor para mais informações!");
+
+        result = { message: lines.join("\n") };
+        break;
+      }
+
       case "list-agents": {
         const page = Math.max(1, Number(url.searchParams.get("page") || 1));
         const pageSize = Math.min(Math.max(1, Number(url.searchParams.get("pageSize") || 12)), 50);
@@ -753,6 +884,390 @@ Deno.serve(async (req) => {
         };
         break;
       }
+
+
+      // Block 6d: Check WhatsApp opt-in/opt-out status for a phone number
+      case "check-whatsapp-opt": {
+        const phone = url.searchParams.get("phone");
+        if (!phone) throw new Error("phone required");
+
+        const tenantSlug = url.searchParams.get("tenant") || "arruda-imobi";
+
+        const { data: tenant } = await supabase
+          .from("tenants")
+          .select("id")
+          .eq("slug", tenantSlug)
+          .maybeSingle();
+
+        const tenantId = tenant?.id || "00000000-0000-0000-0000-000000000000";
+
+        const { data: optRecord, error: optError } = await supabase
+          .from("whatsapp_opt_status")
+          .select("opted_in, opted_in_at, opted_out_at, source")
+          .eq("tenant_id", tenantId)
+          .eq("phone", phone)
+          .maybeSingle();
+
+        if (optError) throw optError;
+
+        if (!optRecord) {
+          // No record = defaulted to opted-in
+          result = { opted_in: true, status: "default", source: null };
+        } else {
+          result = {
+            opted_in: optRecord.opted_in,
+            opted_in_at: optRecord.opted_in_at,
+            opted_out_at: optRecord.opted_out_at,
+            source: optRecord.source,
+            status: optRecord.opted_in ? "active" : "opted_out",
+          };
+        }
+        break;
+      }
+
+      // Block 6d: Update WhatsApp opt-in/opt-out status (admin or self-service)
+      case "update-whatsapp-opt": {
+        const phone = url.searchParams.get("phone");
+        const action = url.searchParams.get("action"); // "opt_in" | "opt_out"
+        if (!phone) throw new Error("phone required");
+        if (!action || !["opt_in", "opt_out"].includes(action)) {
+          throw new Error("action must be 'opt_in' or 'opt_out'");
+        }
+
+        const tenantSlug = url.searchParams.get("tenant") || "arruda-imobi";
+
+        const { data: tenant } = await supabase
+          .from("tenants")
+          .select("id")
+          .eq("slug", tenantSlug)
+          .maybeSingle();
+
+        const tenantId = tenant?.id || "00000000-0000-0000-0000-000000000000";
+
+        const optedIn = action === "opt_in";
+
+        const { data: updated, error: updateError } = await supabase
+          .from("whatsapp_opt_status")
+          .upsert(
+            {
+              tenant_id: tenantId,
+              phone,
+              opted_in: optedIn,
+              source: "api",
+              opted_out_at: optedIn ? null : new Date().toISOString(),
+            },
+            { onConflict: "tenant_id,phone" }
+          )
+          .select("opted_in, opted_in_at, opted_out_at")
+          .maybeSingle();
+
+        if (updateError) throw updateError;
+
+        result = {
+          ok: true,
+          phone,
+          action,
+          opted_in: updated?.opted_in ?? optedIn,
+          opted_in_at: updated?.opted_in_at ?? null,
+          opted_out_at: updated?.opted_out_at ?? null,
+        };
+        break;
+      }
+      
+      case "generate-blog-post": {
+        // POST body: { topic, category, tenant_id, author_id }
+        let body: any = {};
+        try { body = await req.json(); } catch { throw new Error("Invalid JSON body"); }
+        const { topic, category, tenant_id, author_id } = body;
+        if (!topic?.trim()) throw new Error("topic obrigatorio");
+        if (!tenant_id?.trim()) throw new Error("tenant_id obrigatorio");
+
+        const FIRECRAWL_KEY = "fc-992339325e7542fdb2348b03f2c63cb2";
+        const OMNIROUTE_BASE = "http://206.183.129.200:20128/v1";
+        const OMNIROUTE_KEY = "sk-611d5b3c2cca0507-7a32b3-0e17b59f";
+
+        let context = "";
+        try {
+          const searchRes = await fetch("https://api.firecrawl.dev/v0/search", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${FIRECRAWL_KEY}` },
+            body: JSON.stringify({ query: `${topic} Brasil 2026 mercado inmobiliario`, limit: 2, source: "web" }),
+          });
+          if (searchRes.ok) {
+            const json = await searchRes.json();
+            for (const page of (json.data || []).slice(0, 2)) {
+              if (page.markdown) context += page.markdown.slice(0, 3000) + "\n\n";
+            }
+          }
+        } catch (e) { console.log("Firecrawl error:", e); }
+        context = context.slice(0, 6000);
+
+        const systemPrompt = "Voce e um redator especializado em blog inmobiliario brasileiro. Crie artigos em Portugues do Brasil. Use HTML tags: <h2>, <p>, <ul>, <li>, <strong>. Minimo 600 palavras. Titulo ate 65 caracteres. Excerpt 160-200 caracteres. Tags: Financiamento, Investimento Imobiliario, Mercado Imobiliario 2026, Oportunidades de Mercado, Renda com Aluguel, Valorizacao de Imoveis, Dicas para Compradores, Documentacao Imobiliaria.";
+        const userPrompt = `Topico: "${topic}"
+Categoria: ${category || "Mercado Imobiliario 2026"}
+${context ? `Contexto:
+${context}
+` : ""}
+Retorne APENAS JSON valido (sem texto antes ou depois):
+{
+  "title": "titulo ate 65 caracteres",
+  "slug": "url-amigavel",
+  "excerpt": "resumo de 160-200 caracteres",
+  "content": "<artigo em HTML>",
+  "tags": ["tag1","tag2","tag3"]
+}`;
+
+        let text = "";
+        try {
+          const aiRes = await fetch(`${OMNIROUTE_BASE}/chat/completions`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${OMNIROUTE_KEY}` },
+            body: JSON.stringify({ model: "minimax/MiniMax-M2.7", stream: false, messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }], max_tokens: 4096, temperature: 0.7 }),
+          });
+          if (aiRes.ok) {
+            const json = await aiRes.json();
+            text = json.choices?.[0]?.message?.content || "";
+          } else {
+            const errText = await aiRes.text();
+            console.log("OmniRoute non-ok:", aiRes.status, errText.slice(0, 200));
+          }
+        } catch (e) { console.log("OmniRoute error:", e); }
+
+        let parsed: any = null;
+        try { const match = text.match(/\{[\s\S]*\}/); if (match) parsed = JSON.parse(match[0]); } catch {}
+        if (!parsed || !parsed.title) throw new Error("IA nao retornou conteudo valido");
+
+        const slug = parsed.slug || parsed.title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 100);
+        const { data: newPost, error: insertErr } = await supabase.from("blog_posts").insert({ tenant_id: tenant_id, author_id: author_id || "00000000-0000-0000-0000-000000000000", title: parsed.title, slug, excerpt: parsed.excerpt, content: parsed.content, cover_image_url: parsed.cover_image_url || null, published: false, published_at: null }).select("id").single();
+        if (insertErr) throw new Error(`Erro ao salvar post: ${insertErr.message}`);
+
+        if (parsed.tags?.length) {
+          for (const tagName of parsed.tags) {
+            const tagSlug = tagName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-");
+            const { data: existingTag } = await supabase.from("blog_tags").select("id").eq("tenant_id", tenant_id).eq("slug", tagSlug).maybeSingle();
+            let tagId = existingTag?.id;
+            if (!tagId) { const { data: newTag } = await supabase.from("blog_tags").insert({ name: tagName, slug: tagSlug, tenant_id }).select("id").single(); tagId = newTag?.id; }
+            if (tagId) {
+              try { await supabase.from("blog_post_tags").insert({ blog_post_id: newPost.id, blog_tag_id: tagId }); } catch {}
+            }
+          }
+        }
+
+        result = { ok: true, data: { id: newPost.id, title: parsed.title, slug, excerpt: parsed.excerpt, content: parsed.content, cover_image_url: parsed.cover_image_url || null, tags: parsed.tags || [] } };
+        break;
+      }
+
+
+      case "generate-blog-cover": {
+        // POST body: { topic }
+        let body: any = {};
+        try { body = await req.json(); } catch { throw new Error("Invalid JSON body"); }
+        const { topic } = body;
+        if (!topic?.trim()) throw new Error("topic obrigatorio");
+
+        const OMNI_KEY = "sk-611d5b3c2cca0507-7a32b3-0e17b59f";
+        const OMNI_BASE = "http://206.183.129.200:20128";
+
+        let coverDataUrl: string | null = null;
+        let genError: string | null = null;
+
+        try {
+          const genRes = await fetch(`${OMNI_BASE}/v1/images/generations`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${OMNI_KEY}` },
+            body: JSON.stringify({
+              model: "antigravity/gemini-3.1-flash-image",
+              prompt: `Professional real estate photo for blog cover: ${topic}. Modern building, clean facade, high quality, Brazil real estate. No text, no people, no watermark.`,
+              size: "1:1",
+              n: 1,
+            }),
+          });
+
+          if (!genRes.ok) {
+            const errText = await genRes.text();
+            genError = `OmniRoute error ${genRes.status}: ${errText.slice(0, 200)}`;
+          } else {
+            const genJson = await genRes.json();
+            const b64 = genJson?.data?.[0]?.b64_json;
+            if (b64) {
+              coverDataUrl = `data:image/png;base64,${b64}`;
+            } else {
+              genError = "No image data in OmniRoute response";
+            }
+          }
+        } catch (e: any) {
+          genError = e.message;
+          console.log("generate-blog-cover error:", e);
+        }
+
+        result = { ok: true, data: { cover_data_url: coverDataUrl, gen_error: genError } };
+        break;
+      }
+
+      case "generate-content": {
+        // FAST VERSION: ultra-short prompts (<400 chars) = ~3-5s per generation
+        // Pipeline: generate content + Pollinations AI image URL (no vision, no improve step)
+        let body: any = {};
+        try { body = await req.json(); } catch { throw new Error("Invalid JSON body"); }
+        const { prompt, content_types, tenant_id, author_id, property_id, property_images } = body;
+        if (!prompt?.trim()) throw new Error("prompt obrigatorio");
+        if (!tenant_id?.trim()) throw new Error("tenant_id obrigatorio");
+
+        const OMNI_KEY = "sk-611d5b3c2cca0507-7a32b3-0e17b59f";
+        const OMNI_BASE = "http://206.183.129.200:20128/v1";
+
+        const results: any[] = [];
+
+        for (const contentType of (content_types || [])) {
+          try {
+            let genImage = false;
+            let imagePrompt = "";
+            let aspectRatio = "1:1";
+            let contentSystem = "";
+            let contentUser = "";
+
+            if (contentType === "post") {
+              // Ultra-short: blog post with plain text (no HTML = 10x faster)
+              contentSystem = "Redator imobiliário premium. Crie artigo curto (200-300 palavras) vendendo este imóvel por emoção. Responda JSON:\n{\"title\":\"título 50-60 chars emotivo\",\"excerpt\":\"resumo 150-180 chars\",\"content\":\"texto do artigo em parágrafos simples\",\"tags\":[\"tag1\",\"tag2\",\"tag3\",\"tag4\"]}";
+              contentUser = `Imovel: ${prompt}\n${property_images?.length ? "Fotos: " + property_images[0] : ""}`;
+              genImage = true;
+              imagePrompt = `Luxurious Brazilian farmhouse with pool at sunset, golden hour, tropical garden, professional real estate photography, warm vibrant colors`;
+              aspectRatio = "16:9";
+
+            } else if (contentType === "story") {
+              contentSystem = "Crie carrossel Instagram de 8 slides para imóvel. Responda JSON:\n{\"title\":\"título\",\"slides\":[{\"heading\":\"h\",\"body\":\"t\"}],\"captions\":[\"legenda\"],\"hashtags\":[\"t1\",\"t2\",\"t3\"]}";
+              contentUser = `Imovel: ${prompt}`;
+              genImage = true;
+              imagePrompt = `Modern luxury Brazilian farmhouse, pool, green garden, golden hour, professional photography, lifestyle aspirational`;
+              aspectRatio = "9:16";
+
+            } else if (contentType === "reel") {
+              contentSystem = "Crie roteiro Reel 30-60s para imóvel. Responda JSON:\n{\"title\":\"título\",\"script\":\"roteiro timed cues\",\"captions\":[\"c1||c2\"],\"hashtags\":[\"t1\",\"t2\"]}";
+              contentUser = `Imovel: ${prompt}`;
+
+            } else if (contentType === "youtube_thumb") {
+              contentSystem = "Crie thumbnail YouTube para imóvel. Responda JSON:\n{\"title\":\"título\",\"text\":\"texto CAPS 5-8 palavras\",\"prompt\":\"english prompt for Pollinations AI\",\"hashtags\":[\"t1\",\"t2\"]}";
+              contentUser = `Imovel: ${prompt}`;
+              genImage = true;
+              imagePrompt = `YouTube thumbnail: Brazilian luxury farm at sunset, bold text overlay, cinematic dramatic lighting, high contrast, clickbait style real estate`;
+              aspectRatio = "16:9";
+
+            } else if (contentType === "youtube_cover") {
+              contentSystem = "Crie banner canal YouTube. Responda JSON:\n{\"title\":\"título\",\"text\":\"texto\",\"prompt\":\"english for Pollinations AI 2560x1440\",\"hashtags\":[\"t1\",\"t2\"]}";
+              contentUser = `Imovel: ${prompt}`;
+              genImage = true;
+              imagePrompt = `Professional YouTube banner: Brazilian real estate brand, modern farmhouse, aerial view, cinematic golden hour lighting`;
+              aspectRatio = "16:9";
+
+            } else if (contentType === "property_card") {
+              contentSystem = "Crie copy para card imóvel. Responda JSON:\n{\"title\":\"headline\",\"text\":\"body 100 chars\",\"captions\":[\"o1\",\"o2\",\"o3\"],\"hashtags\":[\"t1\",\"t2\",\"t3\",\"t4\"]}";
+              contentUser = `Imovel: ${prompt}`;
+              genImage = true;
+              imagePrompt = `Elegant real estate card, luxury farmhouse pool sunset, clean modern design, warm tones, professional photography`;
+              aspectRatio = "1:1";
+            }
+
+            // Generate with MiniMax-M2.7
+            let text = "";
+            try {
+              const aiRes = await fetch(`${OMNI_BASE}/chat/completions`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${OMNI_KEY}` },
+                body: JSON.stringify({
+                  model: "MiniMax-M2.7",
+                  stream: false,
+                  messages: [
+                    { role: "system", content: contentSystem },
+                    { role: "user", content: contentUser }
+                  ],
+                  max_tokens: 2048,
+                  temperature: 0.72,
+                }),
+              });
+              if (aiRes.ok) {
+                const json = await aiRes.json();
+                text = json.choices?.[0]?.message?.content || "";
+              }
+            } catch (e) { console.log("MiniMax error:", e.message); }
+
+            let parsed: any = null;
+            try { const match = text.match(/\{[\s\S]*\}/); if (match) parsed = JSON.parse(match[0]); } catch {}
+
+            if (!parsed) {
+              results.push({ type: contentType, text: text || "Conteúdo gerado", title: prompt.slice(0, 60) });
+              continue;
+            }
+
+            // Build result
+            const result: any = { type: contentType, prompt: parsed.prompt || imagePrompt };
+            if (parsed.title) result.title = parsed.title;
+            if (parsed.slug) result.slug = parsed.slug;
+            if (parsed.excerpt) result.text = parsed.excerpt;
+            if (parsed.content) result.content = parsed.content;
+            if (parsed.slides) result.slides = parsed.slides;
+            if (parsed.text) result.text = Array.isArray(parsed.text) ? parsed.text.join("\n\n") : parsed.text;
+            if (parsed.script) result.script = parsed.script;
+            if (parsed.captions) result.captions = parsed.captions;
+            if (parsed.hashtags) result.hashtags = parsed.hashtags;
+
+            // Pollinations AI image URL (free, fast)
+            if (genImage && imagePrompt) {
+              const ep = encodeURIComponent(imagePrompt.slice(0, 800));
+              const seed = Date.now();
+              let w = 1024, h = 1024;
+              if (aspectRatio === "9:16") { w = 768; h = 1368; }
+              else if (aspectRatio === "16:9") { w = 1280; h = 720; }
+              result.imageUrl = `https://image.pollinations.ai/prompt/${ep}?width=${w}&height=${h}&nologo=true&seed=${seed}`;
+            }
+
+            results.push(result);
+
+          } catch (e) {
+            results.push({ type: contentType, text: `Erro: ${e.message}` });
+          }
+        }
+
+        result = { ok: true, data: { results } };
+        break;
+      }
+
+
+      case "generate-content-image": {
+        // Uses Pollininations AI directly — free, no key needed
+        // Returns a public URL that the browser can load and the frontend can composite with logo
+        let body: any = {};
+        try { body = await req.json(); } catch { throw new Error("Invalid JSON body"); }
+        const { prompt, type } = body;
+        if (!prompt?.trim()) throw new Error("prompt obrigatorio");
+
+        // Size mapping: content type → Pollinations AI dimensions
+        let width = 1024, height = 1024;
+        if (type === "story" || type === "reel") {
+          width = 768; height = 1368; // 9:16 vertical
+        } else if (type === "youtube_thumb" || type === "youtube_cover") {
+          width = 1280; height = 720; // 16:9 landscape
+        }
+
+        // Build Pollinations AI URL (public, no auth needed)
+        const encodedPrompt = encodeURIComponent(
+          prompt.slice(0, 800) + (prompt.length > 800 ? "..." : "")
+        );
+        const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&nologo=true&seed=${Date.now()}`;
+
+        // Return URL immediately (browser can load this directly)
+        result = {
+          ok: true,
+          data: {
+            image_url: pollinationsUrl,
+            image_pollinations_url: pollinationsUrl,
+            width,
+            height,
+            error: null,
+          },
+        };
+        break;
+      }
+
 
       default:
         return new Response(JSON.stringify({ error: "unknown action" }), {

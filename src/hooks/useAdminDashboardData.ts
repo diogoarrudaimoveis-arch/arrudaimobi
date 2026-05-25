@@ -65,11 +65,15 @@ export function useAdminDashboardData() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      console.log('[DashboardData] no user, skip fetch');
+      return;
+    }
 
     let cancelled = false;
     setLoading(true);
     setError(null);
+    console.log('[DashboardData] fetching for user:', user.id);
 
     async function fetchAll() {
       try {
@@ -80,11 +84,15 @@ export function useAdminDashboardData() {
           .eq("user_id", user.id)
           .single();
 
+        console.log('[DashboardData] profileRes:', profileRes.data, 'error:', profileRes.error);
+
         const tenantId = profileRes.data?.tenant_id;
         if (!tenantId) {
+          console.log('[DashboardData] NO TENANT ID - aborting fetch');
           if (!cancelled) setLoading(false);
           return;
         }
+        console.log('[DashboardData] using tenantId:', tenantId);
 
         const today = new Date().toISOString().split("T")[0] + "T00:00:00";
 

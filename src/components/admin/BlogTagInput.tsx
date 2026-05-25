@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { X, Plus, Loader2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { sonnerToast } from "@/components/ui/sonner";
 import { generateSlug } from "@/hooks/use-blog";
 
 interface BlogTag {
@@ -24,8 +24,7 @@ export function BlogTagInput({ tenantId, selectedTagIds, onChange }: BlogTagInpu
   const [allTags, setAllTags] = useState<BlogTag[]>([]);
   const [newTag, setNewTag] = useState("");
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
-
+  
   useEffect(() => {
     loadTags();
   }, [tenantId]);
@@ -52,7 +51,7 @@ export function BlogTagInput({ tenantId, selectedTagIds, onChange }: BlogTagInpu
         .single();
       if (error) {
         if (error.message.includes("duplicate")) {
-          toast({ title: "Tag já existe", variant: "destructive" });
+          sonnerToast({ title: "Tag já existe", variant: "destructive" });
         } else throw error;
         return;
       }
@@ -60,7 +59,7 @@ export function BlogTagInput({ tenantId, selectedTagIds, onChange }: BlogTagInpu
       onChange([...selectedTagIds, (data as BlogTag).id]);
       setNewTag("");
     } catch (err: any) {
-      toast({ title: "Erro ao criar tag", description: err.message, variant: "destructive" });
+      sonnerToast({ title: "Erro ao criar tag", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }

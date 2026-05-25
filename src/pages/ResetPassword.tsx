@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Building2, Loader2, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { sonnerToast } from "@/components/ui/sonner";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { isPasswordValid } from "@/lib/password-validation";
 
@@ -14,8 +14,7 @@ const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 const ResetPassword = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(false);
   const [password, setPassword] = useState("");
   const [isRecovery, setIsRecovery] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -132,7 +131,7 @@ const ResetPassword = () => {
     e.preventDefault();
 
     if (!isPasswordValid(password)) {
-      toast({
+      sonnerToast({
         title: "Senha não atende aos requisitos",
         description: "Verifique as regras abaixo do campo de senha.",
         variant: "destructive",
@@ -154,7 +153,7 @@ const ResetPassword = () => {
         const data = await res.json();
 
         if (!res.ok) {
-          toast({
+          sonnerToast({
             title: "Erro ao redefinir senha",
             description: data.error || "Tente novamente.",
             variant: "destructive",
@@ -164,10 +163,10 @@ const ResetPassword = () => {
         }
 
         setSuccess(true);
-        toast({ title: "Senha redefinida com sucesso!" });
+        sonnerToast({ title: "Senha redefinida com sucesso!" });
         setTimeout(() => navigate("/login"), 2000);
       } catch {
-        toast({
+        sonnerToast({
           title: "Erro de conexão",
           description: "Verifique sua internet e tente novamente.",
           variant: "destructive",
@@ -179,7 +178,7 @@ const ResetPassword = () => {
       
       if (!sessionData.session) {
         console.error("[ResetPassword] Session is missing before update attempt");
-        toast({
+        sonnerToast({
           title: "Sessão expirada ou ausente",
           description: "Não foi possível validar sua identidade. Solicite um novo link.",
           variant: "destructive",
@@ -192,14 +191,14 @@ const ResetPassword = () => {
 
       if (error) {
         console.error("[ResetPassword] Error updating password:", error.message);
-        toast({
+        sonnerToast({
           title: "Erro ao redefinir senha",
           description: error.message,
           variant: "destructive",
         });
       } else {
         setSuccess(true);
-        toast({ title: "Senha redefinida com sucesso!" });
+        sonnerToast({ title: "Senha redefinida com sucesso!" });
         setTimeout(() => navigate("/admin"), 2000);
       }
     }

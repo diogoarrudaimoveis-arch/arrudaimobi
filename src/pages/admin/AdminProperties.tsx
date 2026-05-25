@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
+import { sonnerToast } from "@/components/ui/sonner";
 import { formatCurrency } from "@/lib/format";
 import { fetchImageAsFile, getStoragePathFromUrl, processImageWithWatermark } from "@/lib/image-compression";
 import { Plus, Pencil, Trash2, Loader2, Home, ImageIcon, Search, HelpCircle, X } from "lucide-react";
@@ -36,7 +36,6 @@ const DEFAULT_PAGE_SIZE = 10;
 
 const AdminProperties = () => {
   const { tenantId, user, isReady, isAdmin } = useAuth();
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   
   // Estados do Modal Assistente de IA
@@ -84,7 +83,7 @@ const AdminProperties = () => {
   const handleCepLookup = useCallback(async (cep: string) => {
     const cleanCep = (cep || "").replace(/\D/g, "");
     if (cleanCep.length !== 8) {
-      toast({ title: "CEP inválido", description: "Digite um CEP com 8 dígitos", variant: "destructive" });
+      sonnerToast({ title: "CEP inválido", description: "Digite um CEP com 8 dígitos", variant: "destructive" });
       return;
     }
     setFetchingCep(true);
@@ -92,7 +91,7 @@ const AdminProperties = () => {
       const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
       const data = await res.json();
       if (data.erro) {
-        toast({ title: "CEP não encontrado", variant: "destructive" });
+        sonnerToast({ title: "CEP não encontrado", variant: "destructive" });
         return;
       }
       // Precedência de Estado: atualizamos primeiro o UF para disparar o IBGE
@@ -111,13 +110,13 @@ const AdminProperties = () => {
         }));
       }, 500);
 
-      toast({ title: "Endereço preenchido!" });
+      sonnerToast({ title: "Endereço preenchido!" });
     } catch {
-      toast({ title: "Erro ao buscar CEP", variant: "destructive" });
+      sonnerToast({ title: "Erro ao buscar CEP", variant: "destructive" });
     } finally {
       setFetchingCep(false);
     }
-  }, [toast]);
+  }, []);
 
   const [form, setForm] = useState({
     title: "", 
@@ -491,16 +490,16 @@ const AdminProperties = () => {
     onSuccess: (id: string) => {
       queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
       if (editingId) {
-        toast({ title: "Imóvel atualizado!" });
+        sonnerToast({ title: "Imóvel atualizado!" });
         resetForm();
         setDialogOpen(false);
       } else {
-        toast({ title: "Imóvel criado! Agora adicione as imagens." });
+        sonnerToast({ title: "Imóvel criado! Agora adicione as imagens." });
         setEditingId(id);
       }
     },
     onError: (err: any) => {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      sonnerToast({ title: "Erro", description: err.message, variant: "destructive" });
     },
     onSettled: () => {
       setIsImageProcessing(false);
@@ -514,7 +513,7 @@ const AdminProperties = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
-      toast({ title: "Imóvel removido" });
+      sonnerToast({ title: "Imóvel removido" });
     },
   });
 
@@ -667,7 +666,7 @@ const AdminProperties = () => {
                 <Plus className="h-4 w-4" /> Novo Imóvel
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0">
+            <DialogContent className="max-w-4xl w-[calc(100vw-32px)] sm:w-full max-h-[90vh] sm:max-h-[85vh] overflow-hidden flex flex-col p-0">
               <DialogHeader className="p-6 pb-0">
                 <DialogTitle className="flex items-center gap-2">
                   <Home className="h-5 w-5 text-[#003366]" />
@@ -679,22 +678,25 @@ const AdminProperties = () => {
               </DialogHeader>
               
               <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-                <div className="px-6 border-b border-border">
-                  <TabsList className="bg-transparent h-12 gap-6 w-full justify-start rounded-none">
-                    <TabsTrigger value="basicos" className="data-[state=active]:border-b-2 data-[state=active]:border-[#003366] rounded-none bg-transparent px-0 pb-2">Básicos</TabsTrigger>
-                    <TabsTrigger value="proprietario" className="data-[state=active]:border-b-2 data-[state=active]:border-[#003366] rounded-none bg-transparent px-0 pb-2">Proprietário</TabsTrigger>
-                    <TabsTrigger value="caracteristicas" className="data-[state=active]:border-b-2 data-[state=active]:border-[#003366] rounded-none bg-transparent px-0 pb-2">Características</TabsTrigger>
-                    <TabsTrigger value="docs" className="data-[state=active]:border-b-2 data-[state=active]:border-[#003366] rounded-none bg-transparent px-0 pb-2">Docs</TabsTrigger>
-                    <TabsTrigger value="midia" className="data-[state=active]:border-b-2 data-[state=active]:border-[#003366] rounded-none bg-transparent px-0 pb-2">Mídia</TabsTrigger>
-                    <TabsTrigger value="marketing" className="data-[state=active]:border-b-2 data-[state=active]:border-[#003366] rounded-none bg-transparent px-0 pb-2">Marketing</TabsTrigger>
-                    <TabsTrigger value="checklist" className="data-[state=active]:border-b-2 data-[state=active]:border-[#003366] rounded-none bg-transparent px-0 pb-2 flex gap-1.5 items-center">
-                      Checklist
-                      {!isPublishable && <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />}
-                    </TabsTrigger>
-                  </TabsList>
+                <div className="px-4 sm:px-6 border-b border-border">
+                  <div className="relative">
+                    <TabsList className="bg-transparent h-12 gap-4 sm:gap-6 w-full justify-start rounded-none overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                      <TabsTrigger value="basicos" className="data-[state=active]:border-b-2 data-[state=active]:border-[#003366] rounded-none bg-transparent px-0 pb-2 shrink-0">Básicos</TabsTrigger>
+                      <TabsTrigger value="proprietario" className="data-[state=active]:border-b-2 data-[state=active]:border-[#003366] rounded-none bg-transparent px-0 pb-2 shrink-0">Proprietário</TabsTrigger>
+                      <TabsTrigger value="caracteristicas" className="data-[state=active]:border-b-2 data-[state=active]:border-[#003366] rounded-none bg-transparent px-0 pb-2 shrink-0">Características</TabsTrigger>
+                      <TabsTrigger value="docs" className="data-[state=active]:border-b-2 data-[state=active]:border-[#003366] rounded-none bg-transparent px-0 pb-2 shrink-0">Docs</TabsTrigger>
+                      <TabsTrigger value="midia" className="data-[state=active]:border-b-2 data-[state=active]:border-[#003366] rounded-none bg-transparent px-0 pb-2 shrink-0">Mídia</TabsTrigger>
+                      <TabsTrigger value="marketing" className="data-[state=active]:border-b-2 data-[state=active]:border-[#003366] rounded-none bg-transparent px-0 pb-2 shrink-0">Marketing</TabsTrigger>
+                      <TabsTrigger value="checklist" className="data-[state=active]:border-b-2 data-[state=active]:border-[#003366] rounded-none bg-transparent px-0 pb-2 shrink-0 flex gap-1.5 items-center">
+                        Checklist
+                        {!isPublishable && <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />}
+                      </TabsTrigger>
+                    </TabsList>
+                    <div className="absolute right-0 top-0 bottom-2 w-6 bg-gradient-to-l from-background pointer-events-none" />
+                  </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-6">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-24 sm:pb-6">
                   <form id="property-form" onSubmit={handleSubmit} className="space-y-6">
                     
                     {/* ABA BÁSICOS */}
@@ -702,7 +704,7 @@ const AdminProperties = () => {
                       <div className="grid gap-6 sm:grid-cols-4">
                         <div className="sm:col-span-2">
                           <Label>Título do Imóvel <span className="text-destructive">*</span></Label>
-                          <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Ex: Apartamento Moderno com Vista para o Mar" />
+                          <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Ex: Apartamento Vista Mar" />
                           {fieldErrors.title && <p className="text-destructive text-sm mt-2">{fieldErrors.title}</p>}
                         </div>
                         <div className="sm:col-span-2">
@@ -1211,7 +1213,7 @@ const AdminProperties = () => {
                   </form>
                 </div>
 
-                <DialogFooter className="p-6 border-t border-border flex-row justify-between items-center sm:justify-between">
+                <DialogFooter className="p-4 sm:p-6 border-t border-border flex flex-col sm:flex-row gap-3 sm:gap-4 sm:justify-between sm:items-center">
                   <span className="text-xs text-muted-foreground">
                     Status: <span className="font-semibold uppercase">{form.status}</span>
                   </span>

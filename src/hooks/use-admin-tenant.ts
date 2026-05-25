@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
+import { sonnerToast } from "@/components/ui/sonner";
 import type { TenantSettings } from "@/hooks/use-tenant-settings";
 
 interface CachedTenant {
@@ -12,8 +12,7 @@ interface CachedTenant {
 export function useAdminTenant() {
   const { tenantId, isReady } = useAuth();
   const queryClient = useQueryClient();
-  const { toast } = useToast();
-
+  
   const query = useQuery({
     queryKey: ["admin-tenant", tenantId],
     queryFn: async () => {
@@ -50,5 +49,5 @@ export function useAdminTenant() {
     return merged;
   };
 
-  return { tenant: query.data, isLoading: query.isLoading, tenantId, getCurrentSettings, saveSettings, queryClient, toast };
+  return { tenant: query.data, isLoading: query.isLoading, tenantId, getCurrentSettings, saveSettings, queryClient, toast: sonnerToast };
 }

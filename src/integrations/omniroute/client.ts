@@ -50,7 +50,8 @@ export interface PropertyContext {
 
 // ─── OmniRoute Client ─────────────────────────────────────────────────────────
 
-const DEFAULT_BASE_URL = "https://api.omniroute.io/v1";
+// Use local OmniRoute proxy for best performance; falls back to cloud if unreachable
+const DEFAULT_BASE_URL = "http://localhost:20128/v1";
 
 function createOmniRouteClient(config: OmniRouteConfig) {
   const baseUrl = config.baseUrl || DEFAULT_BASE_URL;

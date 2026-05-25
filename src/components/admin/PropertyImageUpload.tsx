@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
+import { sonnerToast } from "@/components/ui/sonner";
 import { Upload, X, Loader2, Image as ImageIcon, GripVertical, Play } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MediaLibraryPicker } from "./MediaLibraryPicker";
@@ -17,8 +17,7 @@ interface Props {
 
 export function PropertyImageUpload({ propertyId, onProcessingChange }: Props) {
   const { user } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+    const queryClient = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -95,12 +94,12 @@ export function PropertyImageUpload({ propertyId, onProcessingChange }: Props) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["property-images", propertyId] });
       queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
-      toast({ title: "Imagens otimizadas e protegidas com sucesso!" });
+      sonnerToast({ title: "Imagens otimizadas e protegidas com sucesso!" });
       setUploading(false);
       setProcessingState(false);
     },
     onError: (err: any) => {
-      toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+      sonnerToast({ title: "Erro no upload", description: err.message, variant: "destructive" });
       setUploading(false);
       setProcessingState(false);
     },
@@ -118,10 +117,10 @@ export function PropertyImageUpload({ propertyId, onProcessingChange }: Props) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["property-images", propertyId] });
       queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
-      toast({ title: "Imagem removida" });
+      sonnerToast({ title: "Imagem removida" });
     },
     onError: (err: any) => {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      sonnerToast({ title: "Erro", description: err.message, variant: "destructive" });
     },
   });
 
@@ -140,7 +139,7 @@ export function PropertyImageUpload({ propertyId, onProcessingChange }: Props) {
       queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
     },
     onError: (err: any) => {
-      toast({ title: "Erro ao reordenar", description: err.message, variant: "destructive" });
+      sonnerToast({ title: "Erro ao reordenar", description: err.message, variant: "destructive" });
     },
   });
 
@@ -176,7 +175,7 @@ export function PropertyImageUpload({ propertyId, onProcessingChange }: Props) {
   const addYoutubeVideo = useCallback(async () => {
     const videoId = extractYouTubeId(youtubeUrl);
     if (!videoId) {
-      toast({ title: "URL de YouTube inválida", variant: "destructive" });
+      sonnerToast({ title: "URL de YouTube inválida", variant: "destructive" });
       return;
     }
 
@@ -188,7 +187,7 @@ export function PropertyImageUpload({ propertyId, onProcessingChange }: Props) {
     });
 
     if (error) {
-      toast({ title: "Erro ao adicionar vídeo", description: error.message, variant: "destructive" });
+      sonnerToast({ title: "Erro ao adicionar vídeo", description: error.message, variant: "destructive" });
       return;
     }
 
@@ -196,7 +195,7 @@ export function PropertyImageUpload({ propertyId, onProcessingChange }: Props) {
     setYoutubeTitle("");
     queryClient.invalidateQueries({ queryKey: ["property-images", propertyId] });
     queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
-    toast({ title: "Vídeo adicionado à galeria" });
+    sonnerToast({ title: "Vídeo adicionado à galeria" });
   }, [images?.length, propertyId, queryClient, toast, youtubeTitle, youtubeUrl]);
 
   return (
@@ -214,13 +213,13 @@ export function PropertyImageUpload({ propertyId, onProcessingChange }: Props) {
                 display_order: currentCount + i,
               });
               if (error) {
-                toast({ title: "Erro", description: error.message, variant: "destructive" });
+                sonnerToast({ title: "Erro", description: error.message, variant: "destructive" });
                 return;
               }
             }
             queryClient.invalidateQueries({ queryKey: ["property-images", propertyId] });
             queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
-            toast({ title: "Imagens importadas!" });
+            sonnerToast({ title: "Imagens importadas!" });
           }} />
           <Button
             type="button"

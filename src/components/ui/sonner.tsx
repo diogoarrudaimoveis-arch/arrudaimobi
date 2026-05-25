@@ -25,3 +25,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
 };
 
 export { Toaster, toast };
+export const sonnerToast = (opts: { title: string; description?: string; variant?: string }) => {
+  const { title, description, variant, ...rest } = opts;
+  if (variant === "destructive") {
+    toast.error(title, { description, ...rest });
+  } else {
+    toast.success(title, { description, ...rest });
+  }
+};

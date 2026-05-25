@@ -9,14 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useToast } from "@/hooks/use-toast";
+import { sonnerToast } from "@/components/ui/sonner";
 import { Plus, Pencil, Trash2, Loader2, Sparkles } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const AdminAmenities = () => {
   const { tenantId, isReady } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+    const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -45,10 +44,10 @@ const AdminAmenities = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-amenities"] });
-      toast({ title: editingId ? "Comodidade atualizada!" : "Comodidade criada!" });
+      sonnerToast({ title: editingId ? "Comodidade atualizada!" : "Comodidade criada!" });
       setForm({ name: "", icon: "Check" }); setEditingId(null); setDialogOpen(false);
     },
-    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    onError: (err: any) => sonnerToast({ title: "Erro", description: err.message, variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -58,7 +57,7 @@ const AdminAmenities = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-amenities"] });
-      toast({ title: "Comodidade removida" });
+      sonnerToast({ title: "Comodidade removida" });
     },
   });
 

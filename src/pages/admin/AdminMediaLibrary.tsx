@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useToast } from "@/hooks/use-toast";
+import { sonnerToast } from "@/components/ui/sonner";
 import { Upload, Trash2, Loader2, Image as ImageIcon, Pencil, Youtube, Play } from "lucide-react";
 import { compressImages } from "@/lib/image-compression";
 import { TablePagination } from "@/components/ui/table-pagination";
@@ -42,8 +42,7 @@ function getYouTubeThumbnail(videoId: string): string {
 
 const AdminMediaLibrary = () => {
   const { tenantId, user, isReady } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+    const queryClient = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [editingImage, setEditingImage] = useState<any>(null);
@@ -110,11 +109,11 @@ const AdminMediaLibrary = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["media-library"] });
-      toast({ title: "Imagens enviadas com sucesso!" });
+      sonnerToast({ title: "Imagens enviadas com sucesso!" });
       setUploading(false);
     },
     onError: (err: any) => {
-      toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+      sonnerToast({ title: "Erro no upload", description: err.message, variant: "destructive" });
       setUploading(false);
     },
   });
@@ -137,13 +136,13 @@ const AdminMediaLibrary = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["media-library"] });
-      toast({ title: "Vídeo do YouTube adicionado!" });
+      sonnerToast({ title: "Vídeo do YouTube adicionado!" });
       setYoutubeDialogOpen(false);
       setYoutubeUrl("");
       setYoutubeTitle("");
     },
     onError: (err: any) => {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      sonnerToast({ title: "Erro", description: err.message, variant: "destructive" });
     },
   });
 
@@ -158,10 +157,10 @@ const AdminMediaLibrary = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["media-library"] });
-      toast({ title: "Mídia removida" });
+      sonnerToast({ title: "Mídia removida" });
     },
     onError: (err: any) => {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      sonnerToast({ title: "Erro", description: err.message, variant: "destructive" });
     },
   });
 
@@ -175,11 +174,11 @@ const AdminMediaLibrary = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["media-library"] });
-      toast({ title: "Mídia atualizada!" });
+      sonnerToast({ title: "Mídia atualizada!" });
       setEditingImage(null);
     },
     onError: (err: any) => {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      sonnerToast({ title: "Erro", description: err.message, variant: "destructive" });
     },
   });
 

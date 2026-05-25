@@ -1,13 +1,13 @@
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminPageShell, AdminPageHeader } from "@/components/admin/shared/AdminComponents";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { canAccessAdmin, normalizeRole } from "@/lib/adminPermissions";
 import { useState } from "react";
-import { Shield, Lock, Eye, EyeOff, AlertTriangle } from "lucide-react";
+import { Shield, Lock, Eye, EyeOff, AlertTriangle, CreditCard, Settings } from "lucide-react";
 import { toast } from "sonner";
 
 interface MenuItem {
@@ -33,7 +33,7 @@ const MENU_ITEMS: MenuItem[] = [
   { id: "portais", label: "Portais", icon: "🌐", techOnly: true, required: true },
   { id: "marketing-portal", label: "Marketing Portal", icon: "📢", techOnly: true, required: true },
   { id: "performance", label: "Performance", icon: "📈", techOnly: true, required: true },
-  { id: "ia-operacional", label: "IA Operacional", icon: "⚙️", techOnly: true, required: true },
+  { id: "central-ai", label: "Central IA", icon: "⚙️", techOnly: true, required: true },
   { id: "ia-agentes", label: "Agentes IA", icon: "🤖", techOnly: true, required: true },
   { id: "ia-automacoes", label: "IA Automações", icon: "🔄", techOnly: true, required: true },
   { id: "ia-logs", label: "IA Logs", icon: "📋", techOnly: true, required: true },
@@ -62,9 +62,24 @@ const DEFAULT_MATRIX: Record<string, Record<string, boolean>> = {
 };
 
 const STORAGE_KEY = "arruda_menu_permissions";
+const ASAAS_KEY_STORAGE = "asaas_api_key";
+const ASAAS_SANDBOX_STORAGE = "asaas_sandbox";
 
 const AdminMenuPermissions = () => {
   const { profile } = useAuth();
+
+  // Asaas payment config state
+  const [asaasKey, setAsaasKey] = useState<string>(() => {
+    try { return localStorage.getItem(ASAAS_KEY_STORAGE) || ""; } catch { return ""; }
+  });
+  const [asaasSandbox, setAsaasSandbox] = useState<boolean>(() => {
+    try { return localStorage.getItem(ASAAS_SANDBOX_STORAGE) === "true"; } catch { return false; }
+  });
+  const [connectionStatus, setConnectionStatus] = useState<"idle" | "testing" | "success" | "error">("idle");
+  const [showAsaasKey, setShowAsaasKey] = useState(false);
+  const [showAsaasConfig, setShowAsaasConfig] = useState(false);
+
+  // Menu permissions matrix state
   const [matrix, setMatrix] = useState<Record<string, Record<string, boolean>>>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -76,6 +91,51 @@ const AdminMenuPermissions = () => {
 
   const userRole = normalizeRole(profile?.role);
   const canEdit = canAccessAdmin(userRole);
+  const isDeveloper = userRole === "developer";
+
+  const testAsaasConnection = async () => {
+    if (!asaasKey) {
+      toast.error("Cole uma API Key primeiro");
+      return;
+    }
+    setConnectionStatus("testing");
+    try {
+      const baseUrl = asaasSandbox ? "https://api-sandbox.asaas.com" : "https://api.asaas.com";
+      const resp = await fetch(`${baseUrl}/v3/myAccount`, {
+        headers: {
+          "access_token": asaasKey,
+          "Content-Type": "application/json",
+        },
+      });
+      if (resp.ok) {
+        setConnectionStatus("success");
+        toast.success("Conexão Asaas OK");
+      } else if (resp.status === 401) {
+        setConnectionStatus("error");
+        toast.error("API key inválida");
+      } else {
+        setConnectionStatus("error");
+        toast.error(`Erro: ${resp.status}`);
+      }
+    } catch {
+      setConnectionStatus("error");
+      toast.error("Erro ao conectar com Asaas");
+    }
+  };
+
+  const saveAsaasSettings = () => {
+    localStorage.setItem(ASAAS_KEY_STORAGE, asaasKey);
+    localStorage.setItem(ASAAS_SANDBOX_STORAGE, String(asaasSandbox));
+    toast.success("Configurações Asaas salvas");
+  };
+
+  const clearAsaasSettings = () => {
+    setAsaasKey("");
+    setConnectionStatus("idle");
+    localStorage.removeItem(ASAAS_KEY_STORAGE);
+    localStorage.removeItem(ASAAS_SANDBOX_STORAGE);
+    toast("Configurações Asaas removidas");
+  };
 
   const togglePermission = (role: string, menuId: string) => {
     if (!canEdit) return;
@@ -108,22 +168,110 @@ const AdminMenuPermissions = () => {
           title="Permissões de Menu"
           subtitle="Configure qual menu cada perfil pode ver no painel admin."
           actions={
-            canEdit ? (
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={handleReset}>
-                  Restaurar Padrão
+            <div className="flex items-center gap-2">
+              {canEdit && (
+                <>
+                  <Button variant="outline" size="sm" onClick={handleReset}>
+                    Restaurar Padrão
+                  </Button>
+                  <Button size="sm" onClick={handleSave}>
+                    Salvar Configuração
+                  </Button>
+                </>
+              )}
+              {/* Asaas Settings button */}
+              {isDeveloper && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAsaasConfig(!showAsaasConfig)}
+                  className={showAsaasConfig ? "bg-purple-50 border-purple-200 text-purple-700" : ""}
+                >
+                  <CreditCard className="h-4 w-4 mr-1" />
+                  Asaas
                 </Button>
-                <Button size="sm" onClick={handleSave}>
-                  Salvar Configuração
-                </Button>
-              </div>
-            ) : (
-              <Badge variant="outline" className="text-xs">
-                <Lock className="h-3 w-3 mr-1" /> Apenas Admin/Developer
-              </Badge>
-            )
+              )}
+            </div>
           }
         />
+
+        {/* Asaas Payment Configuration — developer only */}
+        {isDeveloper && showAsaasConfig && (
+          <Card className="mb-6 border-purple-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <CreditCard className="h-5 w-5 text-purple-600" />
+                Configuração de Pagamento — Asaas
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="flex-1 relative">
+                  <input
+                    type={showAsaasKey ? "text" : "password"}
+                    value={asaasKey}
+                    onChange={(e) => setAsaasKey(e.target.value)}
+                    placeholder="Cole sua API Key do Asaas"
+                    className="w-full px-3 py-2 pr-10 border rounded-lg text-sm bg-background"
+                  />
+                  <button
+                    onClick={() => setShowAsaasKey(!showAsaasKey)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showAsaasKey ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 flex-wrap">
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={asaasSandbox}
+                    onChange={(e) => setAsaasSandbox(e.target.checked)}
+                    className="rounded"
+                  />
+                  Modo Sandbox (testes)
+                </label>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={testAsaasConnection}
+                    disabled={!asaasKey || connectionStatus === "testing"}
+                  >
+                    {connectionStatus === "testing" ? "Testando..." : "Testar Conexão"}
+                  </Button>
+                  {connectionStatus === "success" && (
+                    <Badge className="bg-green-100 text-green-700 border-green-200">
+                      Conectado
+                    </Badge>
+                  )}
+                  {connectionStatus === "error" && (
+                    <Badge variant="destructive">Erro de conexão</Badge>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button size="sm" onClick={saveAsaasSettings}>
+                  Salvar Asaas
+                </Button>
+                {asaasKey && (
+                  <Button size="sm" variant="ghost" onClick={clearAsaasSettings}>
+                    Limpar
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                A API Key é armazenada apenas neste navegador. Para persistir globalmente,
+                conecte ao Supabase na aba Plans.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Info Banner */}
         <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
@@ -169,9 +317,9 @@ const AdminMenuPermissions = () => {
                 </tr>
               </thead>
               <tbody>
-                {MENU_ITEMS.map((menu) => {
-                  const menuRow = (
-                    <td key={menu.id} className="px-4 py-2.5">
+                {MENU_ITEMS.map((menu) => (
+                  <tr key={menu.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                    <td className="px-4 py-2.5">
                       <div className="flex items-center gap-2">
                         <span className="text-sm">{menu.icon}</span>
                         <span className="text-xs font-medium">{menu.label}</span>
@@ -187,45 +335,39 @@ const AdminMenuPermissions = () => {
                         )}
                       </div>
                     </td>
-                  );
-
-                  return (
-                    <tr key={menu.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
-                      {menuRow}
-                      {ROLES.map((role) => {
-                        const isLocked = menu.required && (role.id === "admin" || role.id === "developer");
-                        const checked = matrix[role.id]?.[menu.id] ?? false;
-                        return (
-                          <td key={role.id} className="text-center px-4 py-2.5">
-                            {isLocked ? (
-                              <div className="flex justify-center">
-                                <div className="flex h-6 w-6 items-center justify-center rounded bg-primary/10">
-                                  <Shield className="h-3.5 w-3.5 text-primary" />
-                                </div>
+                    {ROLES.map((role) => {
+                      const isLocked = menu.required && (role.id === "admin" || role.id === "developer");
+                      const checked = matrix[role.id]?.[menu.id] ?? false;
+                      return (
+                        <td key={role.id} className="text-center px-4 py-2.5">
+                          {isLocked ? (
+                            <div className="flex justify-center">
+                              <div className="flex h-6 w-6 items-center justify-center rounded bg-primary/10">
+                                <Shield className="h-3.5 w-3.5 text-primary" />
                               </div>
-                            ) : canEdit ? (
-                              <div className="flex justify-center">
-                                <Switch
-                                  checked={checked}
-                                  onCheckedChange={() => togglePermission(role.id, menu.id)}
-                                  aria-label={`${menu.label} para ${role.label}`}
-                                />
-                              </div>
-                            ) : (
-                              <div className="flex justify-center">
-                                {checked ? (
-                                  <Eye className="h-4 w-4 text-green-600" />
-                                ) : (
-                                  <EyeOff className="h-4 w-4 text-muted-foreground" />
-                                )}
-                              </div>
-                            )}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  );
-                })}
+                            </div>
+                          ) : canEdit ? (
+                            <div className="flex justify-center">
+                              <Switch
+                                checked={checked}
+                                onCheckedChange={() => togglePermission(role.id, menu.id)}
+                                aria-label={`${menu.label} para ${role.label}`}
+                              />
+                            </div>
+                          ) : (
+                            <div className="flex justify-center">
+                              {checked ? (
+                                <Eye className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <EyeOff className="h-4 w-4 text-muted-foreground" />
+                              )}
+                            </div>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
               </tbody>
             </table>
           </CardContent>

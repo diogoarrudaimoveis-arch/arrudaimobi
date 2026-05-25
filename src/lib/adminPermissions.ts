@@ -22,8 +22,8 @@ export function normalizeRole(role?: string | null): AppRole {
 }
 
 /**
- * Roles with full admin panel access.
- * admin and developer see all menus.
+ * Roles with admin panel access.
+ * Both admin and developer can access the admin panel.
  */
 export const FULL_ACCESS_ROLES: AppRole[] = ["admin", "developer"];
 
@@ -37,10 +37,11 @@ export function canAccessAdmin(role?: string | null): boolean {
 
 /**
  * Check if a role can access technical/devops menus.
- * Only admin and developer.
+ * Only developer gets tech menus (DevOps, Meta Ads, Supabase, Mostruário, etc.)
+ * Admin does NOT see tech-only menus.
  */
 export function canAccessTechMenus(role?: string | null): boolean {
-  return FULL_ACCESS_ROLES.includes(normalizeRole(role));
+  return normalizeRole(role) === "developer";
 }
 
 /**
@@ -84,6 +85,7 @@ export type AdminMenuKey =
   | "amenities"
   | "media"
   | "blog"
+  | "mostruario"
   | "contacts"
   | "messages"
   | "ai-config"
@@ -95,11 +97,14 @@ export type AdminMenuKey =
   | "n8n"
   | "logs"
   | "health"
+  | "devops"
   | "meta-ads"
   | "supabase"
   | "profile"
   | "email-config"
-  | "settings";
+  | "settings"
+  | "menu-permissions"
+  | "planos-limites";
 
 export interface AdminMenuItem {
   key: AdminMenuKey;
@@ -107,9 +112,9 @@ export interface AdminMenuItem {
   path: string;
   icon: React.ComponentType<{ className?: string }>;
   section: string;
-  /** If true, only admin and developer can see this menu */
+  /** If true, only developer can see this menu */
   techOnly?: boolean;
-  /** If true, only admin can see this menu */
+  /** If true, only admin and developer can see this menu */
   adminOnly?: boolean;
   /** If true, only developer can see this menu */
   developerOnly?: boolean;
@@ -117,11 +122,17 @@ export interface AdminMenuItem {
 
 /**
  * Determine if a given role can see a specific menu item.
- * admin and developer see everything.
- * agent and user see only operational menus.
- * 
- * TODO: when allowed_menus field exists in profiles table,
- * combine role defaults with per-user menu permissions.
+ *
+ * RULES:
+ * - developer: sees EVERYTHING (all items)
+ * - admin: sees all EXCEPT techOnly and developerOnly items
+ * - agent/user: sees only items with NO flags (operational menus)
+ *
+ * techOnly = DevOps, Meta Ads, Supabase, Mostruário, Permissões de Menu,
+ *            Central IA, Agentes IA, Automações N8N, Logs, Health Checks,
+ *            Configurações de IA, Portais, Marketing Portal, Performance
+ * adminOnly = Email, Configurações (site settings)
+ * developerOnly = Planos e Limites
  */
 export function canSeeMenuItem(
   role: string | null | undefined,
@@ -129,16 +140,17 @@ export function canSeeMenuItem(
 ): boolean {
   const normalized = normalizeRole(role);
 
-  // Admin and developer see everything
-  if (FULL_ACCESS_ROLES.includes(normalized)) return true;
+  // DEVELOPER sees everything
+  if (normalized === "developer") return true;
 
-  // Developer-only menus
-  if (item.developerOnly) return normalized === "developer";
+  // ADMIN sees all EXCEPT techOnly and developerOnly items
+  if (normalized === "admin") {
+    if (item.developerOnly) return false;
+    if (item.techOnly) return false;
+    return true;
+  }
 
-  // Tech-only menus are hidden for agent/user
-  if (item.techOnly || item.adminOnly) return false;
-
-  // Operational menus are visible to all authenticated users
-  // (agents and users can see these by default)
+  // AGENT and USER: only items with no flags at all
+  if (item.developerOnly || item.techOnly || item.adminOnly) return false;
   return true;
 }

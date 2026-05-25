@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Building2, Mail, Lock, User, Phone, Loader2, Eye, EyeOff, ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
+import { sonnerToast } from "@/components/ui/sonner";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { isPasswordValid } from "@/lib/password-validation";
 import { useTenantSettings } from "@/hooks/use-tenant-settings";
@@ -36,15 +36,14 @@ function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
-  const { toast } = useToast();
-
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     const rateCheck = await checkAuthRateLimit("reset-password");
     if (!rateCheck.allowed) {
-      toast({ title: "Muitas tentativas", description: rateCheck.error || "Aguarde antes de tentar novamente.", variant: "destructive" });
+      sonnerToast({ title: "Muitas tentativas", description: rateCheck.error || "Aguarde antes de tentar novamente.", variant: "destructive" });
       setLoading(false);
       return;
     }
@@ -59,7 +58,7 @@ function ForgotPassword() {
       const data = await res.json().catch(() => ({}));
 
       if (res.status === 429) {
-        toast({ title: "Muitas tentativas", description: data.error || "Aguarde antes de tentar novamente.", variant: "destructive" });
+        sonnerToast({ title: "Muitas tentativas", description: data.error || "Aguarde antes de tentar novamente.", variant: "destructive" });
         setLoading(false);
         return;
       }
@@ -97,7 +96,7 @@ function ForgotPassword() {
             ? primaryError.message
             : "Erro ao enviar recuperação de senha.";
 
-        toast({ title: "Erro", description: message, variant: "destructive" });
+        sonnerToast({ title: "Erro", description: message, variant: "destructive" });
       }
     } finally {
       setLoading(false);
@@ -158,8 +157,7 @@ function ForgotPassword() {
 const Login = () => {
   const { user, isReady } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(false);
   const { data: tenant } = useTenantSettings();
   const companyName = tenant?.name || "Sua Imobiliária";
   const registrationAllowed = tenant?.settings?.allow_registration !== false;
@@ -183,7 +181,7 @@ const Login = () => {
 
     const rateCheck = await checkAuthRateLimit("login");
     if (!rateCheck.allowed) {
-      toast({ title: "Muitas tentativas", description: rateCheck.error || "Aguarde antes de tentar novamente.", variant: "destructive" });
+      sonnerToast({ title: "Muitas tentativas", description: rateCheck.error || "Aguarde antes de tentar novamente.", variant: "destructive" });
       setLoading(false);
       return;
     }
@@ -194,9 +192,9 @@ const Login = () => {
     });
     setLoading(false);
     if (error) {
-      toast({ title: "Erro ao entrar", description: error.message, variant: "destructive" });
+      sonnerToast({ title: "Erro ao entrar", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Bem-vindo!" });
+      sonnerToast({ title: "Bem-vindo!" });
       navigate("/admin");
     }
   };
@@ -207,7 +205,7 @@ const Login = () => {
     
 
     if (!notRobot) {
-      toast({ title: "Confirme que não é um robô", variant: "destructive" });
+      sonnerToast({ title: "Confirme que não é um robô", variant: "destructive" });
       return;
     }
 
@@ -216,17 +214,17 @@ const Login = () => {
     const phone = regPhone.trim();
 
     if (name.length < 2 || name.length > 100) {
-      toast({ title: "Nome inválido", description: "Entre 2 e 100 caracteres.", variant: "destructive" });
+      sonnerToast({ title: "Nome inválido", description: "Entre 2 e 100 caracteres.", variant: "destructive" });
       return;
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      toast({ title: "Email inválido", variant: "destructive" });
+      sonnerToast({ title: "Email inválido", variant: "destructive" });
       return;
     }
 
     if (!isPasswordValid(regPassword)) {
-      toast({ title: "Senha não atende aos requisitos", description: "Verifique as regras abaixo do campo de senha.", variant: "destructive" });
+      sonnerToast({ title: "Senha não atende aos requisitos", description: "Verifique as regras abaixo do campo de senha.", variant: "destructive" });
       return;
     }
 
@@ -234,7 +232,7 @@ const Login = () => {
     try {
       const rateCheck = await checkAuthRateLimit("register");
       if (!rateCheck.allowed) {
-        toast({ title: "Muitas tentativas", description: rateCheck.error || "Aguarde antes de tentar novamente.", variant: "destructive" });
+        sonnerToast({ title: "Muitas tentativas", description: rateCheck.error || "Aguarde antes de tentar novamente.", variant: "destructive" });
         return;
       }
 
@@ -248,14 +246,14 @@ const Login = () => {
 
       if (error) {
         console.error("Signup error:", error);
-        toast({ title: "Erro no cadastro", description: error.message, variant: "destructive" });
+        sonnerToast({ title: "Erro no cadastro", description: error.message, variant: "destructive" });
       } else {
         console.log("Signup success:", data);
-        toast({ title: "Conta criada!", description: "Verifique seu email para confirmar." });
+        sonnerToast({ title: "Conta criada!", description: "Verifique seu email para confirmar." });
       }
     } catch (err: any) {
       console.error("Unexpected signup error:", err);
-      toast({ title: "Erro inesperado", description: err.message || "Tente novamente.", variant: "destructive" });
+      sonnerToast({ title: "Erro inesperado", description: err.message || "Tente novamente.", variant: "destructive" });
     } finally {
       setLoading(false);
     }

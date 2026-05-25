@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
+import { sonnerToast } from "@/components/ui/sonner";
 import { Home, Loader2, CheckCircle2 } from "lucide-react";
 
 const propertyTypes = [
@@ -28,8 +28,7 @@ const ProprietarioPropertyNew = () => {
   const ownerId = searchParams.get("owner");
   const token = searchParams.get("token");
 
-  const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState({
     title: "", city: "", state: "MG", price: "",
@@ -53,7 +52,7 @@ const ProprietarioPropertyNew = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title || !form.city || !form.property_type) {
-      toast({ title: "Erro", description: "Preencha campos obrigatórios", variant: "destructive" });
+      sonnerToast({ title: "Erro", description: "Preencha campos obrigatórios", variant: "destructive" });
       return;
     }
 
@@ -85,9 +84,9 @@ const ProprietarioPropertyNew = () => {
         throw new Error(result.error || "Erro ao salvar imóvel");
       }
       setSubmitted(true);
-      toast({ title: "Imóvel cadastrado!", description: "Sua propriedade está em revisão." });
+      sonnerToast({ title: "Imóvel cadastrado!", description: "Sua propriedade está em revisão." });
     } catch (err: any) {
-      toast({ title: "Erro", description: err.message || "Erro ao salvar", variant: "destructive" });
+      sonnerToast({ title: "Erro", description: err.message || "Erro ao salvar", variant: "destructive" });
     } finally {
       setLoading(false);
     }

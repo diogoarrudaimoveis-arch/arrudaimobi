@@ -130,3 +130,19 @@ export interface MetaAdsSetupChecklist {
   done: boolean;
   critical: boolean;
 }
+
+// ─── Campaign Creation ────────────────────────────────────────────────────────
+
+export interface MetaCampaignCreateDraft {
+  campaignName: string;
+  objective: string;
+  dailyBudget: number;
+  status: string;
+}
+
+export interface MetaCampaignCreateResponse {
+  ok: boolean;
+  mode: 'draft' | 'applied';
+  campaign?: MetaCampaign;
+  error?: string;
+}

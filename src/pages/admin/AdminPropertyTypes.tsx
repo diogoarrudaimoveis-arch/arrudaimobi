@@ -11,14 +11,13 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/hooks/use-toast";
+import { sonnerToast } from "@/components/ui/sonner";
 import { Plus, Pencil, Trash2, Loader2, Tag } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const AdminPropertyTypes = () => {
   const { tenantId, isReady } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+    const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -51,11 +50,11 @@ const AdminPropertyTypes = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-property-types"] });
-      toast({ title: editingId ? "Tipo atualizado!" : "Tipo criado!" });
+      sonnerToast({ title: editingId ? "Tipo atualizado!" : "Tipo criado!" });
       resetForm();
       setDialogOpen(false);
     },
-    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+    onError: (err: any) => sonnerToast({ title: "Erro", description: err.message, variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -65,7 +64,7 @@ const AdminPropertyTypes = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-property-types"] });
-      toast({ title: "Tipo removido" });
+      sonnerToast({ title: "Tipo removido" });
     },
   });
 

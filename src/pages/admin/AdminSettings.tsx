@@ -11,9 +11,16 @@ import { BrandCustomization } from "@/components/admin/BrandCustomization";
 import { PWASettingsCard } from "@/components/admin/PWASettingsCard";
 import { AdvancedSiteSettings } from "@/components/admin/settings/AdvancedSiteSettings";
 import type { TenantSettings } from "@/hooks/use-tenant-settings";
+import { useAuth } from "@/contexts/AuthContext";
+import { normalizeRole } from "@/lib/adminPermissions";
 
 const AdminSettings = () => {
   const { tenant, isLoading, tenantId, getCurrentSettings } = useAdminTenant();
+  const { profile } = useAuth();
+
+  const normalizedRole = normalizeRole(profile?.role);
+  const isDev = normalizedRole === "developer";
+  const isAdminRole = normalizedRole === "admin";
 
   if (isLoading) {
     return (
@@ -30,6 +37,20 @@ const AdminSettings = () => {
   return (
     <AdminLayout>
       <AdminPageShell>
+        {isAdminRole && (
+          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-sm text-amber-800">
+              <strong>Admin:</strong> Você está editando configurações do site.
+              Apenas <strong>Developer</strong> pode ver configurações avançadas de sistema.
+            </p>
+          </div>
+        )}
+        {isDev && (
+          <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-purple-500" />
+            <p className="text-sm text-purple-800 font-medium">Desenvolvedor — Acesso Total</p>
+          </div>
+        )}
         <PageCard>
         <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Configurações</h1>
 
