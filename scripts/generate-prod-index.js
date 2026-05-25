@@ -1,8 +1,10 @@
 /**
  * Post-build: copy dist/index.html to project root.
- * This ensures the root index.html has production script refs
- * (not the dev /src/main.tsx reference).
- * Vercel serves from root, so this is critical.
+ *
+ * Vite processes src/main.tsx (via the <script> tag in root index.html)
+ * and writes dist/index.html with hashed asset references.
+ * We copy that production HTML to the project root so Vercel
+ * (which serves from root) always gets the correct hashed script tags.
  */
 import fs from 'fs';
 import path from 'path';
@@ -22,11 +24,10 @@ if (!fs.existsSync(src)) {
 
 const html = fs.readFileSync(src, 'utf-8');
 
-// Only overwrite if it's the production build (has hashed assets)
 if (html.includes('/assets/')) {
   fs.writeFileSync(dst, html, 'utf-8');
-  console.log('generate-prod-index: copied dist/index.html -> root (production assets OK)');
+  console.log('generate-prod-index: copied dist/index.html -> root (production OK)');
 } else {
-  console.error('generate-prod-index: dist/index.html does not look like production build!');
+  console.error('generate-prod-index: dist/index.html has no /assets/ — build may have failed');
   process.exit(1);
 }
