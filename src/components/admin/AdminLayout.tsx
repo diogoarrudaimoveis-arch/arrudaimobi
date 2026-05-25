@@ -39,6 +39,7 @@ const allMenuItems: AdminMenuItem[] = [
   { key: "portals", label: "Portais Imobiliários", href: "/admin/portais", icon: Globe, section: "Marketing Digital", adminOnly: true },
   { key: "tracking", label: "Rastreamento do Portal", href: "/admin/marketing-portal", icon: Target, section: "Marketing Digital", adminOnly: true },
   { key: "performance", label: "Performance de Imóveis", href: "/admin/performance", icon: BarChart3, section: "Marketing Digital", adminOnly: true },
+  { key: "content-generator", label: "Gerador de Conteúdo", href: "/admin/content-generator", icon: Sparkles, section: "Marketing Digital" },
   // IA Operacional — all techOnly
   { key: "central-ai", label: "Central IA", href: "/admin/ia-operacional", icon: BrainCircuit, section: "IA Operacional", techOnly: true },
   { key: "ai-agents", label: "Agentes IA", href: "/admin/ia-agentes", icon: Bot, section: "IA Operacional", techOnly: true },
@@ -62,7 +63,7 @@ const menuSections = [
   { label: "Principal", keys: ["dashboard", "owners", "properties", "agenda"] },
   { label: "Gestão Básica", keys: ["agents", "property-types", "amenities", "media", "blog"] },
   { label: "CRM & Atendimento", keys: ["contacts", "messages"] },
-  { label: "Marketing Digital", keys: ["ai-config", "portals", "tracking", "performance"] },
+  { label: "Marketing Digital", keys: ["ai-config", "portals", "tracking", "performance", "content-generator"] },
   { label: "IA Operacional", keys: ["central-ai", "ai-agents", "n8n", "logs", "health", "devops", "meta-ads", "supabase"] },
   { label: "Sistema", keys: ["profile", "email-config", "settings", "menu-permissions"] },
   { label: "Desenvolvedor", keys: ["mostruario", "planos-limites"] },
