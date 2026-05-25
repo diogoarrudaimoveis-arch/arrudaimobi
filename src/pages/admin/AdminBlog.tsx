@@ -174,7 +174,7 @@ export default function AdminBlog() {
 
     try {
       const res = await fetch(
-        `https://udutxbyzrdwucabxqvgg.supabase.co/functions/v1/generate-blog-post`,
+        `https://udutxbyzrdwucabxqvgg.supabase.co/functions/v1/public-api?action=generate-blog-post`,
         {
           method: "POST",
           headers: {

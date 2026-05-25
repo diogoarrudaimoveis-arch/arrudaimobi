@@ -973,7 +973,83 @@ Deno.serve(async (req) => {
         };
         break;
       }
-      default:
+      
+      case "generate-blog-post": {
+        // POST body: { topic, category, tenant_id, author_id }
+        let body: any = {};
+        try { body = await req.json(); } catch { throw new Error("Invalid JSON body"); }
+        const { topic, category, tenant_id, author_id } = body;
+        if (!topic?.trim()) throw new Error("topic obrigatorio");
+        if (!tenant_id?.trim()) throw new Error("tenant_id obrigatorio");
+
+        const FIRECRAWL_KEY = "fc-992339325e7542fdb2348b03f2c63cb2";
+        const OMNIROUTE_BASE = "http://127.0.0.1:20128/v1";
+        const OMNIROUTE_KEY = "sk-611d5b3c2cca0507-7a32b3-0e17b59f";
+
+        let context = "";
+        try {
+          const searchRes = await fetch("https://api.firecrawl.dev/v0/search", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${FIRECRAWL_KEY}` },
+            body: JSON.stringify({ query: `${topic} Brasil 2026 mercado inmobiliario`, limit: 2, source: "web" }),
+          });
+          if (searchRes.ok) {
+            const json = await searchRes.json();
+            for (const page of (json.data || []).slice(0, 2)) {
+              if (page.markdown) context += page.markdown.slice(0, 3000) + "\n\n";
+            }
+          }
+        } catch (e) { console.log("Firecrawl error:", e); }
+        context = context.slice(0, 6000);
+
+        const systemPrompt = "Voce e um redator especializado em blog inmobiliario brasileiro. Crie artigos em Portugues do Brasil. Use HTML tags: <h2>, <p>, <ul>, <li>, <strong>. Minimo 600 palavras. Titulo ate 65 caracteres. Excerpt 160-200 caracteres. Tags: Financiamento, Investimento Imobiliario, Mercado Imobiliario 2026, Oportunidades de Mercado, Renda com Aluguel, Valorizacao de Imoveis, Dicas para Compradores, Documentacao Imobiliaria.";
+        const userPrompt = `Topico: "${topic}"
+Categoria: ${category || "Mercado Imobiliario 2026"}
+${context ? `Contexto:
+${context}
+` : ""}
+Retorne APENAS JSON valido (sem texto antes ou depois):
+{
+  "title": "titulo ate 65 caracteres",
+  "slug": "url-amigavel",
+  "excerpt": "resumo de 160-200 caracteres",
+  "content": "<artigo em HTML>",
+  "tags": ["tag1","tag2","tag3"]
+}`;
+
+        let text = "";
+        try {
+          const aiRes = await fetch(`${OMNIROUTE_BASE}/chat/completions`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${OMNIROUTE_KEY}` },
+            body: JSON.stringify({ model: "minimax/MiniMax-M2.7", messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }], max_tokens: 4096, temperature: 0.7 }),
+          });
+          if (aiRes.ok) { const json = await aiRes.json(); text = json.choices?.[0]?.message?.content || ""; }
+        } catch (e) { console.log("OmniRoute error:", e); }
+
+        let parsed: any = null;
+        try { const match = text.match(/\{[\s\S]*\}/); if (match) parsed = JSON.parse(match[0]); } catch {}
+        if (!parsed || !parsed.title) throw new Error("IA nao retornou conteudo valido");
+
+        const slug = parsed.slug || parsed.title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 100);
+        const { data: newPost, error: insertErr } = await supabase.from("blog_posts").insert({ tenant_id: tenant_id, author_id: author_id || "00000000-0000-0000-0000-000000000000", title: parsed.title, slug, excerpt: parsed.excerpt, content: parsed.content, cover_image_url: parsed.cover_image_url || null, published: false, published_at: null }).select("id").single();
+        if (insertErr) throw new Error(`Erro ao salvar post: ${insertErr.message}`);
+
+        if (parsed.tags?.length) {
+          for (const tagName of parsed.tags) {
+            const tagSlug = tagName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-");
+            const { data: existingTag } = await supabase.from("blog_tags").select("id").eq("tenant_id", tenant_id).eq("slug", tagSlug).maybeSingle();
+            let tagId = existingTag?.id;
+            if (!tagId) { const { data: newTag } = await supabase.from("blog_tags").insert({ name: tagName, slug: tagSlug, tenant_id }).select("id").single(); tagId = newTag?.id; }
+            if (tagId) await supabase.from("blog_post_tags").insert({ blog_post_id: newPost.id, blog_tag_id: tagId }).catch(() => {});
+          }
+        }
+
+        result = { ok: true, data: { id: newPost.id, title: parsed.title, slug, excerpt: parsed.excerpt, content: parsed.content, cover_image_url: parsed.cover_image_url || null, tags: parsed.tags || [] } };
+        break;
+      }
+
+default:
         return new Response(JSON.stringify({ error: "unknown action" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
