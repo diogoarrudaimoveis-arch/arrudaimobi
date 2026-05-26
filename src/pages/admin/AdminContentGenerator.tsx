@@ -30,7 +30,7 @@ import {
   RefreshCw, CheckCircle2, Home, PenLine, Eye, Save, Download,
   Clock, Wand2, Volume2, Film, Mic, Play, Pause, SkipForward,
   ChevronRight, ChevronLeft, AlertCircle, X, Star, Palette,
-  LayoutTemplate, FileImage, Mic2
+  LayoutTemplate, FileImage, Mic2, Upload, SlidersHorizontal, Wand
 } from "lucide-react";
 
 // ─── Constants ────────────────────────────────────────────────────────
@@ -418,6 +418,15 @@ export default function AdminContentGenerator() {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [logoLoading, setLogoLoading] = useState<Record<number, boolean>>({});
 
+  // Img2Img state (FLUX via OmniRoute/Fal.ai)
+  const [img2imgOpen, setImg2imgOpen] = useState(false);
+  const [img2imgRefImage, setImg2imgRefImage] = useState<string | null>(null); // base64 data URL or property image URL
+  const [img2imgPrompt, setImg2imgPrompt] = useState("");
+  const [img2imgStrength, setImg2imgStrength] = useState(0.75);
+  const [img2imgLoading, setImg2imgLoading] = useState(false);
+  const [img2imgResult, setImg2imgResult] = useState<string | null>(null);
+  const [img2imgError, setImg2imgError] = useState<string | null>(null);
+
   // Preview
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewItem, setPreviewItem] = useState<GeneratedItem | null>(null);
@@ -620,6 +629,65 @@ export default function AdminContentGenerator() {
   };
 
   const typeInfo = (id: string) => CONTENT_TYPES.find(t => t.id === id);
+
+  // ── Img2Img: generate with FLUX reference image via OmniRoute/Fal.ai ──
+  const handleImg2Img = async () => {
+    if (!img2imgRefImage) {
+      sonnerToast({ title: "Selecione uma imagem de referência", variant: "destructive" }); return;
+    }
+    if (!img2imgPrompt.trim()) {
+      sonnerToast({ title: "Digite um prompt descritivo", variant: "destructive" }); return;
+    }
+    setImg2imgLoading(true);
+    setImg2imgResult(null);
+    setImg2imgError(null);
+    try {
+      const res = await fetch(
+        "https://udutxbyzrdwucabxqvgg.supabase.co/functions/v1/public-api?action=generate-img2img",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            imageUrl: img2imgRefImage,
+            prompt: img2imgPrompt,
+            strength: img2imgStrength,
+          }),
+        }
+      );
+      const json = await res.json();
+      if (json.ok && json.data?.image_url) {
+        setImg2imgResult(json.data.image_url);
+        sonnerToast({ title: "Img2Img gerado!" });
+      } else {
+        setImg2imgError(json.data?.error || json.error || "Erro desconhecido");
+        sonnerToast({ title: "Erro", description: json.data?.error || json.error, variant: "destructive" });
+      }
+    } catch (err: any) {
+      setImg2imgError(err.message);
+      sonnerToast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally {
+      setImg2imgLoading(false);
+    }
+  };
+
+  const selectImg2ImgRef = (imgUrl: string) => {
+    setImg2imgRefImage(imgUrl);
+    setImg2imgResult(null);
+    setImg2imgError(null);
+  };
+
+  const handleImg2ImgUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      setImg2imgRefImage(dataUrl);
+      setImg2imgResult(null);
+      setImg2imgError(null);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const resetAll = () => {
     setSelectedPropertyId(""); setPropertyData(null); setCustomPrompt("");
@@ -963,6 +1031,240 @@ export default function AdminContentGenerator() {
                       <div className="w-10 h-10 rounded-lg overflow-hidden bg-white border border-border shrink-0">
                         <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
                       </div>
+                    )}
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold">{brand.name}</p>
+                      <p className="text-xs text-muted-foreground">Logo e marca serão aplicados nos templates</p>
+                    </div>
+                    <Badge className="bg-green-600 text-white gap-1 shrink-0">
+                      <CheckCircle2 className="h-3 w-3" /> Logo OK
+                    </Badge>
+                  </div>
+                )}
+
+                {/* ── Img2Img: FLUX reference image → modified output ── */}
+                <Card className={`border-2 ${img2imgOpen ? "border-fuchsia-400 dark:border-fuchsia-600" : "border-fuchsia-200 dark:border-fuchsia-900"}`}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-fuchsia-500 to-pink-500 flex items-center justify-center">
+                          <Wand className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                          <CardTitle>Img2Img — Modificar Foto com IA</CardTitle>
+                          <CardDescription>Envie uma foto de referência e use FLUX via OmniRoute para criar variações e modificações.</CardDescription>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant={img2imgOpen ? "default" : "outline"}
+                        onClick={() => setImg2imgOpen(v => !v)}
+                        className="gap-1.5"
+                      >
+                        <SlidersHorizontal className="h-3 w-3" />
+                        {img2imgOpen ? "Fechar" : "Abrir Img2Img"}
+                      </Button>
+                    </div>
+                  </CardHeader>
+
+                  {img2imgOpen && (
+                    <CardContent className="space-y-4">
+                      {/* Reference image selection */}
+                      <div>
+                        <Label className="text-xs font-medium mb-2 block">
+                          Imagem de Referência {img2imgRefImage && <Badge className="ml-2 bg-fuchsia-600 text-white text-[10px]">Selecionada</Badge>}
+                        </Label>
+
+                        {/* Upload from device */}
+                        <div className="flex items-center gap-2 mb-2">
+                          <label className="flex-1 flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-fuchsia-300 dark:border-fuchsia-700 hover:border-fuchsia-500 cursor-pointer py-4 transition-colors bg-fuchsia-50/50 dark:bg-fuchsia-950/20">
+                            <Upload className="h-4 w-4 text-fuchsia-500" />
+                            <span className="text-sm text-fuchsia-700 dark:text-fuchsia-400">Upload do dispositivo</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleImg2ImgUpload}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+
+                        {/* Property photos as reference */}
+                        {propertyData?.images?.length > 0 && (
+                          <>
+                            <p className="text-[10px] text-muted-foreground mb-1">— ou use foto do imóvel —</p>
+                            <div className="flex gap-2 overflow-x-auto pb-1">
+                              {propertyData.images.slice(0, 8).map((url, i) => (
+                                <button
+                                  key={i}
+                                  onClick={() => selectImg2ImgRef(url)}
+                                  className={`relative w-16 h-16 rounded-lg overflow-hidden border-2 transition-all shrink-0 ${img2imgRefImage === url ? "border-fuchsia-500 ring-2 ring-fuchsia-400" : "border-border hover:border-fuchsia-400"}`}
+                                >
+                                  <img src={url} alt={`Foto ${i + 1}`} className="w-full h-full object-cover" />
+                                  {img2imgRefImage === url && (
+                                    <div className="absolute inset-0 bg-fuchsia-500/30 flex items-center justify-center">
+                                      <CheckCircle2 className="h-5 w-5 text-white" />
+                                    </div>
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Preview of selected reference */}
+                        {img2imgRefImage && (
+                          <div className="mt-2 rounded-xl overflow-hidden border-2 border-fuchsia-300 dark:border-fuchsia-700">
+                            <img src={img2imgRefImage} alt="Referência" className="w-full h-40 object-contain bg-fuchsia-950/10" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Strength slider */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <Label className="text-xs font-medium flex items-center gap-1">
+                            <SlidersHorizontal className="h-3 w-3" /> Força da Referência
+                          </Label>
+                          <Badge variant="outline" className="text-[10px]">
+                            {img2imgStrength < 0.4 ? "Leve — apenas inspiração" :
+                              img2imgStrength < 0.7 ? "Médio — equilíbrio" :
+                                img2imgStrength < 0.9 ? "Forte — preserva estrutura" : "Máximo — quase idêntico"}
+                          </Badge>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.1"
+                          max="0.95"
+                          step="0.05"
+                          value={img2imgStrength}
+                          onChange={e => setImg2imgStrength(parseFloat(e.target.value))}
+                          className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-fuchsia-500"
+                        />
+                        <div className="flex justify-between text-[10px] text-muted-foreground mt-0.5">
+                          <span>Leve (0.1)</span>
+                          <span className="font-medium text-fuchsia-600">Atual: {img2imgStrength.toFixed(2)}</span>
+                          <span>Forte (0.95)</span>
+                        </div>
+                        <div className="flex gap-1.5 mt-1.5">
+                          {[{ label: "Leve", val: 0.3 }, { label: "Médio", val: 0.6 }, { label: "Forte", val: 0.85 }].map(p => (
+                            <button
+                              key={p.label}
+                              onClick={() => setImg2imgStrength(p.val)}
+                              className={`flex-1 text-[10px] py-1 px-2 rounded-lg border transition-all ${Math.abs(img2imgStrength - p.val) < 0.05 ? "border-fuchsia-500 bg-fuchsia-50 dark:bg-fuchsia-950/40 text-fuchsia-700 dark:text-fuchsia-400 font-semibold" : "border-border hover:border-fuchsia-400 text-muted-foreground"}`}
+                            >
+                              {p.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Prompt */}
+                      <div>
+                        <Label className="text-xs font-medium mb-1 block">Prompt de Modificação</Label>
+                        <Textarea
+                          value={img2imgPrompt}
+                          onChange={e => setImg2imgPrompt(e.target.value)}
+                          placeholder="Ex: Same house but at golden hour sunset, pool area with people enjoying, professional photography, warm colors..."
+                          rows={3}
+                          className="text-sm"
+                        />
+                      </div>
+
+                      {/* Generate button */}
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={handleImg2Img}
+                          disabled={img2imgLoading || !img2imgRefImage || !img2imgPrompt.trim()}
+                          className="gap-2 flex-1 bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-700 hover:to-pink-700"
+                          size="lg"
+                        >
+                          {img2imgLoading
+                            ? <Loader2 className="h-4 w-4 animate-spin" />
+                            : <Wand className="h-4 w-4" />}
+                          {img2imgLoading ? "Gerando com FLUX..." : "Gerar Img2Img com FLUX"}
+                        </Button>
+                        {img2imgRefImage && (
+                          <Button variant="outline" size="lg"
+                            onClick={() => { setImg2imgRefImage(null); setImg2imgResult(null); setImg2imgError(null); }}>
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* Img2Img result */}
+                      {img2imgLoading && (
+                        <div className="rounded-xl border-2 border-fuchsia-200 dark:border-fuchsia-800 bg-fuchsia-50/30 dark:bg-fuchsia-950/10 py-8 text-center space-y-2">
+                          <Loader2 className="h-8 w-8 animate-spin text-fuchsia-500 mx-auto" />
+                          <p className="text-sm font-medium text-fuchsia-700 dark:text-fuchsia-400">Processando com FLUX...</p>
+                          <p className="text-xs text-muted-foreground">Isso pode levar 10-30 segundos</p>
+                        </div>
+                      )}
+
+                      {img2imgResult && (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <Badge className="bg-green-600 text-white gap-1">
+                              <CheckCircle2 className="h-3 w-3" />Img2Img Pronto
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">FLUX via OmniRoute/Fal.ai</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            {/* Side by side: Reference × Generated */}
+                            <div>
+                              <p className="text-[10px] text-muted-foreground mb-1 font-medium">Referência</p>
+                              <div className="rounded-lg overflow-hidden border border-border">
+                                <img src={img2imgRefImage!} alt="Referência" className="w-full h-40 object-cover" />
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-muted-foreground mb-1 font-medium">Gerado (strength={img2imgStrength.toFixed(2)})</p>
+                              <div className="rounded-lg overflow-hidden border border-fuchsia-400">
+                                <img src={img2imgResult} alt="Gerado" className="w-full h-40 object-cover" />
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" className="gap-1.5 flex-1"
+                              onClick={() => { navigator.clipboard.writeText(img2imgPrompt); sonnerToast({ title: "Prompt copiado!" }); }}>
+                              <Copy className="h-3 w-3" /> Copiar Prompt
+                            </Button>
+                            <Button size="sm" variant="outline" className="gap-1.5 flex-1"
+                              onClick={() => {
+                                const a = document.createElement("a"); a.href = img2imgResult!;
+                                a.download = `img2img-${Date.now()}.png`; a.click();
+                                sonnerToast({ title: "Download iniciado!" });
+                              }}>
+                              <Download className="h-3 w-3" /> Baixar PNG
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
+                      {img2imgError && (
+                        <div className="rounded-xl border-2 border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/20 p-4">
+                          <p className="text-sm text-red-700 dark:text-red-400 font-medium">Erro no Img2Img</p>
+                          <p className="text-xs text-red-600 dark:text-red-500 mt-1">{img2imgError}</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  )}
+                </Card>
+
+                <div className="flex items-center justify-between">
+                  <Button variant="outline" onClick={() => setStep(2)} size="lg" className="gap-2">
+                    <ChevronLeft className="h-4 w-4" /> Voltar
+                  </Button>
+                  <Button
+                    onClick={handleGenerate}
+                    disabled={loading || !selectedTypes.length}
+                    size="lg"
+                    className="gap-2 px-8 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                  >
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                    {loading ? `Gerando ${selectedTypes.length} tipo(s)...` : `Gerar ${selectedTypes.length} Tipo(s) com IA`}
+                  </Button>
+                </div>
                     )}
                     <div className="flex-1">
                       <p className="text-sm font-semibold">{brand.name}</p>

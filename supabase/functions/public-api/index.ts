@@ -1268,6 +1268,98 @@ Retorne APENAS JSON valido (sem texto antes ou depois):
         break;
       }
 
+      case "generate-img2img": {
+        // img2img: takes a reference image + prompt → modifies the image using FLUX via OmniRoute/Fal.ai
+        // Body: { imageUrl, prompt, strength?, width?, height? }
+        let body: any = {};
+        try { body = await req.json(); } catch { throw new Error("Invalid JSON body"); }
+        const { imageUrl, prompt, strength = 0.75, width, height } = body;
+        if (!imageUrl?.trim()) throw new Error("imageUrl obrigatorio para img2img");
+        if (!prompt?.trim()) throw new Error("prompt obrigatorio");
+
+        const OMNI_KEY = "sk-611d5b3c2cca0507-7a32b3-0e17b59f";
+        const OMNI_BASE = "http://206.183.129.200:20128";
+
+        let imageUrlResult = null;
+        let genError: string | null = null;
+
+        try {
+          // Build size override
+          const sizeOverride = width && height ? `${width}x${height}` : undefined;
+
+          // Determine if imageUrl is already a data URL (base64) or a remote URL
+          const isDataUrl = imageUrl.startsWith("data:");
+          const isRemoteUrl = imageUrl.startsWith("http");
+
+          // OmniRoute uses OpenAI-compatible images/edits endpoint
+          // For Fal.ai img2img: we pass the reference image + prompt + strength
+          const requestBody: any = {
+            model: "fal-ai/fal-ai/flux-2-pro",
+            prompt: prompt.slice(0, 1000),
+            strength: Math.max(0.1, Math.min(0.95, strength)), // clamp 0.1–0.95
+          };
+
+          // Add image: either as URL string or base64
+          if (isDataUrl) {
+            // Extract base64 data without mime type prefix
+            const base64Data = imageUrl.includes(",") ? imageUrl.split(",")[1] : imageUrl;
+            requestBody.image = base64Data;
+          } else if (isRemoteUrl) {
+            requestBody.image = imageUrl;
+          } else {
+            throw new Error("imageUrl must be a data URL (base64) or HTTP(S) URL");
+          }
+
+          if (sizeOverride) {
+            requestBody.size = sizeOverride;
+          }
+
+          const genRes = await fetch(`${OMNI_BASE}/v1/images/edits`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${OMNI_KEY}`,
+            },
+            body: JSON.stringify(requestBody),
+          });
+
+          if (!genRes.ok) {
+            const errText = await genRes.text();
+            genError = `OmniRoute/Fal.ai img2img error ${genRes.status}: ${errText.slice(0, 300)}`;
+            console.log("generate-img2img error:", genError);
+          } else {
+            const genJson = await genRes.json();
+
+            // Support both OpenAI format (url field) and Fal.ai format
+            imageUrlResult = genJson?.data?.[0]?.url || genJson?.images?.[0]?.url || genJson?.url || null;
+
+            // Fallback: if we got base64 back
+            if (!imageUrlResult) {
+              const b64 = genJson?.data?.[0]?.b64_json || genJson?.b64_json;
+              if (b64) {
+                imageUrlResult = `data:image/png;base64,${b64}`;
+              }
+            }
+
+            if (!imageUrlResult) {
+              genError = "No image URL in OmniRoute response. Raw: " + JSON.stringify(genJson).slice(0, 200);
+            }
+          }
+        } catch (e: any) {
+          genError = e.message;
+          console.log("generate-img2img exception:", genError);
+        }
+
+        result = {
+          ok: true,
+          data: {
+            image_url: imageUrlResult,
+            error: genError,
+          },
+        };
+        break;
+      }
+
 
       default:
         return new Response(JSON.stringify({ error: "unknown action" }), {
