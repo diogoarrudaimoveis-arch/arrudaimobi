@@ -125,14 +125,12 @@ export interface AdminMenuItem {
  *
  * RULES:
  * - developer: sees EVERYTHING (all items)
- * - admin: sees all EXCEPT techOnly and developerOnly items
+ * - admin: sees all EXCEPT developerOnly items (includes IA Operacional, DevOps, etc.)
  * - agent/user: sees only items with NO flags (operational menus)
  *
- * techOnly = DevOps, Meta Ads, Supabase, Mostruário, Permissões de Menu,
- *            Central IA, Agentes IA, Automações N8N, Logs, Health Checks,
- *            Configurações de IA, Portais, Marketing Portal, Performance
- * adminOnly = Email, Configurações (site settings)
- * developerOnly = Planos e Limites
+ * adminOnly = Email, Configurações, Permissões de Menu, Portais, Tracking, Performance
+ * developerOnly = Planos e Limites, Mostruário
+ * (no flag) = all roles见 (Dashboard, Imóveis, Proprietários, Agenda, Blog, CRM, etc.)
  */
 export function canSeeMenuItem(
   role: string | null | undefined,
@@ -143,10 +141,9 @@ export function canSeeMenuItem(
   // DEVELOPER sees everything
   if (normalized === "developer") return true;
 
-  // ADMIN sees all EXCEPT techOnly and developerOnly items
+  // ADMIN sees all EXCEPT developerOnly items (tech menus + admin menus)
   if (normalized === "admin") {
     if (item.developerOnly) return false;
-    if (item.techOnly) return false;
     return true;
   }
 
