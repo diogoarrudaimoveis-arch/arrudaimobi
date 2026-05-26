@@ -176,18 +176,69 @@ Responda APENAS com a descrição.`;
 }
 
 function buildImagePrompt(property: PropertyDetails, contentType: ContentType): string {
-  const base = property.description || property.title;
-  const specs: Record<ContentType, string> = {
-    blog_post: `Professional real estate photography of ${base}. Bright, airy interior. Brazilian luxury property. High-end finishings, natural lighting. Editorial style, magazine quality. No text. No people.`,
-    social_post: `Modern real estate visual for social media: ${base}. Clean composition, golden hour lighting. Instagram-worthy shot. Warm tones, inviting atmosphere. No text overlay. No people.`,
-    story: `Vertical real estate story visual: ${base}. Bold composition, high contrast. Mobile-optimized framing. Vibrant yet tasteful. Eye-catching for 24h story. No text.`,
-    video_script: `Cinematic real estate shot: ${base}. Smooth camera movement, professional lighting. Video production quality. Real estate showcase style. No text.`,
-    voiceover: `Background visual for voiceover video: ${base}. Abstract real estate concept, soft focus. Elegant and calm. Minimalist composition. No text.`,
-    music: `Atmospheric visual for music accompaniment: ${base}. Dreamy, ethereal quality. Soft gradients, warm colors. Abstract real estate concept art. No text.`,
-    property_description: `Detailed real estate photograph: ${base}. Professional property photography. Bright, well-staged interior. Natural light from windows. No text.`,
-    ad_copy: `High-conversion ad creative: ${base}. Bold, attention-grabbing composition. Commercial real estate photography style. Vibrant, emotional. No text.`,
+  const propType = (property.type || "").toLowerCase();
+  const priceTier = property.price > 2000000 ? "ultra-luxury" : property.price > 800000 ? "luxury" : "mid-market";
+  const beds = property.bedrooms || 0;
+  const baths = property.bathrooms || 0;
+  const area = property.area || 0;
+  const amenities = property.amenities || [];
+
+  // ── Property-type-specific base descriptions ──────────────────────────
+  const typeBase: Record<string, string> = {
+    casa: "Brazilian luxury house, modern architecture, sleek concrete and glass facade, manicured tropical garden, elegant outdoor lounge area",
+    apartamento: "Brazilian luxury penthouse apartment, floor-to-ceiling windows, panoramic city view at golden hour, sophisticated interior design, contemporary furniture",
+    chácara: "Stunning Brazilian farm estate, rustic-modern farmhouse, crystal swimming pool surrounded by lush green hills, tropical paradise, serene countryside atmosphere",
+    cobertura: "Stunning rooftop duplex penthouse, private terrace with jacuzzi, breathtaking 180-degree city skyline view at sunset, ultra-modern luxury finishes",
+    kitnet: "Compact modern micro-apartment, smart space-saving design, clever built-in furniture, bright natural light, stylish minimalist decor",
+    sala_comercial: "Professional commercial office space, modern open-plan layout, corporate elegance, business-ready environment, polished finishes",
+    terreno: "Premium buildable land plot, flat terrain ready for construction, beautiful mature trees,Utilities available, prime location",
+    sobrado: "Elegant Brazilian townhouse, three-story contemporary design, garages, rooftop terrace, sophisticated family home atmosphere",
   };
-  return specs[contentType] || specs.social_post;
+
+  // Find matching type or use default
+  let typeDesc = "";
+  for (const [key, desc] of Object.entries(typeBase)) {
+    if (propType.includes(key)) { typeDesc = desc; break; }
+  }
+  if (!typeDesc) typeDesc = `Beautiful Brazilian real estate property, ${propType || "residential"}, professional photography`;
+
+  // ── Amenity accents ──────────────────────────────────────────────────
+  const amenityAccents: Record<string, string> = {
+    piscina: " Featuring a stunning infinity pool with crystal-clear water",
+    academia: " With a state-of-the-art private gym",
+    churrasqueira: " Enjoying a gourmet outdoor BBQ area",
+    playground: " Surrounded by landscaped gardens and children's play area",
+    vista_mar: " Breathtaking ocean views from every room",
+    condominio_fechado: " Located in an exclusive private community with 24-hour security",
+    porto: " Private marina access",
+    spa: " World-class spa and wellness center on-site",
+  };
+  const amenityStr = amenities
+    .map((a) => amenityAccents[a.toLowerCase()] || amenityAccents[a.toLowerCase().replace(/[_-]/g, " ")])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("");
+
+  // ── Photography style per content type ───────────────────────────────
+  const photoStyles: Record<ContentType, string> = {
+    blog_post: `Professional real estate photography, golden hour natural lighting, drone aerial shot capturing full property exterior and surroundings, editorial magazine quality, National Geographic style composition, hyper-realistic 8K detail, no text, no people`,
+    social_post: `Modern lifestyle real estate photography, warm golden hour light streaming through windows, inviting cozy atmosphere, Instagram travel photography aesthetic, tasteful composition, vibrant natural colors, soft bokeh background, no text, no people`,
+    story: `Bold vertical mobile-optimized composition, high contrast dramatic lighting, eye-level hero shot, cinematic mood, vibrant saturated colors, swipe-worthy visual impact, mobile 9:16 aspect ratio, no text, no people`,
+    video_script: `Cinematic establishing shot, professional real estate video production quality, smooth dolly movement feel, volumetric golden hour lighting, aerial drone perspective, luxury real estate showcase cinematography, no text, no people`,
+    voiceover: `Elegant abstract background visual, soft-focus architectural details, dreamy ethereal quality, warm color palette, minimalist composition with negative space, professional presentation backdrop, no text, no people`,
+    music: `Atmospheric abstract real estate concept art, dreamy soft gradients in warm amber and gold tones, ethereal mood music video aesthetic, artistic interpretation of luxury living, no text, no people`,
+    property_description: `Detailed professional property photograph, bright well-staged interior, warm natural window light, tasteful furniture and decor, sharp focus on architectural details, inviting lifestyle shot, no text, no people`,
+    ad_copy: `High-impact commercial real estate advertisement, bold composition with dramatic sky, emotional hook visual, professional advertising photography, vibrant yet sophisticated color grading, commercial broadcast quality, attention-grabbing hero shot, no text, no people`,
+  };
+
+  const photoStyle = photoStyles[contentType] || photoStyles.social_post;
+
+  // ── Specs line ────────────────────────────────────────────────────────
+  const specsLine = beds > 0 || baths > 0 || area > 0
+    ? ` Property specs: ${beds > 0 ? `${beds} bedroom${beds > 1 ? "s" : ""}` : ""}${baths > 0 ? `, ${baths} bathroom${baths > 1 ? "s" : ""}` : ""}${area > 0 ? `, ${area}m²` : ""}.`
+    : "";
+
+  return `${typeDesc}${amenityStr}. ${photoStyle}.${specsLine}`;
 }
 
 // ─── OmniRoute Text Generation ──────────────────────────────────────
@@ -350,7 +401,7 @@ export async function generateContentHub(
 
   const minimaxConfig: MiniMaxConfig = {
     apiKey: minimaxApiKey,
-    groupId: minimaxGroupId,
+    groupId: minimaxGroupId || "arruda-imobi",
   };
 
   for (const contentType of contentTypes) {

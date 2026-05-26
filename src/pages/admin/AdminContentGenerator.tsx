@@ -1,7 +1,7 @@
 /**
  * AdminContentGenerator — Content Hub v2
  * AI Content Generation for Real Estate
- * Stack: OmniRoute (LLM) + Pollinations AI (images) + Browser TTS + Canvas Templates
+ * Stack: OmniRoute (LLM) + MiniMax AI (images) + Canvas Templates + Browser TTS
  *
  * 4-Step Wizard:
  *  1. Selecionar Imóvel (com fotos)
@@ -632,7 +632,7 @@ export default function AdminContentGenerator() {
       <AdminPageShell>
         <AdminPageHeader
           title="Gerador de Conteúdo IA"
-          subtitle={`${brand.name} — OmniRoute (texto) + Pollinations AI (imagens) + Templates Canvas + TTS`}
+          subtitle={`${brand.name} — OmniRoute (texto) + MiniMax AI (imagens) + Templates Canvas + TTS`}
           action={
             <Tabs value={tab} onValueChange={(v) => { setTab(v as any); if (v === "history") loadHistory(); }}>
               <TabsList className="h-9">
@@ -1047,6 +1047,7 @@ export default function AdminContentGenerator() {
                               )}
                               <Badge variant="outline" className="text-xs">{info?.label || item.type}</Badge>
                               {isSaved && <Badge className="text-xs bg-green-600">Salvo ✓</Badge>}
+                              {item.imageUrl && <Badge className="text-xs bg-gradient-to-r from-violet-600 to-purple-600 gap-1"><Sparkles className="h-3 w-3" /> MiniMax</Badge>}
                               {item.imageUrl && <Badge className="text-xs bg-blue-600 gap-1"><ImageIcon className="h-3 w-3" /> Imagem</Badge>}
                               {item.videoUrl && <Badge className="text-xs bg-orange-600 gap-1"><Film className="h-3 w-3" /> Vídeo</Badge>}
                               {item.script && <Badge className="text-xs bg-cyan-600 gap-1"><Volume2 className="h-3 w-3" /> TTS</Badge>}
@@ -1066,13 +1067,25 @@ export default function AdminContentGenerator() {
                               <div className="relative">
                                 <img src={item.imageUrlWithLogo || item.imageUrl} alt="" className="w-full h-40 object-cover" />
                                 <div className="absolute top-2 left-2">
-                                  <Badge className="text-[10px] px-1.5 py-0.5 bg-black/60 text-white border-0 gap-1">
-                                    <ImageIcon className="h-2.5 w-2.5" />
-                                    {item.imageUrlWithLogo ? "Com logo" : "IA"}
+                                  <Badge className="text-[10px] px-1.5 py-0.5 bg-gradient-to-r from-violet-600/90 to-purple-600/90 text-white border-0 gap-1">
+                                    <Sparkles className="h-2.5 w-2.5" />
+                                    {item.imageUrlWithLogo ? "Com logo" : "MiniMax IA"}
                                   </Badge>
                                 </div>
                               </div>
                             </div>
+                          )}
+
+                          {/* Generated image prompt */}
+                          {item.prompt && (
+                            <details className="mt-1">
+                              <summary className="text-[10px] text-muted-foreground cursor-pointer hover:text-foreground select-none">
+                                📝 Ver prompt da imagem
+                              </summary>
+                              <div className="mt-1 bg-muted/60 rounded-lg p-2 text-[10px] text-muted-foreground leading-relaxed border border-border/50">
+                                {item.prompt}
+                              </div>
+                            </details>
                           )}
 
                           {/* TTS */}
