@@ -30,7 +30,8 @@ import {
   RefreshCw, CheckCircle2, Home, PenLine, Eye, Save, Download,
   Clock, Wand2, Volume2, Film, Mic, Play, Pause, SkipForward,
   ChevronRight, ChevronLeft, AlertCircle, X, Star, Palette,
-  LayoutTemplate, FileImage, Mic2
+  LayoutTemplate, FileImage, Mic2, Upload, SlidersHorizontal, Wand,
+  ImagePlus
 } from "lucide-react";
 
 // ─── Constants ────────────────────────────────────────────────────────
@@ -422,6 +423,27 @@ export default function AdminContentGenerator() {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [logoLoading, setLogoLoading] = useState<Record<number, boolean>>({});
 
+  // ── Img2Img: FLUX via OmniRoute ──
+  const [img2imgOpen, setImg2imgOpen] = useState(false);
+  const [img2imgRefImage, setImg2imgRefImage] = useState<string | null>(null); // base64 data URL
+  const [img2imgPrompt, setImg2imgPrompt] = useState("");
+  const [img2imgStrength, setImg2imgStrength] = useState(0.75);
+  const [img2imgLoading, setImg2imgLoading] = useState(false);
+  const [img2imgResult, setImg2imgResult] = useState<string | null>(null);
+  const [img2imgError, setImg2imgError] = useState<string | null>(null);
+
+  // Style presets for real estate img2img
+  const IMG2IMG_PRESETS = [
+    { id: "golden", label: "Entardecer", emoji: "🌅", prompt: "golden hour sunset, warm orange and pink sky, dramatic lighting, luxury real estate photography" },
+    { id: "drone", label: "Drone Aéreo", emoji: "🚁", prompt: "aerial drone view from above, birds eye perspective, lush garden, professional real estate photography" },
+    { id: "modern", label: "Moderno", emoji: "🏙", prompt: "modern minimalist style, clean lines, contemporary architecture, professional real estate photography" },
+    { id: "luxury", label: "Luxo", emoji: "🏆", prompt: "ultra luxury, elegant, high-end finishes, grand entrance, professional real estate photography" },
+    { id: "sunny", label: "Dia Ensolarado", emoji: "☀️", prompt: "bright sunny day, vivid colors, clear blue sky, lush garden, professional real estate photography" },
+    { id: "night", label: "Noite Iluminada", emoji: "🌙", prompt: "night time with warm interior lights, string lights, elegant night lighting, luxury real estate photography" },
+    { id: "pool", label: "Piscina", emoji: "🏊", prompt: "swimming pool area, crystal clear water, poolside lounge, tropical garden, professional real estate photography" },
+    { id: "mag", label: "Estilo Revista", emoji: "📰", prompt: "magazine cover style, editorial photography, dramatic lighting, ultra high-end real estate" },
+  ];
+
   // Preview
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewItem, setPreviewItem] = useState<GeneratedItem | null>(null);
@@ -492,6 +514,76 @@ export default function AdminContentGenerator() {
   }, [tenantId]);
 
   useEffect(() => { if (tab === "history") loadHistory(); }, [tab, loadHistory]);
+
+  // ── Img2Img handlers ──
+  const applyPreset = (preset: typeof IMG2IMG_PRESETS[0]) => {
+    const ref = img2imgRefImage || propertyData?.images?.[0];
+    if (!ref) { sonnerToast({ title: "Selecione uma foto primeiro", variant: "destructive" }); return; }
+    const basePrompt = propertyData
+      ? `Reference: ${propertyData.title}. ${propertyData.city}. `
+      : "";
+    setImg2imgPrompt(basePrompt + preset.prompt);
+  };
+
+  const selectImg2ImgRef = (imgUrl: string) => {
+    setImg2imgLoading(true);
+    const img = new window.Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth || img.width;
+      canvas.height = img.naturalHeight || img.height;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0);
+      try {
+        setImg2imgRefImage(canvas.toDataURL("image/jpeg", 0.9));
+      } catch {
+        setImg2imgRefImage(imgUrl); // CORS fallback
+      }
+      setImg2imgResult(null); setImg2imgError(null); setImg2imgLoading(false);
+    };
+    img.onerror = () => { setImg2imgRefImage(imgUrl); setImg2imgResult(null); setImg2imgError(null); setImg2imgLoading(false); };
+    img.src = imgUrl;
+  };
+
+  const handleImg2ImgUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => { setImg2imgRefImage(ev.target?.result as string); setImg2imgResult(null); setImg2imgError(null); };
+    reader.readAsDataURL(file);
+  };
+
+  const handleImg2Img = async () => {
+    if (!img2imgRefImage) { sonnerToast({ title: "Selecione uma foto de referência", variant: "destructive" }); return; }
+    if (!img2imgPrompt.trim()) { sonnerToast({ title: "Digite um prompt ou escolha um estilo", variant: "destructive" }); return; }
+    setImg2imgLoading(true); setImg2imgResult(null); setImg2imgError(null);
+    try {
+      const res = await fetch(
+        "https://udutxbyzrdwucabxqvgg.supabase.co/functions/v1/public-api?action=generate-img2img",
+        { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ imageUrl: img2imgRefImage, prompt: img2imgPrompt, strength: img2imgStrength }) }
+      );
+      const json = await res.json();
+      if (json.ok && json.data?.image_url) {
+        setImg2imgResult(json.data.image_url);
+        sonnerToast({ title: "Img2Img gerado!" });
+      } else {
+        setImg2imgError(json.data?.error || json.error || "Erro desconhecido");
+        sonnerToast({ title: "Erro", description: json.data?.error, variant: "destructive" });
+      }
+    } catch (err: any) {
+      setImg2imgError(err.message);
+      sonnerToast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally { setImg2imgLoading(false); }
+  };
+
+  // Apply img2img result as cover image of first generated item
+  const useAsCover = (itemIdx: number) => {
+    if (!img2imgResult) return;
+    setResults(prev => prev.map((r, i) => i === itemIdx ? { ...r, imageUrl: img2imgResult } : r));
+    sonnerToast({ title: "Imagem definida como capa!", description: "Usada como thumbnail do conteúdo gerado." });
+  };
 
   // ── Load property full data ──
   useEffect(() => {
@@ -654,6 +746,7 @@ export default function AdminContentGenerator() {
     setSelectedPropertyId(""); setPropertyData(null); setCustomPrompt("");
     setSelectedTypes(["blog_post", "social_post"]); setTone("professional");
     setPlatform("instagram"); setStep(1); setResults([]); setSavedIds(new Set());
+    setImg2imgRefImage(null); setImg2imgPrompt(""); setImg2imgResult(null); setImg2imgError(null); setImg2imgOpen(false);
   };
 
   return (
@@ -1059,6 +1152,168 @@ export default function AdminContentGenerator() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Img2Img Card ── */}
+                <Card className={`border-2 ${img2imgOpen ? "border-fuchsia-400 dark:border-fuchsia-600" : "border-fuchsia-200 dark:border-fuchsia-900"}`}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-fuchsia-500 to-pink-500 flex items-center justify-center">
+                          <Wand className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                          <CardTitle>Img2Img — Modificar Foto</CardTitle>
+                          <CardDescription>Escolha uma foto + estilo. A IA gera uma nova imagem mantendo a essência.</CardDescription>
+                        </div>
+                      </div>
+                      <Button size="sm" variant={img2imgOpen ? "default" : "outline"}
+                        onClick={() => setImg2imgOpen(v => !v)} className="gap-1.5 bg-fuchsia-600 hover:bg-fuchsia-700">
+                        <SlidersHorizontal className="h-3 w-3" />{img2imgOpen ? "Fechar" : "Abrir Img2Img"}
+                      </Button>
+                    </div>
+                  </CardHeader>
+
+                  {img2imgOpen && (
+                    <CardContent className="space-y-4">
+                      {/* Reference image selection */}
+                      <div>
+                        <Label className="text-xs font-medium mb-2 block">
+                          Foto de Referência {img2imgRefImage && <Badge className="ml-2 bg-fuchsia-600 text-white text-[10px]">OK</Badge>}
+                        </Label>
+                        {/* Upload */}
+                        <label className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-fuchsia-300 dark:border-fuchsia-700 hover:border-fuchsia-500 cursor-pointer py-3 mb-2 transition-colors bg-fuchsia-50/50 dark:bg-fuchsia-950/20">
+                          <Upload className="h-4 w-4 text-fuchsia-500" />
+                          <span className="text-sm text-fuchsia-700 dark:text-fuchsia-400">Upload do dispositivo</span>
+                          <input type="file" accept="image/*" onChange={handleImg2ImgUpload} className="hidden" />
+                        </label>
+                        {/* Property images */}
+                        {propertyData?.images?.length > 0 && (
+                          <>
+                            <p className="text-[10px] text-muted-foreground mb-1">— fotos do imóvel selecionado —</p>
+                            <div className="flex gap-2 overflow-x-auto pb-1">
+                              {propertyData.images.slice(0, 8).map((url, i) => (
+                                <button key={i} onClick={() => selectImg2ImgRef(url)}
+                                  disabled={img2imgLoading}
+                                  className={`relative w-14 h-14 rounded-lg overflow-hidden border-2 shrink-0 transition-all ${img2imgRefImage === url ? "border-fuchsia-500 ring-2 ring-fuchsia-400" : "border-border hover:border-fuchsia-400"} ${img2imgLoading ? "opacity-50" : ""}`}>
+                                  <img src={url} alt="" className="w-full h-full object-cover" />
+                                  {img2imgRefImage === url && <div className="absolute inset-0 bg-fuchsia-500/30 flex items-center justify-center"><CheckCircle2 className="h-4 w-4 text-white" /></div>}
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                        {/* Preview */}
+                        {img2imgRefImage && (
+                          <div className="mt-2 rounded-xl overflow-hidden border-2 border-fuchsia-300 dark:border-fuchsia-700">
+                            <img src={img2imgRefImage} alt="Referência" className="w-full h-36 object-contain bg-fuchsia-950/10" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Style presets */}
+                      <div>
+                        <Label className="text-xs font-medium mb-2 block">Estilos Rápidos</Label>
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {IMG2IMG_PRESETS.map(preset => (
+                            <button key={preset.id}
+                              onClick={() => applyPreset(preset)}
+                              className="flex flex-col items-center gap-0.5 rounded-lg border border-border hover:border-fuchsia-400 py-2 px-1 transition-all text-center bg-secondary/30 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-950/20">
+                              <span className="text-lg">{preset.emoji}</span>
+                              <span className="text-[10px] font-medium">{preset.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Strength */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <Label className="text-xs font-medium flex items-center gap-1">
+                            <SlidersHorizontal className="h-3 w-3" /> Força da Referência
+                          </Label>
+                          <Badge variant="outline" className="text-[10px]">
+                            {img2imgStrength < 0.4 ? "Leve" : img2imgStrength < 0.7 ? "Médio" : "Forte"}
+                          </Badge>
+                        </div>
+                        <input type="range" min="0.1" max="0.95" step="0.05" value={img2imgStrength}
+                          onChange={e => setImg2imgStrength(parseFloat(e.target.value))}
+                          className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-fuchsia-500" />
+                        <div className="flex justify-between text-[10px] text-muted-foreground mt-0.5">
+                          <span>Leve (0.1)</span><span className="font-medium text-fuchsia-600">Atual: {img2imgStrength.toFixed(2)}</span><span>Forte (0.95)</span>
+                        </div>
+                      </div>
+
+                      {/* Prompt */}
+                      <div>
+                        <Label className="text-xs font-medium mb-1 block">Prompt</Label>
+                        <Textarea value={img2imgPrompt} onChange={e => setImg2imgPrompt(e.target.value)}
+                          placeholder="Descreva a modificação que deseja..."
+                          rows={3} className="text-sm" />
+                      </div>
+
+                      {/* Generate */}
+                      <Button onClick={handleImg2Img}
+                        disabled={img2imgLoading || !img2imgRefImage || !img2imgPrompt.trim()}
+                        className="w-full gap-2 bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-700 hover:to-pink-700" size="lg">
+                        {img2imgLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand className="h-4 w-4" />}
+                        {img2imgLoading ? "Gerando img2img..." : "Gerar Img2Img"}
+                      </Button>
+
+                      {/* Loading state */}
+                      {img2imgLoading && (
+                        <div className="rounded-xl border-2 border-fuchsia-200 dark:border-fuchsia-800 bg-fuchsia-50/30 py-6 text-center space-y-2">
+                          <Loader2 className="h-8 w-8 animate-spin text-fuchsia-500 mx-auto" />
+                          <p className="text-sm font-medium text-fuchsia-700 dark:text-fuchsia-400">Processando...</p>
+                          <p className="text-xs text-muted-foreground">Img2Img via Gemini 3.1 (OmniRoute)</p>
+                        </div>
+                      )}
+
+                      {/* Result */}
+                      {img2imgResult && (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <Badge className="bg-green-600 text-white gap-1"><CheckCircle2 className="h-3 w-3" />Img2Img Pronto</Badge>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <p className="text-[10px] text-muted-foreground mb-1 font-medium">Original</p>
+                              <div className="rounded-lg overflow-hidden border border-border h-36">
+                                <img src={img2imgRefImage!} alt="Original" className="w-full h-full object-cover" />
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-muted-foreground mb-1 font-medium">Gerada (strength={img2imgStrength.toFixed(2)})</p>
+                              <div className="rounded-lg overflow-hidden border border-fuchsia-400 h-36">
+                                <img src={img2imgResult} alt="Gerada" className="w-full h-full object-cover" />
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" className="gap-1.5 flex-1 bg-fuchsia-600 hover:bg-fuchsia-700"
+                              onClick={() => {
+                                const a = document.createElement("a"); a.href = img2imgResult!;
+                                a.download = `img2img-${Date.now()}.png`; a.click();
+                                sonnerToast({ title: "Download iniciado!" });
+                              }}>
+                              <Download className="h-3 w-3" /> Baixar PNG
+                            </Button>
+                            <Button size="sm" variant="outline" className="gap-1.5 flex-1"
+                              onClick={() => { navigator.clipboard.writeText(img2imgPrompt); sonnerToast({ title: "Prompt copiado!" }); }}>
+                              <Copy className="h-3 w-3" /> Copiar Prompt
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
+                      {img2imgError && (
+                        <div className="rounded-xl border-2 border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/20 p-3">
+                          <p className="text-sm text-red-700 dark:text-red-400 font-medium">Erro</p>
+                          <p className="text-xs text-red-600 dark:text-red-500 mt-1">{img2imgError}</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  )}
+                </Card>
               </div>
             )}
 
@@ -1224,6 +1479,13 @@ export default function AdminContentGenerator() {
                             {item.text && (
                               <Button variant="outline" size="sm" onClick={() => { navigator.clipboard.writeText(item.text || ""); sonnerToast({ title: "Copiado!" }); }} className="gap-1.5 text-xs h-8">
                                 <Copy className="h-3 w-3" /> Copiar
+                              </Button>
+                            )}
+                            {img2imgResult && (
+                              <Button variant="secondary" size="sm"
+                                onClick={() => useAsCover(idx)}
+                                className="gap-1.5 text-xs h-8 text-fuchsia-700 dark:text-fuchsia-400">
+                                <ImagePlus className="h-3 w-3" /> Usar como Capa
                               </Button>
                             )}
                             <Button
