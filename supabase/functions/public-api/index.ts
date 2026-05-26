@@ -1384,8 +1384,6 @@ Retorne APENAS JSON valido (sem texto antes ou depois):
         result = { ok: true, data: { image_url: imageUrlResult, error: genError } };
         break;
       }
-        break;
-      }
 
 
       default:
