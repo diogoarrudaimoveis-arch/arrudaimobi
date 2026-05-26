@@ -2,7 +2,19 @@
   "version": 2,
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "rewrites": [
-    { "source": "/(?!assets/|api/|sw\\.js|manifest\\.webmanifest|favicon\\.svg|favicon\\.png|favicon\\.ico|pwa-.*|sitemap\\.xml|robots\\.txt|llms\\.txt|placeholder\\.svg)(.*)", "destination": "/index.html" }
+  "routes": [
+    { "src": "/api(.*)", "dest": "/api$1", "status": 200 },
+    { "src": "/assets/(.*)", "dest": "/assets/$1", "status": 200 },
+    { "src": "/sw.js", "dest": "/sw.js", "status": 200 },
+    { "src": "/manifest.webmanifest", "dest": "/manifest.webmanifest", "status": 200 },
+    { "src": "/favicon.svg", "dest": "/favicon.svg", "status": 200 },
+    { "src": "/favicon.png", "dest": "/favicon.png", "status": 200 },
+    { "src": "/favicon.ico", "dest": "/favicon.ico", "status": 200 },
+    { "src": "/pwa-(.*)", "dest": "/pwa-$1", "status": 200 },
+    { "src": "/sitemap.xml", "dest": "/sitemap.xml", "status": 200 },
+    { "src": "/robots.txt", "dest": "/robots.txt", "status": 200 },
+    { "src": "/llms.txt", "dest": "/llms.txt", "status": 200 },
+    { "src": "/placeholder.svg", "dest": "/placeholder.svg", "status": 200 },
+    { "src": "/[^.]+$", "dest": "/index.html", "status": 200 }
   ]
 }
