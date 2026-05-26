@@ -13,8 +13,6 @@ import { FavoritesProvider } from "@/contexts/FavoritesContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { Loader2 } from "lucide-react";
 import { ChatWidget } from "@/components/chat/ChatWidget";
-import { useAISettings } from "@/hooks/use-ai-settings";
-import { useAuth } from "@/contexts/AuthContext";
 
 // Lazy loading components
 const Index = lazy(() => import("./pages/Index"));
@@ -79,23 +77,10 @@ const PageLoader = () => (
 );
 
 function App() {
-  const { data: aiSettings } = useAISettings();
-  const { user } = useAuth();
-
-  // Determine OmniRoute API key from AI settings
-  const omnirouteKey = (() => {
-    if (!aiSettings) return "";
-    // Use primary provider key if set
-    const primary = aiSettings.primary_provider;
-    if (primary === "openai" && aiSettings.openai_keys?.[0]) return aiSettings.openai_keys[0];
-    if (primary === "gemini" && aiSettings.gemini_keys?.[0]) return aiSettings.gemini_keys[0];
-    if (primary === "groq" && aiSettings.groq_keys?.[0]) return aiSettings.groq_keys[0];
-    // Fallback to first available key
-    if (aiSettings.openai_keys?.[0]) return aiSettings.openai_keys[0];
-    if (aiSettings.gemini_keys?.[0]) return aiSettings.gemini_keys[0];
-    if (aiSettings.groq_keys?.[0]) return aiSettings.groq_keys[0];
-    return "";
-  })();
+  // NOTE: useAISettings and useAuth removed — they use useQuery which requires QueryClient context
+  // causing "No QueryClient set" error in React 19. The omnirouteKey is set to empty for now.
+  // AI settings and auth will be loaded by pages that can safely use useQuery inside QueryClientProvider.
+  const omnirouteKey = "";
 
   return (
     <HelmetProvider>
