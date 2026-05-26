@@ -15,7 +15,7 @@ export function PropertyListItemDb({ property }: Props) {
   const favorited = isFavorite(property.id);
 
   return (
-    <Link to={`/imoveis/${property.id}`}>
+    <Link to={`/imovel/${property.id}`}>
       <div className="group flex flex-col overflow-hidden rounded-lg border border-border bg-card transition-all duration-300 hover:shadow-lg sm:flex-row">
         <div className="relative aspect-[4/3] w-full overflow-hidden sm:aspect-auto sm:w-72 bg-muted">
           {mainImage ? (

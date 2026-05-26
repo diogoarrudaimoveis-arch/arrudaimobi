@@ -38,7 +38,7 @@ export function PropertyCardDb({ property }: Props) {
   const mainImage = sortedImages[currentImg] || sortedImages[0];
 
   return (
-    <Link to={`/imoveis/${property.id}`}>
+    <Link to={`/imovel/${property.id}`}>
       <Card className="group overflow-hidden hover:shadow-xl hover:-translate-y-1 hover:border-primary/20">
         {/* Image area with carousel */}
         <div className="relative aspect-[4/3] overflow-hidden bg-muted">

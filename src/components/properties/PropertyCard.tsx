@@ -11,7 +11,7 @@ interface PropertyCardProps {
 
 export function PropertyCard({ property }: PropertyCardProps) {
   return (
-    <Link to={`/imoveis/${property.id}`}>
+    <Link to={`/imovel/${property.id}`}>
       <Card className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
         <div className="relative aspect-[4/3] overflow-hidden">
           <img
