@@ -2,5 +2,7 @@
   "version": 2,
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "cleanUrls": true
+  "rewrites": [
+    { "source": "/(?!assets/|api/|sw\\.js|manifest\\.webmanifest|favicon\\.svg|favicon\\.png|favicon\\.ico|pwa-.*|sitemap\\.xml|robots\\.txt|llms\\.txt|placeholder\\.svg)(.*)", "destination": "/index.html" }
+  ]
 }
