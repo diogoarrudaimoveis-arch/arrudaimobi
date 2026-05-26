@@ -57,7 +57,7 @@ const AdminAgents = () => {
       roles?.forEach((r) => { roleMap[r.user_id] = r.role; });
 
       const userIds = (profiles || []).map((p) => p.user_id);
-      let emailMap: Record<string, string> = {};
+      const emailMap: Record<string, string> = {};
 
       if (userIds.length > 0 && session?.access_token) {
         try {

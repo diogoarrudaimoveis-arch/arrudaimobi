@@ -258,7 +258,7 @@ export default function AdminN8NWorkflows() {
     workflows.forEach(w => {
       execMap[w.id] = getMockExecutions(w.id);
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     setExecutions(execMap);
   }, [isReady, workflows]);
 

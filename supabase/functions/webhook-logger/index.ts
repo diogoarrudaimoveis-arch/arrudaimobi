@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
     const source = KNOWN_WEBHOOK_SOURCES.includes(webhookSource) ? webhookSource : "unknown";
 
     // Parse body — may be JSON or text
-    let rawPayload: any;
+    let rawPayload: Record<string, unknown>;
     let message = "";
     let messageId = "";
     let phone = "";

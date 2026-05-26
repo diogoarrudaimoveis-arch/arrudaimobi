@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
-    let leadData: any;
+    let leadData: Record<string, unknown>;
 
     if (existingLead) {
       // Update existing lead — move to "new" stage if it was closed
