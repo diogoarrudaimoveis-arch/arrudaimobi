@@ -670,10 +670,36 @@ export default function AdminContentGenerator() {
     }
   };
 
+  // Convert any image URL to base64 data URL (needed because Supabase Storage URLs need auth in Edge Function)
   const selectImg2ImgRef = (imgUrl: string) => {
-    setImg2imgRefImage(imgUrl);
-    setImg2imgResult(null);
-    setImg2imgError(null);
+    setImg2imgLoading(true); // show brief loading while converting
+    const img = new window.Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth || img.width;
+      canvas.height = img.naturalHeight || img.height;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0);
+      try {
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+        setImg2imgRefImage(dataUrl);
+      } catch {
+        // CORS fallback: use URL directly
+        setImg2imgRefImage(imgUrl);
+      }
+      setImg2imgResult(null);
+      setImg2imgError(null);
+      setImg2imgLoading(false);
+    };
+    img.onerror = () => {
+      // Fallback: use URL directly even if conversion fails
+      setImg2imgRefImage(imgUrl);
+      setImg2imgResult(null);
+      setImg2imgError(null);
+      setImg2imgLoading(false);
+    };
+    img.src = imgUrl;
   };
 
   const handleImg2ImgUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1092,18 +1118,24 @@ export default function AdminContentGenerator() {
                         {/* Property photos as reference */}
                         {propertyData?.images?.length > 0 && (
                           <>
-                            <p className="text-[10px] text-muted-foreground mb-1">— ou use foto do imóvel —</p>
+                            <p className="text-[10px] text-muted-foreground mb-1">— ou use foto do imóvel (será convertida para base64) —</p>
                             <div className="flex gap-2 overflow-x-auto pb-1">
                               {propertyData.images.slice(0, 8).map((url, i) => (
                                 <button
                                   key={i}
                                   onClick={() => selectImg2ImgRef(url)}
-                                  className={`relative w-16 h-16 rounded-lg overflow-hidden border-2 transition-all shrink-0 ${img2imgRefImage === url ? "border-fuchsia-500 ring-2 ring-fuchsia-400" : "border-border hover:border-fuchsia-400"}`}
+                                  disabled={img2imgLoading}
+                                  className={`relative w-16 h-16 rounded-lg overflow-hidden border-2 transition-all shrink-0 ${img2imgRefImage === url ? "border-fuchsia-500 ring-2 ring-fuchsia-400" : "border-border hover:border-fuchsia-400"} ${img2imgLoading ? "opacity-50 cursor-not-allowed" : ""}`}
                                 >
                                   <img src={url} alt={`Foto ${i + 1}`} className="w-full h-full object-cover" />
-                                  {img2imgRefImage === url && (
+                                  {img2imgRefImage === url && !img2imgLoading && (
                                     <div className="absolute inset-0 bg-fuchsia-500/30 flex items-center justify-center">
                                       <CheckCircle2 className="h-5 w-5 text-white" />
+                                    </div>
+                                  )}
+                                  {img2imgLoading && img2imgRefImage !== url && (
+                                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                                      <Loader2 className="h-4 w-4 text-white animate-spin" />
                                     </div>
                                   )}
                                 </button>
