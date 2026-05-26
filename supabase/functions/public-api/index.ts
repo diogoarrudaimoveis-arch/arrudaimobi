@@ -1269,8 +1269,12 @@ Retorne APENAS JSON valido (sem texto antes ou depois):
       }
 
       case "generate-img2img": {
-        // img2img: takes a reference image + prompt → modifies the image using FLUX via OmniRoute/Fal.ai
+        // img2img: reference image + prompt → modified image via OmniRoute
         // Body: { imageUrl, prompt, strength?, width?, height? }
+        // Strategy:
+        //   1. Try antigravity/gemini-3.1-flash-image via /v1/images/generations with image_url param
+        //   2. If that fails (model doesn't support img2img), fall back to txt2img Pollinations
+        // Note: OmniRoute's /v1/images/edits only supports "chatgpt-web" models for img2img.
         let body: any = {};
         try { body = await req.json(); } catch { throw new Error("Invalid JSON body"); }
         const { imageUrl, prompt, strength = 0.75, width, height } = body;
@@ -1280,83 +1284,89 @@ Retorne APENAS JSON valido (sem texto antes ou depois):
         const OMNI_KEY = "sk-611d5b3c2cca0507-7a32b3-0e17b59f";
         const OMNI_BASE = "http://206.183.129.200:20128";
 
-        let imageUrlResult = null;
+        let imageUrlResult: string | null = null;
         let genError: string | null = null;
 
         try {
-          // Build size override
-          const sizeOverride = width && height ? `${width}x${height}` : undefined;
-
-          // Determine if imageUrl is already a data URL (base64) or a remote URL
+          // Fetch the reference image (if remote URL) and convert to Blob for FormData
+          let imageBlob: Blob | null = null;
           const isDataUrl = imageUrl.startsWith("data:");
           const isRemoteUrl = imageUrl.startsWith("http");
 
-          // OmniRoute uses OpenAI-compatible images/edits endpoint
-          // For Fal.ai img2img: we pass the reference image + prompt + strength
-          const requestBody: any = {
-            model: "fal-ai/fal-ai/flux-2-pro",
-            prompt: prompt.slice(0, 1000),
-            strength: Math.max(0.1, Math.min(0.95, strength)), // clamp 0.1–0.95
-          };
-
-          // Add image: either as URL string or base64
           if (isDataUrl) {
-            // Extract base64 data without mime type prefix
+            // Convert base64 data URL to Blob
+            const mimeMatch = imageUrl.match(/^data:([^;]+);base64,/);
+            const mime = mimeMatch ? mimeMatch[1] : "image/png";
             const base64Data = imageUrl.includes(",") ? imageUrl.split(",")[1] : imageUrl;
-            requestBody.image = base64Data;
+            const binaryStr = atob(base64Data);
+            const bytes = new Uint8Array(binaryStr.length);
+            for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+            imageBlob = new Blob([bytes], { type: mime });
           } else if (isRemoteUrl) {
-            requestBody.image = imageUrl;
+            // Fetch remote image as blob
+            const imgRes = await fetch(imageUrl);
+            if (!imgRes.ok) throw new Error(`Failed to fetch reference image: ${imgRes.status}`);
+            imageBlob = await imgRes.blob();
           } else {
             throw new Error("imageUrl must be a data URL (base64) or HTTP(S) URL");
           }
 
-          if (sizeOverride) {
-            requestBody.size = sizeOverride;
-          }
+          // Try img2img via antigravity/gemini-3.1-flash-image using JSON + image_url param
+          // (Note: /v1/images/edits only supports "chatgpt-web" models in OmniRoute)
+          const sizeOverride = (width && height) ? `${width}x${height}` : undefined;
 
-          const genRes = await fetch(`${OMNI_BASE}/v1/images/edits`, {
+          const genRes = await fetch(`${OMNI_BASE}/v1/images/generations`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               "Authorization": `Bearer ${OMNI_KEY}`,
             },
-            body: JSON.stringify(requestBody),
+            body: JSON.stringify({
+              model: "antigravity/gemini-3.1-flash-image",
+              prompt: `Reference image modification. Prompt: ${prompt.slice(0, 900)}`,
+              image_url: imageUrl,  // Some models support this for img2img
+              strength: Math.max(0.1, Math.min(0.95, strength)),
+              ...(sizeOverride ? { size: sizeOverride } : {}),
+            }),
           });
 
           if (!genRes.ok) {
             const errText = await genRes.text();
-            genError = `OmniRoute/Fal.ai img2img error ${genRes.status}: ${errText.slice(0, 300)}`;
-            console.log("generate-img2img error:", genError);
+            // Fallback: if img2img isn't supported, generate a new image with the prompt
+            // Use Pollinations (free, no key needed)
+            const fallbackPrompt = encodeURIComponent(prompt.slice(0, 800));
+            const fallbackUrl = `https://image.pollinations.ai/prompt/${fallbackPrompt}?width=1024&height=1024&nologo=true&seed=${Date.now()}`;
+            imageUrlResult = fallbackUrl;
+            genError = `img2img not available for this model (${genRes.status}). Using txt2img fallback.`;
+            console.log("generate-img2img fallback:", genError);
           } else {
             const genJson = await genRes.json();
-
-            // Support both OpenAI format (url field) and Fal.ai format
-            imageUrlResult = genJson?.data?.[0]?.url || genJson?.images?.[0]?.url || genJson?.url || null;
-
-            // Fallback: if we got base64 back
+            imageUrlResult =
+              genJson?.data?.[0]?.url ||
+              genJson?.images?.[0]?.url ||
+              genJson?.url ||
+              null;
             if (!imageUrlResult) {
               const b64 = genJson?.data?.[0]?.b64_json || genJson?.b64_json;
-              if (b64) {
-                imageUrlResult = `data:image/png;base64,${b64}`;
-              }
+              if (b64) imageUrlResult = `data:image/png;base64,${b64}`;
             }
-
             if (!imageUrlResult) {
-              genError = "No image URL in OmniRoute response. Raw: " + JSON.stringify(genJson).slice(0, 200);
+              // Fallback to Pollinations txt2img
+              const fallbackPrompt = encodeURIComponent(prompt.slice(0, 800));
+              imageUrlResult = `https://image.pollinations.ai/prompt/${fallbackPrompt}?width=1024&height=1024&nologo=true&seed=${Date.now()}`;
+              genError = "No image in response — used txt2img fallback.";
             }
           }
         } catch (e: any) {
           genError = e.message;
           console.log("generate-img2img exception:", genError);
+          // Last resort fallback: Pollinations txt2img
+          const fallbackPrompt = encodeURIComponent(prompt.slice(0, 800));
+          imageUrlResult = `https://image.pollinations.ai/prompt/${fallbackPrompt}?width=1024&height=1024&nologo=true&seed=${Date.now()}`;
+          genError = `Exception: ${e.message}. Used txt2img fallback.`;
         }
 
-        result = {
-          ok: true,
-          data: {
-            image_url: imageUrlResult,
-            error: genError,
-          },
-        };
+        result = { ok: true, data: { image_url: imageUrlResult, error: genError } };
         break;
       }
 

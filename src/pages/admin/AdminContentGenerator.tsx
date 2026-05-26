@@ -1180,23 +1180,9 @@ export default function AdminContentGenerator() {
                           size="lg"
                         >
                           {img2imgLoading
-                            ? <Loader2 className="h-4 w-4 animate-spin" />
-                            : <Wand className="h-4 w-4" />}
-                          {img2imgLoading ? "Gerando com FLUX..." : "Gerar Img2Img com FLUX"}
-                        </Button>
-                        {img2imgRefImage && (
-                          <Button variant="outline" size="lg"
-                            onClick={() => { setImg2imgRefImage(null); setImg2imgResult(null); setImg2imgError(null); }}>
-                            <X className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-
-                      {/* Img2Img result */}
-                      {img2imgLoading && (
-                        <div className="rounded-xl border-2 border-fuchsia-200 dark:border-fuchsia-800 bg-fuchsia-50/30 dark:bg-fuchsia-950/10 py-8 text-center space-y-2">
-                          <Loader2 className="h-8 w-8 animate-spin text-fuchsia-500 mx-auto" />
-                          <p className="text-sm font-medium text-fuchsia-700 dark:text-fuchsia-400">Processando com FLUX...</p>
+                            ? <Loader2 className="h-8 w-8 animate-spin text-fuchsia-500 mx-auto" />
+                            : <Wand className="h-8 w-8 text-fuchsia-500 mx-auto" />}
+                          <p className="text-sm font-medium text-fuchsia-700 dark:text-fuchsia-400">Processando img2img...</p>
                           <p className="text-xs text-muted-foreground">Isso pode levar 10-30 segundos</p>
                         </div>
                       )}
@@ -1207,7 +1193,7 @@ export default function AdminContentGenerator() {
                             <Badge className="bg-green-600 text-white gap-1">
                               <CheckCircle2 className="h-3 w-3" />Img2Img Pronto
                             </Badge>
-                            <span className="text-xs text-muted-foreground">FLUX via OmniRoute/Fal.ai</span>
+                            <span className="text-xs text-muted-foreground">Img2Img (FLUX/Fal.ai)</span>
                           </div>
                           <div className="grid grid-cols-2 gap-2">
                             {/* Side by side: Reference × Generated */}
