@@ -393,6 +393,8 @@ export default function AdminContentGenerator() {
 
   // Step 1
   const [properties, setProperties] = useState<any[]>([]);
+  const [propertiesLoading, setPropertiesLoading] = useState(false);
+  const [propertiesError, setPropertiesError] = useState<string | null>(null);
   const [selectedPropertyId, setSelectedPropertyId] = useState("");
   const [propertyData, setPropertyData] = useState<PropertyInfo | null>(null);
   const [propertyLoading, setPropertyLoading] = useState(false);
@@ -426,13 +428,25 @@ export default function AdminContentGenerator() {
   const [history, setHistory] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
-  // ── Load properties ──
+  // ── Load properties (show all, no status filter to avoid empty results) ──
   useEffect(() => {
     if (!tenantId) return;
-    supabase.from("properties").select("id, title, city, price, type")
-      .eq("tenant_id", tenantId).eq("status", "available")
-      .order("created_at", { ascending: false }).limit(20)
-      .then(({ data }) => { if (data) setProperties(data); });
+    setPropertiesLoading(true);
+    setPropertiesError(null);
+    supabase.from("properties").select("id, title, city, price, type, status, bedrooms, bathrooms, area")
+      .eq("tenant_id", tenantId)
+      .in("status", ["available", "published", "active"])
+      .order("created_at", { ascending: false })
+      .limit(50)
+      .then(({ data, error }) => {
+        setPropertiesLoading(false);
+        if (error) {
+          console.error("Properties load error:", error);
+          setPropertiesError(error.message);
+        } else {
+          setProperties(data || []);
+        }
+      });
   }, [tenantId]);
 
   // ── Load tenant brand ──
@@ -668,6 +682,28 @@ export default function AdminContentGenerator() {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    {/* Loading state */}
+                    {propertiesLoading && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" /> Carregando imóveis...
+                      </div>
+                    )}
+
+                    {/* Error state */}
+                    {propertiesError && (
+                      <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 dark:bg-red-950/20 rounded-lg p-3 border border-red-200 dark:border-red-800">
+                        <AlertCircle className="h-4 w-4 shrink-0" />
+                        <span>Erro ao carregar imóveis: {propertiesError}</span>
+                      </div>
+                    )}
+
+                    {/* Empty state */}
+                    {!propertiesLoading && !propertiesError && properties.length === 0 && (
+                      <div className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-3 text-center">
+                        Nenhum imóvel encontrado. Cadastre imóveis primeiro.
+                      </div>
+                    )}
+
                     <select
                       value={selectedPropertyId}
                       onChange={e => { setSelectedPropertyId(e.target.value); }}
@@ -677,6 +713,7 @@ export default function AdminContentGenerator() {
                       {properties.map(p => (
                         <option key={p.id} value={p.id}>
                           {p.title} — {p.city} — R$ {Number(p.price).toLocaleString("pt-BR")}
+                          {p.status ? ` [${p.status}]` : ""}
                         </option>
                       ))}
                     </select>
