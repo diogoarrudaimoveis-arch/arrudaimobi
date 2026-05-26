@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.ico", "robots.txt", "apple-touch-icon.png"],
+      includeAssets: ["favicon.ico", "favicon.svg", "robots.txt", "apple-touch-icon.png", "placeholder.svg"],
       manifest: {
         name: "Arruda Imobi",
         short_name: "ArrudaImobi",
