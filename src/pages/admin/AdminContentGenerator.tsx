@@ -341,10 +341,12 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
 
 // ─── Property Card ───────────────────────────────────────────────────
 
-function PropertyCard({ property, images, selected, onSelect }: {
-  property: { id: string; title: string; city: string; price: number; type: string };
-  images: string[]; selected: boolean; onSelect: () => void;
+function PropertyCard({ property, selected, onSelect }: {
+  property: { id: string; title: string; city: string; price: number; type: string; thumbnailUrl?: string | null; images?: string[] };
+  selected: boolean; onSelect: () => void;
 }) {
+  const thumb = property.thumbnailUrl;
+  const imgCount = property.images?.length || 0;
   return (
     <button
       onClick={onSelect}
@@ -353,9 +355,9 @@ function PropertyCard({ property, images, selected, onSelect }: {
       }`}
     >
       <div className="flex gap-3">
-        {images[0] ? (
+        {thumb ? (
           <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted shrink-0">
-            <img src={images[0]} alt="" className="w-full h-full object-cover" />
+            <img src={thumb} alt="" className="w-full h-full object-cover" />
           </div>
         ) : (
           <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center shrink-0">
@@ -368,8 +370,8 @@ function PropertyCard({ property, images, selected, onSelect }: {
           <p className="text-sm font-bold text-primary mt-0.5">
             R$ {Number(property.price).toLocaleString("pt-BR")}
           </p>
-          {images.length > 0 && (
-            <p className="text-[10px] text-muted-foreground">{images.length} foto(s)</p>
+          {imgCount > 0 && (
+            <p className="text-[10px] text-muted-foreground">{imgCount} foto(s)</p>
           )}
         </div>
         {selected && (
@@ -428,12 +430,17 @@ export default function AdminContentGenerator() {
   const [history, setHistory] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
-  // ── Load properties (show all, no status filter to avoid empty results) ──
+  // ── Load properties with first thumbnail image ──
   useEffect(() => {
     if (!tenantId) return;
     setPropertiesLoading(true);
     setPropertiesError(null);
-    supabase.from("properties").select("id, title, city, price, type, status, bedrooms, bathrooms, area")
+    supabase
+      .from("properties")
+      .select(`
+        id, title, city, price, type, status, bedrooms, bathrooms, area,
+        property_images(url, display_order)
+      `)
       .eq("tenant_id", tenantId)
       .in("status", ["available", "published", "active"])
       .order("created_at", { ascending: false })
@@ -444,7 +451,15 @@ export default function AdminContentGenerator() {
           console.error("Properties load error:", error);
           setPropertiesError(error.message);
         } else {
-          setProperties(data || []);
+          // Extract first image for each property
+          const withImages = (data || []).map((p: any) => {
+            const imgs = (p.property_images || [])
+              .sort((a: any, b: any) => (a.display_order || 0) - (b.display_order || 0))
+              .map((i: any) => i.url)
+              .filter(Boolean);
+            return { ...p, thumbnailUrl: imgs[0] || null, images: imgs };
+          });
+          setProperties(withImages);
         }
       });
   }, [tenantId]);
@@ -767,18 +782,14 @@ export default function AdminContentGenerator() {
                     </CardHeader>
                     <CardContent>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {properties.slice(0, 8).map(p => {
-                          const propImgs = propertyData?.id === p.id ? propertyData.images : [];
-                          return (
-                            <PropertyCard
-                              key={p.id}
-                              property={p}
-                              images={propImgs}
-                              selected={selectedPropertyId === p.id}
-                              onSelect={() => setSelectedPropertyId(p.id === selectedPropertyId ? "" : p.id)}
-                            />
-                          );
-                        })}
+                        {properties.slice(0, 8).map(p => (
+                          <PropertyCard
+                            key={p.id}
+                            property={p}
+                            selected={selectedPropertyId === p.id}
+                            onSelect={() => setSelectedPropertyId(p.id === selectedPropertyId ? "" : p.id)}
+                          />
+                        ))}
                       </div>
                     </CardContent>
                   </Card>
