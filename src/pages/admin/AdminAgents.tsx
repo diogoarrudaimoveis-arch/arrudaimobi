@@ -30,10 +30,7 @@ interface CompanyUser {
 }
 
 const AdminAgents = () => {
-  const { tenantId, isReady, session, isDeveloper, profile } = useAuth();
-  const queryClient = useQueryClient();
-
-  const normalizedRole = normalizeRole(profile?.role);
+const { tenantId, isReady, session, isDeveloper, profile, normalizedRole } = useAuth();
   const isAdmin = normalizedRole === "admin";
 
   const { data: users = [], isLoading } = useQuery({

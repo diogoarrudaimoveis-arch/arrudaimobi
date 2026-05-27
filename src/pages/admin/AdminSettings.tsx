@@ -16,9 +16,7 @@ import { normalizeRole } from "@/lib/adminPermissions";
 
 const AdminSettings = () => {
   const { tenant, isLoading, tenantId, getCurrentSettings } = useAdminTenant();
-  const { profile } = useAuth();
-
-  const normalizedRole = normalizeRole(profile?.role);
+  const { profile, normalizedRole } = useAuth();
   const isDev = normalizedRole === "developer";
   const isAdminRole = normalizedRole === "admin";
 

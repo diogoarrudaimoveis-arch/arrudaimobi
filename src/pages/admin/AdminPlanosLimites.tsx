@@ -92,8 +92,7 @@ const EMPTY_FORM: Partial<Plan> = {
 };
 
 const AdminPlanosLimites = () => {
-  const { profile } = useAuth();
-  const normalizedRole = normalizeRole(profile?.role);
+  const { profile, normalizedRole } = useAuth();
   const isDeveloper = normalizedRole === "developer";
 
   const [plans, setPlans] = useState<Plan[]>([]);

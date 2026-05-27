@@ -74,9 +74,8 @@ const MENU_PERMISSIONS = [
 ];
 
 export default function AdminMostruario() {
-  const { tenantId, isReady, session, profile } = useAuth();
+  const { tenantId, isReady, session, profile, normalizedRole } = useAuth();
   
-  const normalizedRole = normalizeRole(profile?.role);
   if (normalizedRole !== "developer") {
     return (
       <AdminLayout>

@@ -66,32 +66,9 @@ const ASAAS_KEY_STORAGE = "asaas_api_key";
 const ASAAS_SANDBOX_STORAGE = "asaas_sandbox";
 
 const AdminMenuPermissions = () => {
-  const { profile } = useAuth();
-
-  // Asaas payment config state
-  const [asaasKey, setAsaasKey] = useState<string>(() => {
-    try { return localStorage.getItem(ASAAS_KEY_STORAGE) || ""; } catch { return ""; }
-  });
-  const [asaasSandbox, setAsaasSandbox] = useState<boolean>(() => {
-    try { return localStorage.getItem(ASAAS_SANDBOX_STORAGE) === "true"; } catch { return false; }
-  });
-  const [connectionStatus, setConnectionStatus] = useState<"idle" | "testing" | "success" | "error">("idle");
-  const [showAsaasKey, setShowAsaasKey] = useState(false);
-  const [showAsaasConfig, setShowAsaasConfig] = useState(false);
-
-  // Menu permissions matrix state
-  const [matrix, setMatrix] = useState<Record<string, Record<string, boolean>>>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      return stored ? JSON.parse(stored) : DEFAULT_MATRIX;
-    } catch {
-      return DEFAULT_MATRIX;
-    }
-  });
-
-  const userRole = normalizeRole(profile?.role);
+  const { profile, normalizedRole } = useAuth();
+  const userRole = normalizedRole;
   const canEdit = canAccessAdmin(userRole);
-  const isDeveloper = userRole === "developer";
 
   const testAsaasConnection = async () => {
     if (!asaasKey) {
