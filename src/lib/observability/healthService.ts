@@ -31,7 +31,7 @@ async function fetchWithTimeout(url: string, timeout = TIMEOUT_MS): Promise<{ ok
 
 async function checkOpenClawGateway(): Promise<ServiceHealth> {
   const start = Date.now();
-  const GATEWAY_URL = (import.meta.env.VITE_OPENCLAW_GATEWAY_URL as string) || 'http://206.183.129.240:18789';
+  const GATEWAY_URL = (import.meta.env.VITE_OPENCLAW_GATEWAY_URL as string) || 'http://100.108.29.115:18789';
   const now = new Date().toISOString();
 
   try {
@@ -232,7 +232,7 @@ async function checkVercel(): Promise<ServiceHealth> {
   const now = new Date().toISOString();
   // Vercel project info is public — no token needed for basic status
   // We check via DNS resolution and public endpoint
-  const res = await fetchWithTimeout('https://vercel.com');
+  const res = await fetchWithTimeout('https://arrudaimobi.com.br/');
   return {
     id: 'vercel',
     label: 'Vercel (Deploys)',
