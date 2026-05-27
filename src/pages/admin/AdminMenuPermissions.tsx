@@ -68,7 +68,18 @@ const ASAAS_SANDBOX_STORAGE = "asaas_sandbox";
 const AdminMenuPermissions = () => {
   const { profile, normalizedRole } = useAuth();
   const userRole = normalizedRole;
+  const isDev = normalizedRole === 'developer';
   const canEdit = canAccessAdmin(userRole);
+
+  const [matrix, setMatrix] = useState<Record<string, Record<string, boolean>>>(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : DEFAULT_MATRIX;
+  });
+  const [connectionStatus, setConnectionStatus] = useState<"idle"|"testing"|"success"|"error">("idle");
+  const [asaasKey, setAsaasKey] = useState(() => localStorage.getItem(ASAAS_KEY_STORAGE) || "");
+  const [asaasSandbox, setAsaasSandbox] = useState(() => localStorage.getItem(ASAAS_SANDBOX_STORAGE) === "true");
+  const [showAsaasConfig, setShowAsaasConfig] = useState(false);
+  const [showAsaasKey, setShowAsaasKey] = useState(false);
 
   const testAsaasConnection = async () => {
     if (!asaasKey) {
@@ -157,7 +168,7 @@ const AdminMenuPermissions = () => {
                 </>
               )}
               {/* Asaas Settings button */}
-              {isDeveloper && (
+              {isDev && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -173,7 +184,7 @@ const AdminMenuPermissions = () => {
         />
 
         {/* Asaas Payment Configuration — developer only */}
-        {isDeveloper && showAsaasConfig && (
+        {isDev && showAsaasConfig && (
           <Card className="mb-6 border-purple-200">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
