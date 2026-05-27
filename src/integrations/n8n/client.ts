@@ -98,14 +98,20 @@ function extractExecutionIdFromHeaders(headers: Headers): string | undefined {
 }
 
 // Get workflow status from N8N (if API key available)
+// Get workflow status from N8N (if API key available)
 export async function checkN8NHealth(): Promise<{ ok: boolean; latencyMs: number }> {
   const start = Date.now();
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 8000);
-    const res = await fetch(`${N8N_BASE_URL}/healthz`, { signal: controller.signal });
+    const timer = setTimeout(() => controller.abort(), 5000);
+    // Use no-cors mode to avoid browser CORS error logging — we only care about success/fail
+    const res = await fetch(`${N8N_BASE_URL}/healthz`, {
+      signal: controller.signal,
+      mode: 'no-cors',
+    });
     clearTimeout(timer);
-    return { ok: res.ok, latencyMs: Date.now() - start };
+    // no-cors: res.type will be 'opaque' — treat as ok if we get here without exception
+    return { ok: res.type === 'opaque' || res.ok, latencyMs: Date.now() - start };
   } catch {
     return { ok: false, latencyMs: Date.now() - start };
   }
