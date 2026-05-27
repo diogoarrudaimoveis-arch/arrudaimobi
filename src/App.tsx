@@ -141,13 +141,9 @@ function App() {
                           <Route path="/admin/perfil" element={<ProtectedRoute><AdminProfile /></ProtectedRoute>} />
                           <Route path="/admin/email" element={<ProtectedRoute requireAdmin><AdminEmailSettings /></ProtectedRoute>} />
                           <Route path="/admin/permissoes-menu" element={<ProtectedRoute requireAdmin><AdminMenuPermissions /></ProtectedRoute>} />
-                          <Route path="/admin/midias" element={<ProtectedRoute requireAdmin><AdminMediaLibrary /></ProtectedRoute>} />
-                          <Route path="/admin/blog" element={<ProtectedRoute requireAdmin><AdminBlog /></ProtectedRoute>} />
                           <Route path="/admin/configuracoes" element={<ProtectedRoute requireAdmin><AdminSettings /></ProtectedRoute>} />
                           <Route path="/admin/planos-limites" element={<ProtectedRoute requireAdmin><AdminPlanosLimites /></ProtectedRoute>} />
                           <Route path="/admin/content-generator" element={<ProtectedRoute requireAdmin><AdminContentGenerator /></ProtectedRoute>} />
-                          <Route path="/admin/blog" element={<ProtectedRoute requireAdmin><AdminBlog /></ProtectedRoute>} />
-                          <Route path="/admin/midias" element={<ProtectedRoute requireAdmin><AdminMediaLibrary /></ProtectedRoute>} />
                           <Route path="/blog" element={<Blog />} />
                           <Route path="/blog/:slug" element={<BlogPost />} />
                           <Route path="*" element={<NotFound />} />
