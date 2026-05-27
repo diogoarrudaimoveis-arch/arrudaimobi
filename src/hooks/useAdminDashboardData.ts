@@ -112,7 +112,7 @@ export function useAdminDashboardData() {
           supabase.from("contacts").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId),
           supabase.from("appointments").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId),
           supabase.from("appointments").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).gte("start_time", today),
-          supabase.from("owners").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId),
+          supabase.from("owners").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).is("deleted_at", null),
           supabase.from("blog_posts").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId),
           supabase.from("properties").select("id,title,price,status,created_at").eq("tenant_id", tenantId).order("created_at", { ascending: false }).limit(5),
           supabase.from("contacts").select("id,name,phone,source,temperature,created_at").eq("tenant_id", tenantId).order("created_at", { ascending: false }).limit(5),
