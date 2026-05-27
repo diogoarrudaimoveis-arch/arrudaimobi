@@ -523,16 +523,16 @@ export default function AdminContentGenerator() {
       });
   }, [tenantId]);
 
-  // ── Load tenant brand ──
+  // ── Load tenant brand (logo from tenants.settings, not visual_identity table) ──
   useEffect(() => {
     if (!tenantId) return;
-    Promise.all([
-      supabase.from("tenants").select("name").eq("id", tenantId).maybeSingle(),
-      supabase.from("visual_identity").select("logo_url").eq("tenant_id", tenantId).maybeSingle(),
-    ]).then(([tenantRes, logoRes]) => {
-      if (tenantRes.data?.name) setBrand(prev => ({ ...prev, name: tenantRes.data.name }));
-      if (logoRes?.data?.logo_url) setLogoUrl(logoRes.data.logo_url);
-    });
+    supabase.from("tenants").select("name, settings").eq("id", tenantId).maybeSingle()
+      .then(({ data, error }) => {
+        if (error && error.code !== 'PGRST116') console.error('[AdminContentGenerator] tenants fetch error:', error);
+        if (data?.name) setBrand(prev => ({ ...prev, name: data.name }));
+        // Logo already lives in tenants.settings.logo_url — no separate visual_identity query needed
+        if (data?.settings?.logo_url) setLogoUrl(data.settings.logo_url);
+      });
   }, [tenantId]);
 
   // ── Load history ──
