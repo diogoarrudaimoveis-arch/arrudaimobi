@@ -31,7 +31,7 @@ async function fetchWithTimeout(url: string, timeout = TIMEOUT_MS): Promise<{ ok
 
 async function checkOpenClawGateway(): Promise<ServiceHealth> {
   const start = Date.now();
-  const GATEWAY_URL = (import.meta.env.VITE_OPENCLAW_GATEWAY_URL as string) || 'http://100.108.29.115:18789';
+  const GATEWAY_URL = (import.meta.env.VITE_OPENCLAW_GATEWAY_URL as string) || '/api/openclaw-health';
   const now = new Date().toISOString();
 
   try {
