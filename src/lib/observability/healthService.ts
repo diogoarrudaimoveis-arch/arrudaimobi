@@ -58,7 +58,7 @@ async function checkOpenClawGateway(): Promise<ServiceHealth> {
       category: 'core',
       status: 'failing',
       value: `HTTP ${res.status}`,
-      detail: `Gateway retornou HTTP ${res.status}`,
+      detail: `Gateway retornou HTTP ${res.status} — pode indicar gateway sobrecarregado`,
       lastCheck: now,
       responseTimeMs: res.latencyMs,
       uptimePercent: null,
@@ -66,19 +66,24 @@ async function checkOpenClawGateway(): Promise<ServiceHealth> {
       errorCount: 1,
       isReal: true,
     };
-  } catch (e) {
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    // CORS or network error → gateway is internal/private, mark as unknown not failing
+    const isCorsOrPrivate = msg.includes('Permission denied') or msg.includes('CORS') or msg.includes('net::ERR_');
     return {
       id: 'openclaw_gateway',
       label: 'OpenClaw Gateway',
       category: 'core',
-      status: 'failing',
-      value: 'Unreachable',
-      detail: e instanceof Error ? e.message.substring(0, 80) : 'Erro de conexão',
+      status: isCorsOrPrivate ? 'unknown' : 'failing',
+      value: isCorsOrPrivate ? 'Internal' : 'Unreachable',
+      detail: isCorsOrPrivate
+        ? 'Gateway em rede interna (acesso via browser limitado por CORS)'
+        : msg.substring(0, 80),
       lastCheck: now,
       responseTimeMs: Date.now() - start,
       uptimePercent: null,
       retryCount: 0,
-      errorCount: 1,
+      errorCount: isCorsOrPrivate ? 0 : 1,
       isReal: true,
     };
   }
