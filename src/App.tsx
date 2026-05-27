@@ -63,6 +63,7 @@ const AdminN8NWorkflows = lazy(() => import("./pages/admin/AdminN8NWorkflows"));
 const AdminMetaAds = lazy(() => import("./pages/admin/ai/AdminMetaAds"));
 const AdminSupabaseMonitor = lazy(() => import("./pages/admin/ai/AdminSupabaseMonitor"));
 const AdminMostruario = lazy(() => import("./pages/admin/AdminMostruario"));
+const AdminPlanosLimites = lazy(() => import("./pages/admin/AdminPlanosLimites"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -119,11 +120,16 @@ function App() {
                           <Route path="/admin/proprietarios" element={<ProtectedRoute requireAdmin><AdminOwners /></ProtectedRoute>} />
                           <Route path="/admin/configuracoes-ia" element={<ProtectedRoute requireAdmin><AdminAIConfig /></ProtectedRoute>} />
                           <Route path="/admin/midias" element={<ProtectedRoute requireAdmin><AdminMediaLibrary /></ProtectedRoute>} />
+                          <Route path="/admin/biblioteca-midia" element={<ProtectedRoute requireAdmin><AdminMediaLibrary /></ProtectedRoute>} />
                           <Route path="/admin/blog" element={<ProtectedRoute requireAdmin><AdminBlog /></ProtectedRoute>} />
                           <Route path="/admin/tipos" element={<ProtectedRoute requireAdmin><AdminPropertyTypes /></ProtectedRoute>} />
+                          <Route path="/admin/tipos-imovel" element={<ProtectedRoute requireAdmin><AdminPropertyTypes /></ProtectedRoute>} />
                           <Route path="/admin/comodidades" element={<ProtectedRoute requireAdmin><AdminAmenities /></ProtectedRoute>} />
                           <Route path="/admin/mostruario" element={<ProtectedRoute requireAdmin><AdminMostruario /></ProtectedRoute>} />
                           <Route path="/admin/performance" element={<ProtectedRoute requireAdmin><AdminPropertyPerformance /></ProtectedRoute>} />
+                          <Route path="/admin/performance-imoveis" element={<ProtectedRoute requireAdmin><AdminPropertyPerformance /></ProtectedRoute>} />
+                          <Route path="/admin/portais" element={<ProtectedRoute requireAdmin><AdminPortals /></ProtectedRoute>} />
+                          <Route path="/admin/marketing-portal" element={<ProtectedRoute requireAdmin><AdminPortalMarketing /></ProtectedRoute>} />
                           <Route path="/admin/operacional" element={<ProtectedRoute requireAdmin><AdminAIOperational /></ProtectedRoute>} />
                           <Route path="/admin/agentes" element={<ProtectedRoute requireAdmin><AdminAIAgents /></ProtectedRoute>} />
                           <Route path="/admin/automacoes" element={<ProtectedRoute requireAdmin><AdminAIAutomations /></ProtectedRoute>} />
@@ -132,6 +138,11 @@ function App() {
                           <Route path="/admin/alertas" element={<ProtectedRoute requireAdmin><AdminAIAlerts /></ProtectedRoute>} />
                           <Route path="/admin/telemetria" element={<ProtectedRoute requireAdmin><AdminAITelemetry /></ProtectedRoute>} />
                           <Route path="/admin/devops" element={<ProtectedRoute requireAdmin><AdminDevOps /></ProtectedRoute>} />
+                          <Route path="/admin/ia-operacional" element={<ProtectedRoute requireAdmin><AdminAIOperational /></ProtectedRoute>} />
+                          <Route path="/admin/ia-agentes" element={<ProtectedRoute requireAdmin><AdminAIAgents /></ProtectedRoute>} />
+                          <Route path="/admin/ia-automacoes" element={<ProtectedRoute requireAdmin><AdminAIAutomations /></ProtectedRoute>} />
+                          <Route path="/admin/ia-logs" element={<ProtectedRoute requireAdmin><AdminAILogs /></ProtectedRoute>} />
+                          <Route path="/admin/ia-health" element={<ProtectedRoute requireAdmin><AdminAIHealth /></ProtectedRoute>} />
                           <Route path="/admin/n8n-workflows" element={<ProtectedRoute requireAdmin><AdminN8NWorkflows /></ProtectedRoute>} />
                           <Route path="/admin/meta-ads" element={<ProtectedRoute requireAdmin><AdminMetaAds /></ProtectedRoute>} />
                           <Route path="/admin/supabase-monitor" element={<ProtectedRoute requireAdmin><AdminSupabaseMonitor /></ProtectedRoute>} />
