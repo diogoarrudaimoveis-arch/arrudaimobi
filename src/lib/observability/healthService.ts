@@ -69,7 +69,7 @@ async function checkOpenClawGateway(): Promise<ServiceHealth> {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     // CORS or network error → gateway is internal/private, mark as unknown not failing
-    const isCorsOrPrivate = msg.includes('Permission denied') or msg.includes('CORS') or msg.includes('net::ERR_');
+    const isCorsOrPrivate = msg.includes('Permission denied') || msg.includes('CORS') || msg.includes('net::ERR_');
     return {
       id: 'openclaw_gateway',
       label: 'OpenClaw Gateway',
