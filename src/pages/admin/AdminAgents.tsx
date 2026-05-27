@@ -59,24 +59,11 @@ const AdminAgents = () => {
       const userIds = (profiles || []).map((p) => p.user_id);
       const emailMap: Record<string, string> = {};
 
-      if (userIds.length > 0 && session?.access_token) {
+      if (userIds.length > 0) {
         try {
-          const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID || "udutxbyzrdwucabxqvgg";
-          const res = await fetch(
-            `https://${PROJECT_ID}.supabase.co/auth/v1/admin/users?page=1&per_page=1000`,
-            {
-              headers: {
-                Authorization: `Bearer ${session.access_token}`,
-                apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-              },
-            }
-          );
-          if (res.ok) {
-            const data = await res.json();
-            const users_arr: any[] = data.users || [];
-            users_arr.forEach((u) => {
-              if (u.id && u.email) emailMap[u.id] = u.email;
-            });
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user?.email) {
+            emailMap[user.id] = user.email;
           }
         } catch {
           // proceed without emails
@@ -155,19 +142,9 @@ const AdminAgents = () => {
       await supabase.from("user_roles").delete().eq("user_id", userId);
       // Delete profile
       await supabase.from("profiles").delete().eq("user_id", userId);
-      // Delete auth user
-      const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID || "udutxbyzrdwucabxqvgg";
-      const res = await fetch(
-        `https://${PROJECT_ID}.supabase.co/auth/v1/admin/users/${userId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${session?.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-          },
-        }
-      );
-      toast.success("Usuário excluído");
+      // Delete auth user via service role (done via server action or manually in Supabase Dashboard)
+      // Local records deleted; auth user cleanup requires manual dashboard action
+      toast.success("Usuário removido do painel (perfil e role excluídos)");
       queryClient.invalidateQueries({ queryKey: ["company-users"] });
     } catch (err: any) {
       toast.error("Erro ao excluir: " + err.message);
