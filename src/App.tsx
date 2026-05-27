@@ -118,6 +118,8 @@ function App() {
                           <Route path="/admin/corretores" element={<ProtectedRoute requireAdmin><AdminAgents /></ProtectedRoute>} />
                           <Route path="/admin/proprietarios" element={<ProtectedRoute requireAdmin><AdminOwners /></ProtectedRoute>} />
                           <Route path="/admin/configuracoes-ia" element={<ProtectedRoute requireAdmin><AdminAIConfig /></ProtectedRoute>} />
+                          <Route path="/admin/midias" element={<ProtectedRoute requireAdmin><AdminMediaLibrary /></ProtectedRoute>} />
+                          <Route path="/admin/blog" element={<ProtectedRoute requireAdmin><AdminBlog /></ProtectedRoute>} />
                           <Route path="/admin/tipos" element={<ProtectedRoute requireAdmin><AdminPropertyTypes /></ProtectedRoute>} />
                           <Route path="/admin/comodidades" element={<ProtectedRoute requireAdmin><AdminAmenities /></ProtectedRoute>} />
                           <Route path="/admin/mostruario" element={<ProtectedRoute requireAdmin><AdminMostruario /></ProtectedRoute>} />
@@ -142,6 +144,7 @@ function App() {
                           <Route path="/admin/midias" element={<ProtectedRoute requireAdmin><AdminMediaLibrary /></ProtectedRoute>} />
                           <Route path="/admin/blog" element={<ProtectedRoute requireAdmin><AdminBlog /></ProtectedRoute>} />
                           <Route path="/admin/configuracoes" element={<ProtectedRoute requireAdmin><AdminSettings /></ProtectedRoute>} />
+                          <Route path="/admin/planos-limites" element={<ProtectedRoute requireAdmin><AdminPlanosLimites /></ProtectedRoute>} />
                           <Route path="/admin/content-generator" element={<ProtectedRoute requireAdmin><AdminContentGenerator /></ProtectedRoute>} />
                           <Route path="/admin/blog" element={<ProtectedRoute requireAdmin><AdminBlog /></ProtectedRoute>} />
                           <Route path="/admin/midias" element={<ProtectedRoute requireAdmin><AdminMediaLibrary /></ProtectedRoute>} />
