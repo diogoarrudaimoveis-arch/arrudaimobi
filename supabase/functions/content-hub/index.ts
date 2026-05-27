@@ -1,9 +1,9 @@
 /**
- * Content Hub — Supabase Edge Function v2
- * All working APIs: OmniRoute (LLM) + Pollinations AI (images) + Browser TTS
+ * Content Hub — Supabase Edge Function v3
+ * All working APIs: OmniRoute (LLM) + Pollinations AI (images) + MiniMax (TTS + Video)
  *
  * Actions:
- *  - generate          → text + images via OmniRoute + Pollinations
+ *  - generate          → text + images via OmniRoute + Pollinations + MiniMax TTS/Video
  *  - generate-image    → Pollinations AI image URL
  *  - get-history       → content_generations table
  *  - health            → provider status
@@ -26,6 +26,11 @@ const ALLOWED_ORIGINS = [
 // OmniRoute — internal LLM router (works for text)
 const OMNI_KEY = Deno.env.get("OMNIROUTE_API_KEY") || "sk-611d5b3c2cca0507-7a32b3-0e17b59f";
 const OMNI_BASE = Deno.env.get("OMNIROUTE_BASE") || "http://206.183.129.200:20128/v1";
+
+// MiniMax — real TTS + video generation
+const MINIMAX_KEY = Deno.env.get("MINIMAX_API_KEY") || "sk-cp-hLJt2Kf0K8kHsNNjX5rIrIO6Tuh_xLdq1OfB48stoVH0hJeGAM8SlNW1wnDF-ppR-laECIuzS2TcfFPgMhWF4M3GMwZalwYQHi7_VxGYdZpXqZaVknHnfOM";
+const MINIMAX_GROUP = Deno.env.get("MINIMAX_GROUP_ID") || "arruda-imobi";
+const MINIMAX_BASE = "https://api.minimax.chat";
 
 // ─── CORS ───────────────────────────────────────────────────────────────────
 
@@ -59,21 +64,47 @@ function parseJson(text: string): any {
   return null;
 }
 
-// ─── OmniRoute LLM (text generation) ────────────────────────────────────────
+// ─── OmniRoute LLM (text generation) — with retry + longer timeout ────────────
 
 async function omniChat(messages: { role: string; content: string }[], maxTokens = 2048) {
   const omniBody = JSON.stringify({ model: "MiniMax-M2.7", messages, max_tokens: maxTokens, temperature: 0.75, stream: false });
-  const res = await fetch(`${OMNI_BASE}/chat/completions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${OMNI_KEY}` },
-    body: omniBody,
-  });
-  if (!res.ok) throw new Error(`OmniRoute ${res.status}: ${await res.text()}`);
-  const body = await res.text();
-  let json: any;
-  try { json = JSON.parse(body); } catch { json = null; }
-  if (!json) throw new Error("OmniRoute response is not valid JSON: " + body.slice(0, 100));
-  return json.choices?.[0]?.message?.content || "";
+
+  // Try up to 2 times with longer timeout (serverless envs need more time)
+  let lastError = "";
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout
+
+      const res = await fetch(`${OMNI_BASE}/chat/completions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${OMNI_KEY}` },
+        body: omniBody,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const body = await res.text();
+        let json: any;
+        try { json = JSON.parse(body); } catch { json = null; }
+        if (!json) throw new Error("OmniRoute response is not valid JSON: " + body.slice(0, 100));
+        return json.choices?.[0]?.message?.content || "";
+      } else {
+        lastError = `OmniRoute ${res.status}: ${(await res.text().catch(() => ""))}`;
+      }
+    } catch (e: any) {
+      lastError = e.message || String(e);
+      // AbortError = timeout — retry
+      if (lastError.includes("aborted") || lastError.includes("timeout") || lastError.includes("connection")) {
+        console.log(`omniChat attempt ${attempt + 1} failed, retrying...`);
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw new Error(`OmniRoute failed after retries: ${lastError}`);
 }
 
 // ─── Pollinations AI (free image generation) ────────────────────────────────
@@ -352,37 +383,37 @@ function buildHailuoVideoPrompt(p: any, refImg: string): string {
 async function genVideoScript(p: any, imgs: string[], tone: string, custom: string) {
   const ctx = propContext(p, imgs);
   const sys = `ROTEIRISTA CINEMATOGRÁFICO PREMIUM para vídeos imobiliários de alto padrão.
-Você escreve roteiros para filmes de arquitetura de luxo — não vídeos de corretores.
+  Você escreve roteiros para filmes de arquitetura de luxo — não vídeos de corretores.
 
-ESTRUTURA DRAMÁTICA (60-90 segundos):
+  ESTRUTURA DRAMÁTICA (60-90 segundos):
 
-[HOOK — 0-8s]
-Abertura em BLACK. Som ambiente: vento, água, cidade silenciosa.
-Primeira imagem: detalhe arquitetônico (maçaneta, luz, textura) + texto poético narração.
-Câmera: close-up → establishing shot (slow motion, 2 segundos de silêncio antes do nome).
+  [HOOK — 0-8s]
+  Abertura em BLACK. Som ambiente: vento, água, cidade silenciosa.
+  Primeira imagem: detalhe arquitetônico (maçaneta, luz, textura) + texto poético narração.
+  Câmera: close-up → establishing shot (slow motion, 2 segundos de silêncio antes do nome).
 
-[APRESENTAÇÃO — 8-25s]
-Nome do imóvel + bairro icônico. Drone shot cinematográfico.
-Narração: "Este não é apenas um endereço. É uma declaração."
-Cut para: living room com iluminação volumétrica dourada.
+  [APRESENTAÇÃO — 8-25s]
+  Nome do imóvel + bairro icônico. Drone shot cinematográfico.
+  Narração: "Este não é apenas um endereço. É uma declaração."
+  Cut para: living room com iluminação volumétrica dourada.
 
-[TOUR SENSORIAL — 25-65s]
-Cada câmera vai a um espaço. Narração descreve SENSações, não metros.
-- "A luz que entra pela varanda às 17h... transforma a sala em ouro líquido"
-- "A cozinha onde o Chef mora — mármore que guarda o calor do sol"
-都用描写 sensorial. Câmera: slow motion, rack focus.
+  [TOUR SENSORIAL — 25-65s]
+  Cada câmera vai a um espaço. Narração descreve SENSações, não metros.
+  - "A luz que entra pela varanda às 17h... transforma a sala em ouro líquido"
+  - "A cozinha onde o Chef mora — mármore que guarda o calor do sol"
+  都用描写 sensorial. Câmera: slow motion, rack focus.
 
-[CTA — 65-90s]
-Preço apresentado de forma cinematográfica (não tabular).
-Narração: "Alguns endereços não estão à venda. Estão à espera."
-Cut final: pôr do sol pela janela + fade to logo.
+  [CTA — 65-90s]
+  Preço apresentado de forma cinematográfica (não tabular).
+  Narração: "Alguns endereços não estão à venda. Estão à espera."
+  Cut final: pôr do sol pela janela + fade to logo.
 
-REGRAS:
-- Narração em português, voz em OFF (sempre no presente do subjuntivo poético)
-- Duração estimada: 75 segundos
-- videoPrompt: Use a função buildHailuoVideoPrompt para gerar o prompt de Image-to-Video
+  REGRAS:
+  - Narração em português, voz em OFF (sempre no presente do subjuntivo poético)
+  - Duração estimada: 75 segundos
+  - videoPrompt: Use a função buildHailuoVideoPrompt para gerar o prompt de Image-to-Video
 
-Responda JSON: { "title": "...", "script": "...", "duration_estimate": 75, "hashtags": [...] }`;
+  Responda JSON: { "title": "...", "script": "...", "duration_estimate": 75, "hashtags": [...] }`;
   const raw = await omniChat([
     { role: "system", content: sys },
     { role: "user", content: custom ? `${ctx}\n\n${custom}` : ctx },
@@ -390,14 +421,46 @@ Responda JSON: { "title": "...", "script": "...", "duration_estimate": 75, "hash
   const j = parseJson(raw);
   const refImg = imgs?.[0] || "";
   const videoPrompt = buildHailuoVideoPrompt(p, refImg);
+
+  // Generate real video via MiniMax Hailuo Image-to-Video (falls back gracefully)
+  let videoUrl: string | null = null;
+  let videoError: string | null = null;
+  if (imgs?.length) {
+    try {
+      const videoRes = await fetch(`${MINIMAX_BASE}/v1/video_generation`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${MINIMAX_KEY}` },
+        body: JSON.stringify({
+          model: "video-01",
+          input_images: imgs.slice(0, 4),
+          prompt: videoPrompt,
+          duration: 5,
+        }),
+      });
+      const videoJson = await videoRes.json();
+      if (videoRes.ok && videoJson.data?.video_url) {
+        videoUrl = videoJson.data.video_url;
+      } else {
+        videoError = videoJson.message || `HTTP ${videoRes.status}: MiniMax Video nao disponivel. Roteiro gerado com sucesso.`;
+        console.log("[Video] MiniMax failed:", videoError);
+      }
+    } catch (e: any) {
+      videoError = `Video indisponivel: ${e.message}. Roteiro gerado.`;
+      console.log("[Video] Error:", videoError);
+    }
+  } else {
+    videoError = "Selecione um imovel com fotos para gerar video.";
+  }
+
   return {
     type: "video_script",
     title: j?.title || p?.title || "Roteiro de Vídeo",
     script: j?.script || raw,
     hashtags: j?.hashtags || [],
-    duration: j?.duration_estimate || 60,
-    imageUrl: refImg || pollinationsImage(`Luxury Brazilian ${(p as any)?.type || "property"} at golden hour, volumetric lighting, cinematic`, 1280, 720),
+    videoUrl,
+    videoError,
     videoPrompt,
+    videoUrl,
   };
 }
 
@@ -440,16 +503,44 @@ Responda JSON: { "headline1": "...", "headline2": "...", "description": "...", "
   };
 }
 
-async function genVoiceover(p: any, tone: string) {
+async function genVoiceover(p: any, tone: string, male = false) {
   const ctx = propContext(p, []);
   const sys = `Roteirista de narrações para vídeos imobiliários. Texto max 150 palavras, falado em 30-45s. Tom: ${TONE_MAP[tone] || TONE_MAP.professional}. Sem hashtags. Linguagem clara de locução profissional. Responda apenas o texto.`;
   const script = await omniChat([{ role: "system", content: sys }, { role: "user", content: ctx }]);
-  // TTS will be done client-side via Web Speech API
+
+  // Generate real audio via MiniMax TTS (falls back gracefully)
+  let audioUrl: string | null = null;
+  let audioError: string | null = null;
+  try {
+    const ttsRes = await fetch(`${MINIMAX_BASE}/v1/t2aPro`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${MINIMAX_KEY}` },
+      body: JSON.stringify({
+        model: "speech-01-turbo",
+        text: script.slice(0, 500),
+        stream: false,
+        voice_setting: { voice_id: male ? "male-qn-qingse" : "female-qn-qingse", speed: 1.0 },
+        output_format: "mp3",
+      }),
+    });
+    const ttsJson = await ttsRes.json();
+    if (ttsRes.ok && ttsJson.data?.audio_file) {
+      audioUrl = ttsJson.data.audio_file;
+    } else {
+      audioError = ttsJson.message || `HTTP ${ttsRes.status}: MiniMax TTS nao disponivel. Use o botao de voz no navegador para ouvir.`;
+      console.log("[TTS] MiniMax failed:", audioError);
+    }
+  } catch (e: any) {
+    audioError = `TTS indisponivel: ${e.message}. Use o botao de voz no navegador para ouvir a narracao.`;
+    console.log("[TTS] Error:", audioError);
+  }
+
   return {
     type: "voiceover",
     title: `Narração: ${p?.title || "Imóvel"}`,
     script,
-    // audioUrl will be generated client-side
+    audioUrl,
+    audioError,
     imageUrl: p?.images?.[0] || null,
   };
 }
@@ -547,7 +638,7 @@ serve(async (req) => {
             case "story": result = await genStory(propData, property_images || [], tone || "professional", custom_prompt || ""); break;
             case "video_script":
             case "video": result = await genVideoScript(propData, property_images || [], tone || "professional", custom_prompt || ""); break;
-            case "voiceover": result = await genVoiceover(propData, tone || "professional"); break;
+            case "voiceover": result = await genVoiceover(propData, tone || "professional", body.male || false); break;
             case "music": result = await genMusic(propData, tone || "professional"); break;
             case "property_description":
             case "description": result = await genPropertyDescription(propData, tone || "professional"); break;
@@ -578,6 +669,63 @@ serve(async (req) => {
         ok: true,
         data: { image_url: pollinationsImage(prompt, width || 1280, height || 720), width: width || 1280, height: height || 720 },
       }), { headers: { ...cors, "Content-Type": "application/json" } });
+    }
+
+    // ── Img2Img via MiniMax ────────────────────────────────
+    if (action === "generate-img2img") {
+      const { imageUrl, prompt, strength } = body;
+      if (!imageUrl) throw new Error("imageUrl obrigatório");
+      if (!prompt) throw new Error("prompt obrigatório");
+
+      let imageUrlStr = imageUrl;
+      // If it's a data URL, upload to a temporary location (skip for now — data URLs can't be uploaded to MiniMax directly)
+      // For HTTP URLs, fetch and convert to base64
+      let base64Image = "";
+      if (imageUrl.startsWith("data:")) {
+        base64Image = imageUrl.split(",")[1];
+      } else if (imageUrl.startsWith("http")) {
+        try {
+          const imgRes = await fetch(imageUrl);
+          const imgBuf = await imgRes.arrayBuffer();
+          base64Image = btoa(String.fromCharCode(...new Uint8Array(imgBuf)));
+        } catch (e) {
+          return new Response(JSON.stringify({ ok: false, error: `Falha ao baixar imagem: ${e.message}` }), {
+            headers: { ...cors, "Content-Type": "application/json" },
+          });
+        }
+      }
+
+      // Call MiniMax image generation with reference image
+      try {
+        const mmRes = await fetch(`${MINIMAX_BASE}/image_generation`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${MINIMAX_KEY}` },
+          body: JSON.stringify({
+            model: "image-01",
+            prompt,
+            input_image_base64: base64Image || undefined,
+            strength: strength || 0.75,
+            width: 1024,
+            height: 1024,
+            num_steps: 25,
+          }),
+        });
+        const mmJson = await mmRes.json();
+        if (mmJson.code === 0 && mmJson.data?.images?.[0]) {
+          return new Response(JSON.stringify({
+            ok: true,
+            data: { image_url: mmJson.data.images[0] },
+          }), { headers: { ...cors, "Content-Type": "application/json" } });
+        } else {
+          return new Response(JSON.stringify({ ok: false, error: mmJson.message || "MiniMax img2img failed" }), {
+            headers: { ...cors, "Content-Type": "application/json" },
+          });
+        }
+      } catch (e: any) {
+        return new Response(JSON.stringify({ ok: false, error: e.message }), {
+          headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
     }
 
     // ── History ────────────────────────────────────────────

@@ -160,31 +160,68 @@ function AudioPlayer({ src, label, onGenerateAudio, script, male }: {
 }) {
   const { speak, stop, speaking } = useBrowserTTS();
   const [localSrc, setLocalSrc] = useState(src);
+  const [audioPlaying, setAudioPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  const handleSpeak = () => {
-    if (speaking) { stop(); return; }
-    if (script) speak(script, male);
+  // Sync src prop to local state
+  useEffect(() => { if (src) setLocalSrc(src); }, [src]);
+
+  const handlePlay = () => {
+    // Prefer real MiniMax audio URL
+    if (localSrc && !localSrc.startsWith("data:")) {
+      if (audioPlaying) {
+        audioRef.current?.pause();
+        setAudioPlaying(false);
+      } else {
+        if (!audioRef.current) return;
+        audioRef.current.src = localSrc;
+        audioRef.current.play().catch(() => {
+          // Fallback to browser TTS if audio playback fails
+          if (script) speak(script, male);
+        });
+        setAudioPlaying(true);
+      }
+    } else {
+      // Browser TTS fallback
+      if (speaking || audioPlaying) { stop(); audioRef.current?.pause(); setAudioPlaying(false); return; }
+      if (script) speak(script, male);
+    }
   };
+
+  // Listen for audio end
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const onEnded = () => setAudioPlaying(false);
+    audio.addEventListener("ended", onEnded);
+    return () => audio.removeEventListener("ended", onEnded);
+  }, []);
+
+  const isPlaying = audioPlaying || speaking;
 
   return (
     <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-3">
       <Button
         size="sm" variant="ghost"
-        onClick={handleSpeak}
+        onClick={handlePlay}
         className="shrink-0 w-9 h-9 rounded-full bg-primary/10 hover:bg-primary/20"
       >
-        {speaking ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+        {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
       </Button>
+      <audio ref={audioRef} className="hidden" />
       <div className="flex-1 min-w-0">
         <p className="text-xs font-medium truncate">{label}</p>
         <p className="text-[10px] text-muted-foreground">
-          {speaking ? "🔊 Reproduzindo..." : script ? "🎤 Clique para ouvir" : (localSrc ? "Pronto" : "Gerar para ouvir")}
+          {isPlaying
+            ? "🔊 Reproduzindo..."
+            : localSrc && !localSrc.startsWith("data:")
+              ? "🎧 MiniMax TTS"
+              : script
+                ? "🎤 Clique para ouvir"
+                : localSrc ? "Pronto" : "Gerar para ouvir"
+          }
         </p>
       </div>
-      {src && audioRef.current && (
-        <audio ref={audioRef} src={localSrc} className="hidden" />
-      )}
     </div>
   );
 }
@@ -491,7 +528,7 @@ export default function AdminContentGenerator() {
     if (!tenantId) return;
     Promise.all([
       supabase.from("tenants").select("name").eq("id", tenantId).maybeSingle(),
-      Promise.resolve(null),  // logo not available in tenants table
+      supabase.from("visual_identity").select("logo_url").eq("tenant_id", tenantId).maybeSingle(),
     ]).then(([tenantRes, logoRes]) => {
       if (tenantRes.data?.name) setBrand(prev => ({ ...prev, name: tenantRes.data.name }));
       if (logoRes?.data?.logo_url) setLogoUrl(logoRes.data.logo_url);
@@ -560,9 +597,9 @@ export default function AdminContentGenerator() {
     setImg2imgLoading(true); setImg2imgResult(null); setImg2imgError(null);
     try {
       const res = await fetch(
-        "https://udutxbyzrdwucabxqvgg.supabase.co/functions/v1/public-api?action=generate-img2img",
+        "https://udutxbyzrdwucabxqvgg.supabase.co/functions/v1/content-hub",
         { method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ imageUrl: img2imgRefImage, prompt: img2imgPrompt, strength: img2imgStrength }) }
+          body: JSON.stringify({ action: "generate-img2img", imageUrl: img2imgRefImage, prompt: img2imgPrompt, strength: img2imgStrength }) }
       );
       const json = await res.json();
       if (json.ok && json.data?.image_url) {
@@ -589,7 +626,7 @@ export default function AdminContentGenerator() {
   useEffect(() => {
     if (!selectedPropertyId) { setPropertyData(null); setCustomPrompt(""); return; }
     setPropertyLoading(true);
-    supabase.from("properties").select("id, title, city, price, status, bedrooms, bathrooms, area, type_id, property_images(url, display_order)")
+    supabase.from("properties").select("id, title, description, city, price, status, bedrooms, bathrooms, area, type, type_id, property_images(url, display_order)")
       .eq("id", selectedPropertyId).single()
       .then(({ data, error }) => {
         setPropertyLoading(false);
@@ -611,6 +648,32 @@ export default function AdminContentGenerator() {
         }
       });
   }, [selectedPropertyId]);
+
+  // ── Auto-load first property image into img2img ──
+  useEffect(() => {
+    if (!propertyData?.images?.length) return;
+    // Auto-load first property image as img2img reference (only if not already set)
+    if (img2imgRefImage) return;
+    const firstImg = propertyData.images[0];
+    if (!firstImg) return;
+    // Load via canvas to get CORS-safe data URL
+    const img = new window.Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth || img.width;
+      canvas.height = img.naturalHeight || img.height;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0);
+      try {
+        setImg2imgRefImage(canvas.toDataURL("image/jpeg", 0.9));
+      } catch {
+        setImg2imgRefImage(firstImg); // CORS fallback
+      }
+    };
+    img.onerror = () => { setImg2imgRefImage(firstImg); };
+    img.src = firstImg;
+  }, [propertyData?.images?.[0]]);
 
   // ── Toggle content type ──
   const toggleType = (id: string) => {
@@ -650,6 +713,7 @@ export default function AdminContentGenerator() {
           content_types: selectedTypes,
           tone,
           platform,
+          male: voiceMale,
           custom_prompt: customPrompt.trim() || propertyData?.description || "",
           save_to_db: true,
         }),
@@ -754,7 +818,7 @@ export default function AdminContentGenerator() {
       <AdminPageShell>
         <AdminPageHeader
           title="Gerador de Conteúdo IA"
-          subtitle={`${brand.name} — OmniRoute (texto) + MiniMax AI (imagens) + Templates Canvas + TTS`}
+          subtitle={`${brand.name} — OmniRoute (texto) + MiniMax AI (imagens + TTS + Vídeo) + Canvas Templates`}
           action={
             <Tabs value={tab} onValueChange={(v) => { setTab(v as any); if (v === "history") loadHistory(); }}>
               <TabsList className="h-9">
@@ -1264,7 +1328,7 @@ export default function AdminContentGenerator() {
                         <div className="rounded-xl border-2 border-fuchsia-200 dark:border-fuchsia-800 bg-fuchsia-50/30 py-6 text-center space-y-2">
                           <Loader2 className="h-8 w-8 animate-spin text-fuchsia-500 mx-auto" />
                           <p className="text-sm font-medium text-fuchsia-700 dark:text-fuchsia-400">Processando...</p>
-                          <p className="text-xs text-muted-foreground">Img2Img via Gemini 3.1 (OmniRoute)</p>
+                          <p className="text-xs text-muted-foreground">Img2Img via MiniMax AI (Flux)</p>
                         </div>
                       )}
 
