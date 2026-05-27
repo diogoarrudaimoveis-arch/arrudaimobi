@@ -161,17 +161,17 @@ const TabVisaoGeral = ({
               <div className="divide-y divide-border/50">
                 {recentContacts.map((contact) => (
                   <div key={contact.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors">
-                    <StatusDot status={contact.temperature} />
+                    <StatusDot status={contact.external_source} />
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
                       <User className="h-4 w-4 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold truncate">{contact.name}</p>
-                      <p className="text-[10px] text-muted-foreground">{contact.source || "Sem origem"}</p>
+                      <p className="text-[10px] text-muted-foreground">{contact.external_source || "Sem origem"}</p>
                     </div>
                     <div className="flex flex-col items-end gap-0.5">
-                      <Badge variant={contact.temperature?.toLowerCase().includes("quente") ? "destructive" : "secondary"} className="text-[10px]">
-                        {contact.temperature || "—"}
+                      <Badge variant={contact.external_source?.toLowerCase().includes("quente") ? "destructive" : "secondary"} className="text-[10px]">
+                        {contact.external_source || "—"}
                       </Badge>
                       <span className="text-[10px] text-muted-foreground">
                         {new Date(contact.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
@@ -335,9 +335,9 @@ const TabLeads = ({ recentContacts }: {
                 {recentContacts.map((c) => (
                   <TableRow key={c.id} className="border-border/50">
                     <TableCell className="py-2"><span className="text-[11px] font-medium">{c.name}</span></TableCell>
-                    <TableCell className="py-2"><span className="text-[11px] text-muted-foreground">{c.source || "—"}</span></TableCell>
+                    <TableCell className="py-2"><span className="text-[11px] text-muted-foreground">{c.external_source || "—"}</span></TableCell>
                     <TableCell className="py-2">
-                      <StatusDot status={c.temperature} />
+                      <StatusDot status={c.external_source} />
                     </TableCell>
                     <TableCell className="py-2 text-right">
                       <span className="text-[11px] text-muted-foreground">
