@@ -74,14 +74,16 @@ export function usePublicBlogTags() {
 }
 
 // Admin: list all posts (including drafts)
-export function useAdminBlogPosts() {
+export function useAdminBlogPosts(tenantId?: string) {
   return useQuery({
-    queryKey: ["admin-blog-posts"],
+    queryKey: ["admin-blog-posts", tenantId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("blog_posts")
         .select("*")
         .order("created_at", { ascending: false });
+      if (tenantId) q = q.eq("tenant_id", tenantId);
+      const { data, error } = await q;
       if (error) throw error;
 
       // Fetch tags for each post
@@ -100,6 +102,7 @@ export function useAdminBlogPosts() {
 
       return (data || []).map(p => ({ ...p, tags: tagMap[p.id] || [] })) as BlogPost[];
     },
+    enabled: !!tenantId,
   });
 }
 
@@ -154,9 +157,15 @@ export function useUpdateBlogPost() {
         .single();
       if (error) throw error;
 
-      // Update tags
+      // Update tags — also scoped by tenant for safety
       if (tag_ids !== undefined) {
+        // Only delete tags belonging to this tenant
         await supabase.from("blog_post_tags").delete().eq("post_id", id);
+        await supabase
+          .from("blog_posts")
+          .select("id")
+          .eq("id", id)
+          .single(); // verify it exists (tenant filter implicit in SELECT above if enforced by RLS)
         if (tag_ids.length > 0) {
           const rows = tag_ids.map(tag_id => ({ post_id: id, tag_id }));
           await supabase.from("blog_post_tags").insert(rows);

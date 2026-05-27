@@ -45,7 +45,7 @@ interface GeneratedPreview {
 
 export default function AdminBlog() {
   const { tenantId, user } = useAuth();
-  const { data: posts, isLoading, refetch } = useAdminBlogPosts();
+  const { data: posts, isLoading, refetch } = useAdminBlogPosts(tenantId);
   const createPost = useCreateBlogPost();
   const updatePost = useUpdateBlogPost();
   const deletePost = useDeleteBlogPost();
