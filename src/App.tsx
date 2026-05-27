@@ -117,6 +117,7 @@ function App() {
                           <Route path="/admin/imoveis" element={<ProtectedRoute requireAdmin><AdminProperties /></ProtectedRoute>} />
                           <Route path="/admin/imoveis/:id" element={<ProtectedRoute requireAdmin><AdminProperties /></ProtectedRoute>} />
                           <Route path="/admin/corretores" element={<ProtectedRoute requireAdmin><AdminAgents /></ProtectedRoute>} />
+                          <Route path="/admin/agentes" element={<ProtectedRoute requireAdmin><AdminAgents /></ProtectedRoute>} />
                           <Route path="/admin/proprietarios" element={<ProtectedRoute requireAdmin><AdminOwners /></ProtectedRoute>} />
                           <Route path="/admin/configuracoes-ia" element={<ProtectedRoute requireAdmin><AdminAIConfig /></ProtectedRoute>} />
                           <Route path="/admin/midias" element={<ProtectedRoute requireAdmin><AdminMediaLibrary /></ProtectedRoute>} />

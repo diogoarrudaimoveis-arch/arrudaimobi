@@ -29,8 +29,7 @@ export interface RecentContact {
   id: string;
   name: string;
   phone: string | null;
-  source: string | null;
-  temperature: string | null;
+  external_source: string | null;
   created_at: string;
 }
 
@@ -66,33 +65,30 @@ export function useAdminDashboardData() {
 
   useEffect(() => {
     if (!user) {
-      console.log('[DashboardData] no user, skip fetch');
+      console.log("[DashboardData] no user, skip fetch");
       return;
     }
 
     let cancelled = false;
     setLoading(true);
     setError(null);
-    console.log('[DashboardData] fetching for user:', user.id);
+    console.log("[DashboardData] fetching for user:", user.id);
 
     async function fetchAll() {
       try {
-        // Get tenant_id from profile
         const profileRes = await supabase
           .from("profiles")
           .select("tenant_id")
           .eq("user_id", user.id)
           .single();
 
-        console.log('[DashboardData] profileRes:', profileRes.data, 'error:', profileRes.error);
-
         const tenantId = profileRes.data?.tenant_id;
         if (!tenantId) {
-          console.log('[DashboardData] NO TENANT ID - aborting fetch');
+          console.log("[DashboardData] NO TENANT ID - aborting fetch");
           if (!cancelled) setLoading(false);
           return;
         }
-        console.log('[DashboardData] using tenantId:', tenantId);
+        console.log("[DashboardData] using tenantId:", tenantId);
 
         const today = new Date().toISOString().split("T")[0] + "T00:00:00";
 
@@ -112,10 +108,10 @@ export function useAdminDashboardData() {
           supabase.from("contacts").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId),
           supabase.from("appointments").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId),
           supabase.from("appointments").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).gte("start_time", today),
-          supabase.from("owners").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId),
+          supabase.from("owners").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).is("deleted_at", null),
           supabase.from("blog_posts").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId),
           supabase.from("properties").select("id,title,price,status,created_at").eq("tenant_id", tenantId).order("created_at", { ascending: false }).limit(5),
-          supabase.from("contacts").select("id,name,phone,source,temperature,created_at").eq("tenant_id", tenantId).order("created_at", { ascending: false }).limit(5),
+          supabase.from("contacts").select("id,name,phone,external_source,created_at").eq("tenant_id", tenantId).order("created_at", { ascending: false }).limit(5),
           supabase.from("appointments").select("id,title,type,status,start_time").eq("tenant_id", tenantId).gte("start_time", today).order("start_time", { ascending: true }).limit(5),
           supabase.from("property_types").select("id,name").eq("tenant_id", tenantId).limit(100),
         ]);
@@ -151,8 +147,7 @@ export function useAdminDashboardData() {
             id: String(c.id),
             name: String(c.name || "Sem nome"),
             phone: (c.phone as string | null) || null,
-            source: (c.source as string | null) || null,
-            temperature: (c.temperature as string | null) || null,
+            external_source: (c.external_source as string | null) || null,
             created_at: String(c.created_at),
           }));
           setRecentContacts(contacts);

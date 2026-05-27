@@ -26,7 +26,7 @@ const allMenuItems: AdminMenuItem[] = [
   { key: "properties", label: "Imóveis", href: "/admin/imoveis", icon: Home, section: "Principal" },
   { key: "agenda", label: "Agenda", href: "/admin/agenda", icon: CalendarIcon, section: "Principal" },
   // Gestão Básica
-  { key: "agents", label: "Agentes", href: "/admin/agentes", icon: Users, section: "Gestão Básica" },
+  { key: "agents", label: "Corretores", href: "/admin/corretores", icon: Users, section: "Gestão Básica" },
   { key: "property-types", label: "Tipos de Imóvel", href: "/admin/tipos", icon: Tag, section: "Gestão Básica" },
   { key: "amenities", label: "Comodidades", href: "/admin/comodidades", icon: Sparkles, section: "Gestão Básica" },
   { key: "media", label: "Biblioteca de Mídias", href: "/admin/midias", icon: Image, section: "Gestão Básica" },

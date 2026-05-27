@@ -460,11 +460,11 @@ export default function AdminContentGenerator() {
     supabase
       .from("properties")
       .select(`
-        id, title, city, price, type, status, bedrooms, bathrooms, area,
+        id, title, city, price, status, bedrooms, bathrooms, area,
         property_images(url, display_order)
       `)
       .eq("tenant_id", tenantId)
-      .in("status", ["available", "published", "active"])
+      .in("status", ["available", "sold", "rented", "pending"])
       .order("created_at", { ascending: false })
       .limit(50)
       .then(({ data, error }) => {
@@ -491,10 +491,10 @@ export default function AdminContentGenerator() {
     if (!tenantId) return;
     Promise.all([
       supabase.from("tenants").select("name").eq("id", tenantId).maybeSingle(),
-      supabase.from("visual_identity").select("logo_url").eq("tenant_id", tenantId).maybeSingle(),
+      Promise.resolve(null),  // logo not available in tenants table
     ]).then(([tenantRes, logoRes]) => {
       if (tenantRes.data?.name) setBrand(prev => ({ ...prev, name: tenantRes.data.name }));
-      if (logoRes.data?.logo_url) setLogoUrl(logoRes.data.logo_url);
+      if (logoRes?.data?.logo_url) setLogoUrl(logoRes.data.logo_url);
     });
   }, [tenantId]);
 
@@ -589,7 +589,7 @@ export default function AdminContentGenerator() {
   useEffect(() => {
     if (!selectedPropertyId) { setPropertyData(null); setCustomPrompt(""); return; }
     setPropertyLoading(true);
-    supabase.from("properties").select("*, property_images(url, display_order)")
+    supabase.from("properties").select("id, title, city, price, status, bedrooms, bathrooms, area, type_id, property_images(url, display_order)")
       .eq("id", selectedPropertyId).single()
       .then(({ data, error }) => {
         setPropertyLoading(false);
@@ -627,7 +627,7 @@ export default function AdminContentGenerator() {
     }
 
     setLoading(true); setResults([]); setSavedIds(new Set());
-    const session = (await supabase.auth.getSession()).data.session;
+    const session = (await supabase.auth.getSession()).data?.session;
 
     try {
       const propPayload = propertyData ? {

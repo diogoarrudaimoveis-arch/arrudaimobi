@@ -21,22 +21,30 @@ export interface Owner {
 export const OWNERS_QUERY_KEY = ["admin-owners"];
 
 export function useOwners() {
-  const { tenantId, isReady } = useAuth();
+  const { user } = useAuth();
 
   return useQuery({
-    queryKey: [...OWNERS_QUERY_KEY, tenantId],
+    queryKey: OWNERS_QUERY_KEY,
     queryFn: async () => {
+      if (!user) return [] as Owner[];
+      // Get tenant_id from profiles table (same strategy as useAdminDashboardData)
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("tenant_id")
+        .eq("user_id", user.id)
+        .single();
+      const tenantId = profileData?.tenant_id;
+      if (!tenantId) return [] as Owner[];
       const { data, error } = await supabase
         .from("owners")
         .select("*")
-        .eq("tenant_id", tenantId!)
+        .eq("tenant_id", tenantId)
         .is("deleted_at", null)
         .order("name");
-
       if (error) throw error;
       return data as Owner[];
     },
-    enabled: isReady && !!tenantId,
+    enabled: !!user,
   });
 }
 
@@ -111,4 +119,3 @@ export function useDeleteOwnerMutation() {
     },
   });
 }
-
