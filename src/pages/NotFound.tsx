@@ -1,15 +1,10 @@
 import { useLocation, Link } from "react-router-dom";
-import { useEffect } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Home } from "lucide-react";
 
 const NotFound = () => {
-  const location = useLocation();
-
-  useEffect(() => {
-    console.error("404 Error: User attempted to access non-existent route:", location.pathname);
-  }, [location.pathname]);
+  // 404 logging removed - was causing noisy console errors for phantom sidebar routes
 
   return (
     <Layout>
