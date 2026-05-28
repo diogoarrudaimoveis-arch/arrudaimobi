@@ -87,6 +87,7 @@ const { tenantId, isReady, session, isDeveloper, profile, normalizedRole } = use
     corretor_key: "",
   });
   const [creatingUser, setCreatingUser] = useState(false);
+  const [editingUser, setEditingUser] = useState<CompanyUser | null>(null);
 
   const handleCreateUser = async () => {
     if (!newUserForm.full_name || !newUserForm.email) {
@@ -130,6 +131,11 @@ const { tenantId, isReady, session, isDeveloper, profile, normalizedRole } = use
     } finally {
       setCreatingUser(false);
     }
+  };
+
+  const handleEditUser = (user: CompanyUser) => {
+    setEditingUser(user);
+    setShowCreateDialog(true);
   };
 
   const handleDeleteUser = async (userId: string) => {
@@ -259,7 +265,7 @@ const { tenantId, isReady, session, isDeveloper, profile, normalizedRole } = use
                           <TableCell>
                             {canEditUser(u) ? (
                               <div className="flex gap-1">
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditUser(u)}>
                                   <Pencil className="h-4 w-4" />
                                 </Button>
                                 <Button
