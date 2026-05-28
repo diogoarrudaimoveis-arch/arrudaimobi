@@ -107,6 +107,7 @@ function App() {
                           <Route path="/termos" element={<TermsOfService />} />
                           <Route path="/privacidade" element={<PrivacyPolicy />} />
                           <Route path="/captar" element={<CaptarImovel />} />
+                          <Route path="/captar-imovel" element={<CaptarImovel />} />
 
                           {/* Proprietário portal */}
                           <Route path="/proprietario" element={<ProtectedRoute requireOwner><ProprietarioDashboard /></ProtectedRoute>} />
