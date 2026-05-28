@@ -99,6 +99,7 @@ function App() {
                           <Route path="/" element={<Index />} />
                           <Route path="/imoveis" element={<Properties />} />
                           <Route path="/imovel/:id" element={<PropertyDetail />} />
+                          <Route path="/agentes" element={<Agents />} />
                           <Route path="/corretores" element={<Agents />} />
                           <Route path="/corretor/:id" element={<AgentDetail />} />
                           <Route path="/contato" element={<Contact />} />
