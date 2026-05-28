@@ -126,7 +126,7 @@ function App() {
                           <Route path="/admin/tipos" element={<ProtectedRoute requireAdmin><AdminPropertyTypes /></ProtectedRoute>} />
                           <Route path="/admin/tipos-imovel" element={<ProtectedRoute requireAdmin><AdminPropertyTypes /></ProtectedRoute>} />
                           <Route path="/admin/comodidades" element={<ProtectedRoute requireAdmin><AdminAmenities /></ProtectedRoute>} />
-                          <Route path="/admin/mostruario" element={<ProtectedRoute requireAdmin><AdminMostruario /></ProtectedRoute>} />
+                          <Route path="/admin/mostruario" element={<ProtectedRoute requireDeveloper><AdminMostruario /></ProtectedRoute>} />
                           <Route path="/admin/performance" element={<ProtectedRoute requireAdmin><AdminPropertyPerformance /></ProtectedRoute>} />
                           <Route path="/admin/performance-imoveis" element={<ProtectedRoute requireAdmin><AdminPropertyPerformance /></ProtectedRoute>} />
                           <Route path="/admin/portais" element={<ProtectedRoute requireAdmin><AdminPortals /></ProtectedRoute>} />
@@ -154,7 +154,7 @@ function App() {
                           <Route path="/admin/email" element={<ProtectedRoute requireAdmin><AdminEmailSettings /></ProtectedRoute>} />
                           <Route path="/admin/permissoes-menu" element={<ProtectedRoute requireAdmin><AdminMenuPermissions /></ProtectedRoute>} />
                           <Route path="/admin/configuracoes" element={<ProtectedRoute requireAdmin><AdminSettings /></ProtectedRoute>} />
-                          <Route path="/admin/planos-limites" element={<ProtectedRoute requireAdmin><AdminPlanosLimites /></ProtectedRoute>} />
+                          <Route path="/admin/planos-limites" element={<ProtectedRoute requireDeveloper><AdminPlanosLimites /></ProtectedRoute>} />
                           <Route path="/admin/content-generator" element={<ProtectedRoute requireAdmin><AdminContentGenerator /></ProtectedRoute>} />
                           <Route path="/blog" element={<Blog />} />
                           <Route path="/blog/:slug" element={<BlogPost />} />
