@@ -142,14 +142,30 @@ const { tenantId, isReady, session, isDeveloper, profile, normalizedRole } = use
   const handleDeleteUser = async (userId: string) => {
     if (!confirm("Excluir este usuário? Esta ação não pode ser desfeita.")) return;
     try {
+      // Get current user ID for reassigning properties
+      const currentUserId = profile?.user_id;
+      
+      // Reassign properties owned by this user to current admin
+      await supabase.from("properties")
+        .update({ owner_id: currentUserId })
+        .eq("owner_id", userId);
+      
+      // Reassign properties assigned to this agent to current admin
+      await supabase.from("properties")
+        .update({ agent_id: currentUserId })
+        .eq("agent_id", userId);
+      
       // Delete role
       await supabase.from("user_roles").delete().eq("user_id", userId);
       // Delete profile
       await supabase.from("profiles").delete().eq("user_id", userId);
-      // Delete auth user via service role (done via server action or manually in Supabase Dashboard)
-      // Local records deleted; auth user cleanup requires manual dashboard action
-      toast.success("Usuário removido do painel (perfil e role excluídos)");
-      queryClient.invalidateQueries({ queryKey: ["company-users"] });
+      
+      // Invalidate both company-users and properties queries
+      await queryClient.invalidateQueries({ queryKey: ["company-users"] });
+      await queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
+      await queryClient.invalidateQueries({ queryKey: ["properties"] });
+      
+      toast.success("Usuário removido - imóveis realocados para você");
     } catch (err: any) {
       toast.error("Erro ao excluir: " + err.message);
     }
