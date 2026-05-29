@@ -134,7 +134,7 @@ function App() {
                           <Route path="/admin/portais" element={<ProtectedRoute requireAdmin><AdminPortals /></ProtectedRoute>} />
                           <Route path="/admin/marketing-portal" element={<ProtectedRoute requireAdmin><AdminPortalMarketing /></ProtectedRoute>} />
                           <Route path="/admin/operacional" element={<ProtectedRoute requireAdmin><AdminAIOperational /></ProtectedRoute>} />
-                          <Route path="/admin/agentes" element={<ProtectedRoute requireAdmin><AdminAIAgents /></ProtectedRoute>} />
+
                           <Route path="/admin/automacoes" element={<ProtectedRoute requireAdmin><AdminAIAutomations /></ProtectedRoute>} />
                           <Route path="/admin/logs" element={<ProtectedRoute requireAdmin><AdminAILogs /></ProtectedRoute>} />
                           <Route path="/admin/saude" element={<ProtectedRoute requireAdmin><AdminAIHealth /></ProtectedRoute>} />
