@@ -22,6 +22,8 @@ export default {
       },
       fontSize: {
         "2xs": ["0.65rem", { lineHeight: "1rem" }],
+        "display-xl": ["3rem", { lineHeight: "1.15", fontWeight: "800", letterSpacing: "-0.02em" }],
+        "display-2xl": ["4rem", { lineHeight: "1.1", fontWeight: "800", letterSpacing: "-0.02em" }],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -80,6 +82,21 @@ export default {
           ring: "hsl(var(--sidebar-ring))",
           muted: "hsl(var(--sidebar-muted))",
         },
+        // 🎨 Arruda 2.0 — Design System (Fase 2.1)
+        brand: {
+          deep: "#0a2540",     // Azul marinho profundo — novo primary
+          blue: "#1e5bb8",     // Azul médio
+          cyan: "#0dcaf0",     // Cyan accent
+          gold: "#d4af37",     // Dourado para destaques
+          yellow: "#f59e0b",   // Manter para badges
+        },
+      },
+      backgroundImage: {
+        "gradient-hero": "linear-gradient(135deg, #1a1a2e 0%, #0f3460 100%)",
+        "gradient-button": "linear-gradient(90deg, #0056b3 0%, #0dcaf0 100%)",
+        "gradient-text": "linear-gradient(90deg, #ffffff 0%, #d7ca63 100%)",
+        "gradient-dark": "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)",
+        "gradient-gold": "linear-gradient(90deg, #d4af37 0%, #f59e0b 100%)",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -87,11 +104,15 @@ export default {
         sm: "calc(var(--radius) - 4px)",
         xl: "calc(var(--radius) + 4px)",
         "2xl": "calc(var(--radius) + 8px)",
+        card: "16px",         // Arruda 2.0
       },
       boxShadow: {
         "card": "var(--card-shadow)",
         "card-hover": "var(--card-shadow-hover)",
         "glow": "var(--shadow-glow)",
+        "soft": "0 4px 20px rgba(0,0,0,0.05)",     // Arruda 2.0
+        "hover": "0 12px 32px rgba(10,37,64,0.12)", // Arruda 2.0
+        "float": "0 8px 24px rgba(0,0,0,0.08)",     // Arruda 2.0
       },
       keyframes: {
         "accordion-down": {
@@ -126,6 +147,19 @@ export default {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0.7" },
         },
+        // 🎨 Arruda 2.0 — Animações extras
+        "float": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-20px)" },
+        },
+        "pulse-slow": {
+          "0%, 100%": { opacity: "1", transform: "scale(1)" },
+          "50%": { opacity: "0.85", transform: "scale(1.05)" },
+        },
+        "gradient-shift": {
+          "0%, 100%": { backgroundPosition: "0% 50%" },
+          "50%": { backgroundPosition: "100% 50%" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -136,6 +170,10 @@ export default {
         "scale-in": "scale-in 0.3s ease-out forwards",
         "shimmer": "shimmer 2s linear infinite",
         "pulse-soft": "pulse-soft 2s ease-in-out infinite",
+        // Arruda 2.0
+        "float": "float 6s ease-in-out infinite",
+        "pulse-slow": "pulse-slow 3s ease-in-out infinite",
+        "gradient-shift": "gradient-shift 8s ease infinite",
       },
     },
   },
