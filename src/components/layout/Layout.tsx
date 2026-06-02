@@ -4,6 +4,7 @@ import { ScrollToTop } from "./ScrollToTop";
 import { CookieConsent } from "@/components/cookie/CookieConsent";
 import { ConditionalScripts } from "@/components/cookie/ConditionalScripts";
 import { TrackingScripts } from "@/components/marketing/TrackingScripts";
+import { WhatsAppFloat } from "@/components/marketing/WhatsAppFloat";
 import { Helmet } from "react-helmet-async";
 import { useTenantSettings } from "@/hooks/use-tenant-settings";
 import { useQuery } from "@tanstack/react-query";
@@ -67,6 +68,7 @@ export function Layout({ children }: LayoutProps) {
       <CookieConsent />
       <ConditionalScripts />
       <TrackingScripts />
+      <WhatsAppFloat />
     </div>
   );
 }
