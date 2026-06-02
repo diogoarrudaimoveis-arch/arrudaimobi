@@ -51,17 +51,7 @@ const AdminPortals = lazy(() => import("./pages/admin/AdminPortals"));
 const AdminPortalMarketing = lazy(() => import("./pages/admin/AdminPortalMarketing"));
 const AdminAgenda = lazy(() => import("./pages/admin/AdminAgenda"));
 const AdminPropertyPerformance = lazy(() => import("./pages/admin/PropertyPerformance"));
-const AdminAIOperational = lazy(() => import("./pages/admin/ai/AdminAIOperational"));
-const AdminAIAgents = lazy(() => import("./pages/admin/ai/AdminAIAgents"));
-const AdminAIAutomations = lazy(() => import("./pages/admin/ai/AdminAIAutomations"));
-const AdminAILogs = lazy(() => import("./pages/admin/ai/AdminAILogs"));
-const AdminAIHealth = lazy(() => import("./pages/admin/ai/AdminAIHealth"));
-const AdminAIAlerts = lazy(() => import("./pages/admin/ai/AdminAIAlerts"));
-const AdminAITelemetry = lazy(() => import("./pages/admin/ai/AdminAITelemetry"));
-const AdminDevOps = lazy(() => import("./pages/admin/ai/AdminDevOps"));
-const AdminN8NWorkflows = lazy(() => import("./pages/admin/AdminN8NWorkflows"));
 const AdminMetaAds = lazy(() => import("./pages/admin/ai/AdminMetaAds"));
-const AdminSupabaseMonitor = lazy(() => import("./pages/admin/ai/AdminSupabaseMonitor"));
 const AdminMostruario = lazy(() => import("./pages/admin/AdminMostruario"));
 const AdminPlanosLimites = lazy(() => import("./pages/admin/AdminPlanosLimites"));
 const Blog = lazy(() => import("./pages/Blog"));
@@ -133,22 +123,7 @@ function App() {
                           <Route path="/admin/performance-imoveis" element={<ProtectedRoute requireAdmin><AdminPropertyPerformance /></ProtectedRoute>} />
                           <Route path="/admin/portais" element={<ProtectedRoute requireAdmin><AdminPortals /></ProtectedRoute>} />
                           <Route path="/admin/marketing-portal" element={<ProtectedRoute requireAdmin><AdminPortalMarketing /></ProtectedRoute>} />
-                          <Route path="/admin/operacional" element={<ProtectedRoute requireAdmin><AdminAIOperational /></ProtectedRoute>} />
-
-                          <Route path="/admin/automacoes" element={<ProtectedRoute requireAdmin><AdminAIAutomations /></ProtectedRoute>} />
-                          <Route path="/admin/logs" element={<ProtectedRoute requireAdmin><AdminAILogs /></ProtectedRoute>} />
-                          <Route path="/admin/saude" element={<ProtectedRoute requireAdmin><AdminAIHealth /></ProtectedRoute>} />
-                          <Route path="/admin/alertas" element={<ProtectedRoute requireAdmin><AdminAIAlerts /></ProtectedRoute>} />
-                          <Route path="/admin/telemetria" element={<ProtectedRoute requireAdmin><AdminAITelemetry /></ProtectedRoute>} />
-                          <Route path="/admin/devops" element={<ProtectedRoute requireAdmin><AdminDevOps /></ProtectedRoute>} />
-                          <Route path="/admin/ia-operacional" element={<ProtectedRoute requireAdmin><AdminAIOperational /></ProtectedRoute>} />
-                          <Route path="/admin/ia-agentes" element={<ProtectedRoute requireAdmin><AdminAIAgents /></ProtectedRoute>} />
-                          <Route path="/admin/ia-automacoes" element={<ProtectedRoute requireAdmin><AdminAIAutomations /></ProtectedRoute>} />
-                          <Route path="/admin/ia-logs" element={<ProtectedRoute requireAdmin><AdminAILogs /></ProtectedRoute>} />
-                          <Route path="/admin/ia-health" element={<ProtectedRoute requireAdmin><AdminAIHealth /></ProtectedRoute>} />
-                          <Route path="/admin/n8n-workflows" element={<ProtectedRoute requireAdmin><AdminN8NWorkflows /></ProtectedRoute>} />
                           <Route path="/admin/meta-ads" element={<ProtectedRoute requireAdmin><AdminMetaAds /></ProtectedRoute>} />
-                          <Route path="/admin/supabase-monitor" element={<ProtectedRoute requireAdmin><AdminSupabaseMonitor /></ProtectedRoute>} />
                           <Route path="/admin/agenda" element={<ProtectedRoute><AdminAgenda /></ProtectedRoute>} />
                           <Route path="/admin/contatos" element={<ProtectedRoute><AdminContacts /></ProtectedRoute>} />
                           <Route path="/admin/mensagens" element={<ProtectedRoute><AdminMessages /></ProtectedRoute>} />

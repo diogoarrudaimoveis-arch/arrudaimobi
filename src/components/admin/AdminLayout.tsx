@@ -7,11 +7,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils";
 import { normalizeRole, canSeeMenuItem, getRoleLabel, type AdminMenuItem } from "@/lib/adminPermissions";
 import {
-  Building2, LayoutDashboard, Home, Users, Settings, Tag, Sparkles, Mail, User, Database, Shield,
-  MessageSquare, LogOut, X, Menu, Sun, Moon, Image, Send, Mail,
-  PanelLeftClose, PanelLeftOpen, ChevronRight, FileText, Download, Globe,
-  Calendar as CalendarIcon, Target, BarChart3, BrainCircuit, Bot, Workflow,
-  ScrollText, HeartPulse, GitBranch, LayoutGrid, CreditCard
+  LayoutDashboard, Home, Users, Tag, Sparkles, Mail, User, Shield,
+  MessageSquare, LogOut, X, Menu, Sun, Moon, Image,
+  PanelLeftClose, PanelLeftOpen, ChevronRight, FileText, Globe,
+  Calendar as CalendarIcon, Target, BarChart3, LayoutGrid, CreditCard
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -40,15 +39,8 @@ const allMenuItems: AdminMenuItem[] = [
   { key: "tracking", label: "Rastreamento do Portal", href: "/admin/marketing-portal", icon: Target, section: "Marketing Digital", adminOnly: true },
   { key: "performance", label: "Performance de Imóveis", href: "/admin/performance", icon: BarChart3, section: "Marketing Digital", adminOnly: true },
   { key: "content-generator", label: "Gerador de Conteúdo", href: "/admin/content-generator", icon: Sparkles, section: "Marketing Digital" },
-  // IA Operacional — all techOnly
-  { key: "central-ai", label: "Central IA", href: "/admin/ia-operacional", icon: BrainCircuit, section: "IA Operacional", techOnly: true },
-  { key: "ai-agents", label: "Agentes IA", href: "/admin/ia-agentes", icon: Bot, section: "IA Operacional", techOnly: true },
-  { key: "n8n", label: "Automações N8N", href: "/admin/ia-automacoes", icon: Workflow, section: "IA Operacional", techOnly: true },
-  { key: "logs", label: "Logs", href: "/admin/ia-logs", icon: ScrollText, section: "IA Operacional", techOnly: true },
-  { key: "health", label: "Health Checks", href: "/admin/ia-health", icon: HeartPulse, section: "IA Operacional", techOnly: true },
-  { key: "devops", label: "DevOps", href: "/admin/devops", icon: GitBranch, section: "IA Operacional", techOnly: true },
-  { key: "meta-ads", label: "Meta Ads", href: "/admin/meta-ads", icon: Target, section: "IA Operacional", techOnly: true },
-  { key: "supabase", label: "Supabase", href: "/admin/supabase-monitor", icon: Database, section: "IA Operacional", techOnly: true },
+  // Meta Ads — único item da seção Tech/Marketing
+  { key: "meta-ads", label: "Meta Ads", href: "/admin/meta-ads", icon: Target, section: "Marketing Digital", techOnly: true },
   // Sistema
   { key: "profile", label: "Meu Perfil", href: "/admin/perfil", icon: User, section: "Sistema" },
   { key: "email-config", label: "Config. E-mail", href: "/admin/email", icon: Mail, section: "Sistema", adminOnly: true },
@@ -63,8 +55,7 @@ const menuSections = [
   { label: "Principal", keys: ["dashboard", "owners", "properties", "agenda"] },
   { label: "Gestão Básica", keys: ["agents", "property-types", "amenities", "media", "blog"] },
   { label: "CRM & Atendimento", keys: ["contacts", "messages"] },
-  { label: "Marketing Digital", keys: ["ai-config", "portals", "tracking", "performance", "content-generator"] },
-  { label: "IA Operacional", keys: ["central-ai", "ai-agents", "n8n", "logs", "health", "devops", "meta-ads", "supabase"] },
+  { label: "Marketing Digital", keys: ["ai-config", "portals", "tracking", "performance", "content-generator", "meta-ads"] },
   { label: "Sistema", keys: ["profile", "email-config", "settings", "menu-permissions"] },
   { label: "Desenvolvedor", keys: ["mostruario", "planos-limites"] },
 ];
