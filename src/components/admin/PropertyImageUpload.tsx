@@ -196,7 +196,7 @@ export function PropertyImageUpload({ propertyId, onProcessingChange }: Props) {
     queryClient.invalidateQueries({ queryKey: ["property-images", propertyId] });
     queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
     sonnerToast({ title: "Vídeo adicionado à galeria" });
-  }, [images?.length, propertyId, queryClient, toast, youtubeTitle, youtubeUrl]);
+  }, [images?.length, propertyId, queryClient, sonnerToast, youtubeTitle, youtubeUrl]);
 
   return (
     <div className="space-y-3">
