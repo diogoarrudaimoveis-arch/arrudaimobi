@@ -11,11 +11,13 @@ import { useTenantSettings } from "@/hooks/use-tenant-settings";
 import { SearchFilters } from "@/types/property";
 import {
   Building2, Users, UserCheck, MapPin, ArrowRight, CheckCircle2,
-  Search, Shield, Zap, FileText, Calendar
+  Search, Shield, Zap, FileText, Calendar, Sparkles, Star, Trophy
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { motion } from "framer-motion";
+import { fadeInUp, staggerContainer, staggerItem, viewportOnce } from "@/lib/animations";
 
 const Index = () => {
   const [filters, setFilters] = useState<SearchFilters>({
@@ -61,7 +63,7 @@ const Index = () => {
     ? "relative overflow-hidden py-24 md:py-32"
     : hasCustomGradient
       ? "relative overflow-hidden py-24 md:py-32"
-      : "relative overflow-hidden bg-gradient-to-br from-primary via-primary to-info py-24 md:py-32";
+      : "relative overflow-hidden bg-gradient-hero py-24 md:py-32";
 
   const statItems = [
     {
@@ -88,54 +90,160 @@ const Index = () => {
 
   return (
     <Layout>
-      {/* Hero */}
+      {/* 🎨 Arruda 2.0 — Hero com gradient + partículas + social proof */}
       <section className={heroSectionClass} style={heroSectionStyle}>
         {useHeroImage && <div className="absolute inset-0" style={{ backgroundColor: `rgba(0, 0, 0, ${heroBgOverlayOpacity / 100})` }} />}
-        {!useHeroImage && <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDE4YzEuMTA1IDAgMi0uODk1IDItMnMtLjg5NS0yLTItMi0yIC44OTUtMiAyIC44OTUgMiAyIDJ6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-50" />}
+        {!useHeroImage && (
+          <>
+            {/* Padrão de pontos (grid) */}
+            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDE4YzEuMTA1IDAgMi0uODk1IDItMnMtLjg5NS0yLTItMi0yIC44OTUtMiAyIC44OTUgMiAyIDJ6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-50" />
+            {/* Blobs decorativos com float */}
+            <div className="absolute -top-20 -left-20 h-72 w-72 rounded-full bg-brand-cyan/10 blur-3xl animate-float" />
+            <div className="absolute -bottom-32 -right-20 h-96 w-96 rounded-full bg-brand-gold/10 blur-3xl animate-float" style={{ animationDelay: "2s" }} />
+          </>
+        )}
         <div className="container relative">
-          <div className="mx-auto max-w-3xl text-center">
+          <div className="mx-auto max-w-4xl text-center">
+            {/* Social proof badge */}
+            <motion.div
+              variants={fadeInUp}
+              initial="initial"
+              animate="animate"
+              transition={{ duration: 0.5 }}
+              className="inline-flex flex-wrap items-center justify-center gap-2 rounded-full glass-card px-4 py-2 mb-6 text-sm text-white"
+            >
+              <Star className="h-4 w-4 fill-brand-gold text-brand-gold" />
+              <span className="font-medium">+500 imóveis vendidos</span>
+              <span className="opacity-60">·</span>
+              <Trophy className="h-4 w-4 text-brand-gold" />
+              <span className="font-medium">#1 em Betim e região</span>
+              <span className="opacity-60">·</span>
+              <Sparkles className="h-4 w-4 text-brand-cyan" />
+              <span className="font-medium">Atendimento humanizado</span>
+            </motion.div>
+
             {showHeadline && (
-              <h1 className="font-display text-4xl font-extrabold tracking-tight text-white md:text-5xl lg:text-6xl animate-fade-in">
-                {heroHeadline}
-              </h1>
+              <motion.h1
+                variants={fadeInUp}
+                initial="initial"
+                animate="animate"
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="text-display-xl md:text-display-2xl text-white"
+              >
+                {heroHeadline.split(' ').slice(0, -3).join(' ')}{" "}
+                <span className="text-gradient">
+                  {heroHeadline.split(' ').slice(-3).join(' ')}
+                </span>
+              </motion.h1>
             )}
             {showSubheadline && (
-              <p className="mt-5 text-lg text-white/70 md:text-xl animate-fade-in" style={{ animationDelay: "0.1s" }}>
+              <motion.p
+                variants={fadeInUp}
+                initial="initial"
+                animate="animate"
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="mt-5 text-lg text-white/80 md:text-xl"
+              >
                 {heroSubheadline}
-              </p>
+              </motion.p>
             )}
+
+            {/* Tabs Comprar / Alugar */}
             {showHeroSearch && (
-              <div className="mx-auto mt-10 max-w-2xl rounded-2xl bg-card/95 p-5 shadow-2xl backdrop-blur-sm animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
+              <motion.div
+                variants={fadeInUp}
+                initial="initial"
+                animate="animate"
+                transition={{ duration: 0.5, delay: 0.25 }}
+                className="mx-auto mt-8 flex max-w-md gap-2 rounded-xl bg-white/10 p-1.5 backdrop-blur-sm"
+              >
+                <button
+                  onClick={() => setFilters({ ...filters, purpose: "" })}
+                  className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                    !filters.purpose
+                      ? "bg-white text-brand-deep shadow-md"
+                      : "text-white/80 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  🏠 Todos
+                </button>
+                <button
+                  onClick={() => setFilters({ ...filters, purpose: "sale" })}
+                  className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                    filters.purpose === "sale"
+                      ? "bg-white text-brand-deep shadow-md"
+                      : "text-white/80 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  💰 Comprar
+                </button>
+                <button
+                  onClick={() => setFilters({ ...filters, purpose: "rent" })}
+                  className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                    filters.purpose === "rent"
+                      ? "bg-white text-brand-deep shadow-md"
+                      : "text-white/80 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  🔑 Alugar
+                </button>
+              </motion.div>
+            )}
+
+            {showHeroSearch && (
+              <motion.div
+                variants={fadeInUp}
+                initial="initial"
+                animate="animate"
+                transition={{ duration: 0.5, delay: 0.3 }}
+                className="mx-auto mt-4 max-w-2xl rounded-2xl bg-card/95 p-4 shadow-2xl backdrop-blur-sm sm:p-5"
+              >
                 <SearchBar filters={filters} onFiltersChange={setFilters} compact />
-                <Button className="mt-3 w-full gap-2" size="lg" asChild>
+                <Button className="mt-3 w-full gap-2 bg-gradient-button hover:shadow-lg hover:shadow-brand-blue/30" size="lg" asChild>
                   <Link to={`/imoveis?purpose=${filters.purpose}&type=${filters.type}&q=${filters.query}`}>
                     <Search className="h-4 w-4" /> Buscar Imóveis
                   </Link>
                 </Button>
-              </div>
+              </motion.div>
+            )}
+
+            {/* Stats inline no hero (Arruda 2.0) */}
+            {showStatsSection && (
+              <motion.div
+                variants={staggerContainer}
+                initial="initial"
+                animate="animate"
+                className="mt-12 grid grid-cols-2 gap-6 md:grid-cols-4"
+              >
+                {statItems.map((stat) => (
+                  <motion.div
+                    key={stat.label}
+                    variants={staggerItem}
+                    className="flex flex-col items-center text-center"
+                  >
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 backdrop-blur-sm">
+                      <stat.icon className="h-5 w-5 text-brand-cyan" />
+                    </div>
+                    <p className="mt-2 font-display text-2xl font-bold text-white md:text-3xl">{stat.value}</p>
+                    <p className="mt-0.5 text-xs text-white/70">{stat.label}</p>
+                  </motion.div>
+                ))}
+              </motion.div>
             )}
           </div>
         </div>
+
+        {/* Wave SVG bottom transition */}
+        {!useHeroImage && (
+          <div className="absolute bottom-0 left-0 right-0 pointer-events-none">
+            <svg viewBox="0 0 1440 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto" preserveAspectRatio="none">
+              <path d="M0 60L60 55C120 50 240 40 360 35C480 30 600 30 720 35C840 40 960 50 1080 55C1200 60 1320 60 1380 60L1440 60V100H1380C1320 100 1200 100 1080 100C960 100 840 100 720 100C600 100 480 100 360 100C240 100 120 100 60 100H0Z" fill="hsl(var(--background))" />
+            </svg>
+          </div>
+        )}
       </section>
 
-      {/* Stats */}
-      {showStatsSection && (
-        <section className="relative -mt-1 border-b border-border bg-card py-10">
-          <div className="container">
-            <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
-              {statItems.map((stat, i) => (
-                <div key={stat.label} className="flex flex-col items-center text-center animate-fade-in" style={{ animationDelay: `${i * 0.1}s` }}>
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                    <stat.icon className="h-6 w-6 text-primary" />
-                  </div>
-                  <p className="mt-3 font-display text-3xl font-bold text-foreground">{stat.value}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{stat.label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
+      {/* Stats inline no Hero (Arruda 2.0) — duplicata removida */}
 
       {/* Property Types */}
       <section className="py-20">
