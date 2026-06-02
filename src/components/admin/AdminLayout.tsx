@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { normalizeRole, canSeeMenuItem, getRoleLabel, type AdminMenuItem } from "@/lib/adminPermissions";
 import {
   LayoutDashboard, Home, Users, Tag, Sparkles, Mail, User, Shield,
-  MessageSquare, LogOut, X, Menu, Sun, Moon, Image,
+  MessageSquare, LogOut, X, Menu, Sun, Moon, Image, Send,
   PanelLeftClose, PanelLeftOpen, ChevronRight, FileText, Globe,
   Calendar as CalendarIcon, Target, BarChart3, LayoutGrid, CreditCard
 } from "lucide-react";
