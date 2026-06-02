@@ -9,7 +9,7 @@ function CookieSettingsButton() {
   return (
     <button
       onClick={() => { setShowBanner(true); setShowSettings(true); }}
-      className="inline-flex items-center gap-1 transition-colors hover:text-foreground text-muted-foreground"
+      className="inline-flex items-center gap-1 transition-colors hover:text-brand-gold text-white/60"
     >
       <Cookie className="h-3 w-3" />
       Cookies
@@ -32,7 +32,7 @@ function NewsletterForm() {
 
   if (submitted) {
     return (
-      <div className="mt-3 rounded-lg bg-primary/10 border border-primary/20 p-3 text-sm text-primary-foreground">
+      <div className="mt-3 rounded-lg bg-success/20 border border-success/30 p-3 text-sm text-white">
         ✅ Cadastro realizado! Receba novidades por email.
       </div>
     );
@@ -46,11 +46,11 @@ function NewsletterForm() {
         onChange={(e) => setEmail(e.target.value)}
         placeholder="seu@email.com"
         required
-        className="flex-1 min-w-0 rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+        className="flex-1 min-w-0 rounded-lg border border-white/20 bg-white/10 px-3 py-2.5 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-brand-gold/50 focus:border-brand-gold/50 backdrop-blur-sm"
       />
       <button
         type="submit"
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary/90"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-gradient-gold text-brand-deep transition-all hover:scale-105 hover:shadow-lg hover:shadow-brand-gold/30"
         aria-label="Inscrever-se na newsletter"
       >
         <Send className="h-4 w-4" />
@@ -89,9 +89,13 @@ export function Footer() {
   const showPropertyTypes = s.footer_property_types_visible !== false;
 
   return (
-    <footer className="border-t border-border/60 bg-card">
+    <footer className="relative overflow-hidden border-t border-white/10 bg-gradient-dark text-white">
+      {/* Elementos decorativos blur (Arruda 2.0) */}
+      <div className="pointer-events-none absolute -top-20 -left-20 h-72 w-72 rounded-full bg-brand-cyan/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-32 -right-20 h-96 w-96 rounded-full bg-brand-gold/10 blur-3xl" />
+
       {/* Main footer content */}
-      <div className="container py-10 px-4 sm:px-6 lg:px-8">
+      <div className="container relative z-10 py-14 px-4 sm:px-6 lg:px-8">
         {/* Brand + Newsletter column — stacks first on mobile */}
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
           
@@ -115,39 +119,39 @@ export function Footer() {
                 </>
               )}
             </Link>
-            <p className="text-sm leading-relaxed text-muted-foreground">
+            <p className="text-sm leading-relaxed text-white/70">
               {s.footer_description || "Sua plataforma completa para encontrar o imóvel ideal. Conectamos você aos melhores agentes e propriedades do mercado."}
             </p>
-            
+
             {/* Newsletter */}
             <div className="mt-6">
-              <p className="text-sm font-semibold text-foreground">Newsletter</p>
-              <p className="mt-1 text-xs text-muted-foreground">Receba novidades e ofertas exclusivas.</p>
+              <p className="text-sm font-semibold text-white">Newsletter</p>
+              <p className="mt-1 text-xs text-white/60">Receba novidades e ofertas exclusivas.</p>
               <NewsletterForm />
             </div>
           </div>
 
           {showQuickLinks && (
             <div>
-              <h4 className="mb-4 font-display text-sm font-semibold text-foreground">Links Rápidos</h4>
-              <ul className="space-y-2.5 text-sm text-muted-foreground">
+              <h4 className="mb-4 font-display text-sm font-semibold text-white">Links Rápidos</h4>
+              <ul className="space-y-2.5 text-sm text-white/70">
                 <li>
-                  <Link to="/imoveis" className="inline-block py-1 transition-colors hover:text-foreground">
+                  <Link to="/imoveis" className="inline-block py-1 transition-colors hover:text-brand-gold">
                     Buscar Imóveis
                   </Link>
                 </li>
                 <li>
-                  <Link to="/agentes" className="inline-block py-1 transition-colors hover:text-foreground">
+                  <Link to="/agentes" className="inline-block py-1 transition-colors hover:text-brand-gold">
                     Nossos Agentes
                   </Link>
                 </li>
                 <li>
-                  <Link to="/contato" className="inline-block py-1 transition-colors hover:text-foreground">
+                  <Link to="/contato" className="inline-block py-1 transition-colors hover:text-brand-gold">
                     Contato
                   </Link>
                 </li>
                 <li>
-                  <Link to="/login" className="inline-block py-1 transition-colors hover:text-foreground">
+                  <Link to="/login" className="inline-block py-1 transition-colors hover:text-brand-gold">
                     Área do Agente
                   </Link>
                 </li>
@@ -157,25 +161,25 @@ export function Footer() {
 
           {showPropertyTypes && (
             <div>
-              <h4 className="mb-4 font-display text-sm font-semibold text-foreground">Tipos de Imóvel</h4>
-              <ul className="space-y-2.5 text-sm text-muted-foreground">
+              <h4 className="mb-4 font-display text-sm font-semibold text-white">Tipos de Imóvel</h4>
+              <ul className="space-y-2.5 text-sm text-white/70">
                 <li>
-                  <Link to="/imoveis?type=Apartamento" className="inline-block py-1 transition-colors hover:text-foreground">
+                  <Link to="/imoveis?type=Apartamento" className="inline-block py-1 transition-colors hover:text-brand-gold">
                     Apartamentos
                   </Link>
                 </li>
                 <li>
-                  <Link to="/imoveis?type=Casa" className="inline-block py-1 transition-colors hover:text-foreground">
+                  <Link to="/imoveis?type=Casa" className="inline-block py-1 transition-colors hover:text-brand-gold">
                     Casas
                   </Link>
                 </li>
                 <li>
-                  <Link to="/imoveis?type=Sala Comercial" className="inline-block py-1 transition-colors hover:text-foreground">
+                  <Link to="/imoveis?type=Sala Comercial" className="inline-block py-1 transition-colors hover:text-brand-gold">
                     Comercial
                   </Link>
                 </li>
                 <li>
-                  <Link to="/imoveis?type=Terreno" className="inline-block py-1 transition-colors hover:text-foreground">
+                  <Link to="/imoveis?type=Terreno" className="inline-block py-1 transition-colors hover:text-brand-gold">
                     Terrenos
                   </Link>
                 </li>
@@ -185,27 +189,27 @@ export function Footer() {
 
           {/* Contact column */}
           <div>
-            <h4 className="mb-4 font-display text-sm font-semibold text-foreground">Contato</h4>
-            <ul className="space-y-3 text-sm text-muted-foreground">
+            <h4 className="mb-4 font-display text-sm font-semibold text-white">Contato</h4>
+            <ul className="space-y-3 text-sm text-white/70">
               <li className="flex items-start gap-3">
-                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                  <Phone className="h-3.5 w-3.5 text-primary" />
+                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/10">
+                  <Phone className="h-3.5 w-3.5 text-brand-gold" />
                 </div>
-                <a href={`tel:${phone.replace(/\D/g, "")}`} className="hover:text-foreground transition-colors">
+                <a href={`tel:${phone.replace(/\D/g, "")}`} className="hover:text-white transition-colors">
                   {phone}
                 </a>
               </li>
               <li className="flex items-start gap-3">
-                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                  <Mail className="h-3.5 w-3.5 text-primary" />
+                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/10">
+                  <Mail className="h-3.5 w-3.5 text-brand-gold" />
                 </div>
-                <a href={`mailto:${email}`} className="hover:text-foreground transition-colors break-all">
+                <a href={`mailto:${email}`} className="hover:text-white transition-colors break-all">
                   {email}
                 </a>
               </li>
               <li className="flex items-start gap-3">
-                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                  <MapPin className="h-3.5 w-3.5 text-primary" />
+                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/10">
+                  <MapPin className="h-3.5 w-3.5 text-brand-gold" />
                 </div>
                 <span className="leading-snug">{address}</span>
               </li>
@@ -220,7 +224,7 @@ export function Footer() {
                     href={item.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-white/80 transition-all hover:bg-brand-gold hover:text-brand-deep hover:scale-110"
                     aria-label={item.label}
                   >
                     <item.icon className="h-4 w-4" />
@@ -229,27 +233,27 @@ export function Footer() {
               </div>
             ) : (
               <div className="mt-5 flex gap-2">
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground/50"><Instagram className="h-4 w-4" /></span>
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground/50"><Facebook className="h-4 w-4" /></span>
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground/50"><Linkedin className="h-4 w-4" /></span>
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg text-white/40"><Instagram className="h-4 w-4" /></span>
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg text-white/40"><Facebook className="h-4 w-4" /></span>
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg text-white/40"><Linkedin className="h-4 w-4" /></span>
               </div>
             )}
           </div>
         </div>
 
         {/* CTA Banner */}
-        <div className="mt-10 rounded-2xl border border-primary/15 bg-primary/5 p-5 shadow-sm">
+        <div className="mt-12 rounded-2xl border border-white/15 bg-white/5 p-5 shadow-sm backdrop-blur-sm">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
             <div>
-              <h4 className="font-display text-base font-semibold text-foreground">Tem um imóvel para vender?</h4>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <h4 className="font-display text-base font-semibold text-white">Tem um imóvel para vender?</h4>
+              <p className="mt-1 text-sm text-white/70">
                 Cadastre seu imóvel ou empreendimento para avaliação da Arruda Imobi.
               </p>
             </div>
             <a
               href="/#/captar-imovel"
               aria-label="Anuncie seu imóvel na Arruda Imobi"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/20 transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/25 sm:w-auto sm:shrink-0"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-gold px-5 py-3 text-sm font-bold text-brand-deep shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand-gold/30 sm:w-auto sm:shrink-0"
             >
               Anuncie seu imóvel
               <ArrowRight className="h-4 w-4" />
@@ -258,16 +262,16 @@ export function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="mt-10 border-t border-border/60 pt-6">
-          <div className="flex flex-col items-center gap-3 text-xs text-muted-foreground">
+        <div className="mt-12 border-t border-white/10 pt-6">
+          <div className="flex flex-col items-center gap-3 text-xs text-white/60">
             <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
-              <Link to="/termos" className="transition-colors hover:text-foreground">Termos de Serviço</Link>
-              <span className="text-border hidden sm:inline">•</span>
-              <Link to="/privacidade" className="transition-colors hover:text-foreground">Política de Privacidade</Link>
-              <span className="text-border hidden sm:inline">•</span>
+              <Link to="/termos" className="transition-colors hover:text-brand-gold">Termos de Serviço</Link>
+              <span className="text-white/30 hidden sm:inline">•</span>
+              <Link to="/privacidade" className="transition-colors hover:text-brand-gold">Política de Privacidade</Link>
+              <span className="text-white/30 hidden sm:inline">•</span>
               <CookieSettingsButton />
             </div>
-            <p className="text-muted-foreground/60">© {new Date().getFullYear()} {companyName}. Todos os direitos reservados.</p>
+            <p className="text-white/40">© {new Date().getFullYear()} {companyName}. Todos os direitos reservados.</p>
           </div>
         </div>
       </div>
