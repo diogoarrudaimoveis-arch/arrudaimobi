@@ -18,15 +18,17 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.ico", "favicon.svg", "robots.txt", "apple-touch-icon.png", "placeholder.svg"],
       manifest: {
         name: "Arruda Imobi",
         short_name: "ArrudaImobi",
         description: "Gestão Imobiliária Profissional",
+        start_url: "/",
         theme_color: "#003366",
         background_color: "#ffffff",
         lang: "pt-BR",
         display: "standalone",
+        scope: "/",
+        prefer_related_applications: false,
         icons: [
           {
             src: "/pwa-192x192.png",
