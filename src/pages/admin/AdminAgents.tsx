@@ -104,7 +104,7 @@ export function AdminAgents() {
       // 2. Buscar profiles desses usuários
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, user_id, full_name, email, phone, bio, avatar_url, created_at, tenant_id')
+        .select('id, user_id, full_name, phone, bio, avatar_url, created_at, tenant_id')
         .in('user_id', userIds)
         .order('full_name', { ascending: true })
 
