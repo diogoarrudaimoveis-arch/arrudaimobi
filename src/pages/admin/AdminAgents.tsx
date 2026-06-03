@@ -164,9 +164,9 @@ export function AdminAgents() {
     setEditingUser(user)
     setFormData({
       full_name: user.full_name || '',
-      email: user.email || '',
+      email: (user.email && user.email !== '-') ? user.email : '',
       phone: user.phone || '',
-      role: user.role || 'user',
+      role: (user.role as any) || 'user',
       bio: user.bio || '',
       is_agent: user.is_agent || false,
     })
@@ -205,56 +205,32 @@ export function AdminAgents() {
       options: { data: { full_name: formData.full_name } },
     })
     if (authError) throw authError
-    if (!authData.user) throw new Error('Usuário não criado')
+    if (!authData.user) throw new Error('Usuario nao criado')
 
+    const userId = authData.user.id
+
+    // Aguarda o usuário existir no auth.users (Supabase pode ter delay de propagação)
+    await new Promise(r => setTimeout(r, 2000))
+
+    // Insere profile
     const { error: profileError } = await supabase.from('profiles').insert({
-      user_id: authData.user.id,
+      user_id: userId,
       tenant_id: tenantId,
       full_name: formData.full_name,
-      phone: formData.phone,
-      bio: formData.bio,
+      phone: formData.phone || '',
+      bio: formData.bio || '',
+      show_on_public_page: formData.is_agent,
     })
     if (profileError) throw profileError
 
     const { error: roleError } = await supabase.from('user_roles').insert({
-      user_id: authData.user.id,
+      user_id: userId,
       tenant_id: tenantId,
       role: formData.role,
     })
     if (roleError) throw roleError
 
-    if (formData.is_agent) {
-      await supabase.from('agents').insert({
-        tenant_id: tenantId,
-        user_id: authData.user.id,
-        name: formData.full_name,
-        email: formData.email,
-        phone: formData.phone,
-        bio: formData.bio,
-        public: true,
-      })
-    }
-
-    // permissões padrão por módulo
-    const defaultPerms = [
-      { module_id: 'dashboard', admin_access: true, agent_access: true, user_access: false },
-      { module_id: 'imoveis', admin_access: true, agent_access: true, user_access: false },
-      { module_id: 'proprietarios', admin_access: true, agent_access: false, user_access: false },
-      { module_id: 'agenda', admin_access: true, agent_access: true, user_access: false },
-      { module_id: 'contatos', admin_access: true, agent_access: true, user_access: false },
-      { module_id: 'mensagens', admin_access: true, agent_access: true, user_access: false },
-    ]
-    for (const perm of defaultPerms) {
-      await supabase.from('menu_permissions').upsert({
-        tenant_id: tenantId,
-        module_id: perm.module_id,
-        admin_access: perm.admin_access,
-        agent_access: perm.agent_access,
-        user_access: perm.user_access,
-      }, { onConflict: 'tenant_id,module_id' })
-    }
-
-    toast.success('Usuário criado! Senha temporária: ' + tempPassword)
+    toast.success('Usuario criado! Senha temporaria: ' + tempPassword)
   }
 
   const updateUser = async (userId: string) => {
@@ -262,8 +238,9 @@ export function AdminAgents() {
       .from('profiles')
       .update({
         full_name: formData.full_name,
-        phone: formData.phone,
-        bio: formData.bio,
+        phone: formData.phone || '',
+        bio: formData.bio || '',
+        show_on_public_page: formData.is_agent,
         updated_at: new Date().toISOString(),
       })
       .eq('user_id', userId)
@@ -273,24 +250,10 @@ export function AdminAgents() {
       .from('user_roles')
       .update({ role: formData.role })
       .eq('user_id', userId)
+      .eq('tenant_id', tenantId)
     if (roleError) throw roleError
 
-    if (formData.is_agent) {
-      await supabase.from('agents').upsert({
-        tenant_id: tenantId,
-        user_id: userId,
-        name: formData.full_name,
-        email: formData.email,
-        phone: formData.phone,
-        bio: formData.bio,
-        public: true,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id' })
-    } else {
-      await supabase.from('agents').delete().eq('user_id', userId)
-    }
-
-    toast.success('Usuário atualizado!')
+    toast.success('Usuario atualizado!')
   }
 
   const handleDelete = async () => {
@@ -485,8 +448,7 @@ export function AdminAgents() {
                 rows={3}
               />
             </div>
-            {!editingUser && (
-              <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2">
                 <Checkbox
                   id="is_agent"
                   checked={formData.is_agent}
@@ -498,7 +460,6 @@ export function AdminAgents() {
                   Este usuário é um <strong>CORRETOR</strong> (exibir no portal público)
                 </Label>
               </div>
-            )}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
                 Cancelar
