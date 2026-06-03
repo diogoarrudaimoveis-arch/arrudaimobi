@@ -152,10 +152,13 @@ const AdminMenuPermissions = () => {
     if (!canEdit) return;
     const menu = MENU_ITEMS.find((m) => m.id === menuId);
     if (menu?.required && (role === "admin" || role === "developer")) return;
-    setMatrix((prev) => ({
-      ...prev,
-      [menuId]: { ...(prev[menuId] || {}), [role]: !(prev[menuId]? as any)?.[role] },
-    }));
+setMatrix((prev) => {
+        const currentRoleVal = (prev[menuId] as any)?.[role] ?? false;
+        return {
+          ...prev,
+          [menuId]: { ...(prev[menuId] as any || {}), [role]: !currentRoleVal },
+        };
+      });
   };
 
   const handleSave = useCallback(async () => {
@@ -326,109 +329,103 @@ const AdminMenuPermissions = () => {
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </Card>
         ) : (
-
-        {/* Permissions Matrix */}
-        <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="text-sm font-bold">Matriz de Permissões por Perfil</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0 overflow-x-auto">
-            <table className="w-full min-w-[700px]">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-4 py-3 w-[200px]">
-                    Menu
-                  </th>
-                  {ROLES.map((role) => (
-                    <th key={role.id} className="text-center px-4 py-3">
-                      <div className="flex flex-col items-center gap-1">
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${role.color}`}>
-                          {role.label}
-                        </span>
-                        {(role.id === "admin" || role.id === "developer") && (
-                          <Lock className="h-3 w-3 text-muted-foreground" />
-                        )}
-                      </div>
+          <>
+          {/* Permissions Matrix */}
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-sm font-bold">Matriz de Permissões por Perfil</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0 overflow-x-auto">
+              <table className="w-full min-w-[700px]">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-4 py-3 w-[200px]">
+                      Menu
                     </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {MENU_ITEMS.map((menu) => (
-                  <tr key={menu.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
-                    <td className="px-4 py-2.5">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm">{menu.icon}</span>
-                        <span className="text-xs font-medium">{menu.label}</span>
-                        {menu.techOnly && (
-                          <Badge variant="secondary" className="text-[10px] ml-1">
-                            tech
-                          </Badge>
-                        )}
-                        {menu.required && (
-                          <Badge variant="outline" className="text-[10px] ml-1">
-                            obrigatório
-                          </Badge>
-                        )}
-                      </div>
-                    </td>
-                    {ROLES.map((role) => {
-                      const isLocked = menu.required && (role.id === "admin" || role.id === "developer");
-                      // matrix[menu.id] returns { admin, agent, user } or undefined
-                      const checked = (matrix[menu.id] as any)?.[role.id] ?? false;
-                      return (
-                        <td key={role.id} className="text-center px-4 py-2.5">
-                          {isLocked ? (
-                            <div className="flex justify-center">
-                              <div className="flex h-6 w-6 items-center justify-center rounded bg-primary/10">
-                                <Shield className="h-3.5 w-3.5 text-primary" />
-                              </div>
-                            </div>
-                          ) : canEdit ? (
-                            <div className="flex justify-center">
-                              <Switch
-                                checked={checked}
-                                onCheckedChange={() => togglePermission(role.id, menu.id)}
-                                aria-label={`${menu.label} para ${role.label}`}
-                              />
-                            </div>
-                          ) : (
-                            <div className="flex justify-center">
-                              {checked ? (
-                                <Eye className="h-4 w-4 text-green-600" />
-                              ) : (
-                                <EyeOff className="h-4 w-4 text-muted-foreground" />
-                              )}
-                            </div>
+                    {ROLES.map((role) => (
+                      <th key={role.id} className="text-center px-4 py-3">
+                        <div className="flex flex-col items-center gap-1">
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${role.color}`}>
+                            {role.label}
+                          </span>
+                          {(role.id === "admin" || role.id === "developer") && (
+                            <Lock className="h-3 w-3 text-muted-foreground" />
                           )}
-                        </td>
-                      );
-                    })}
+                        </div>
+                      </th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
-        )}
+                </thead>
+                <tbody>
+                  {MENU_ITEMS.map((menu) => (
+                    <tr key={menu.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">{menu.icon}</span>
+                          <span className="text-xs font-medium">{menu.label}</span>
+                          {menu.techOnly && (
+                            <Badge variant="secondary" className="text-[10px] ml-1">tech</Badge>
+                          )}
+                          {menu.required && (
+                            <Badge variant="outline" className="text-[10px] ml-1">obrigatório</Badge>
+                          )}
+                        </div>
+                      </td>
+                      {ROLES.map((role) => {
+                        const isLocked = menu.required && (role.id === "admin" || role.id === "developer");
+                        const checked = (matrix[menu.id] as any)?.[role.id] ?? false;
+                        return (
+                          <td key={role.id} className="text-center px-4 py-2.5">
+                            {isLocked ? (
+                              <div className="flex justify-center">
+                                <div className="flex h-6 w-6 items-center justify-center rounded bg-primary/10">
+                                  <Shield className="h-3.5 w-3.5 text-primary" />
+                                </div>
+                              </div>
+                            ) : canEdit ? (
+                              <div className="flex justify-center">
+                                <Switch
+                                  checked={checked}
+                                  onCheckedChange={() => togglePermission(role.id, menu.id)}
+                                  aria-label={`${menu.label} para ${role.label}`}
+                                />
+                              </div>
+                            ) : (
+                              <div className="flex justify-center">
+                                {checked
+                                  ? <Eye className="h-4 w-4 text-green-600" />
+                                  : <EyeOff className="h-4 w-4 text-muted-foreground" />}
+                              </div>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
 
-        {/* Current User Info */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">Usuário atual:</span>
-                <span className="font-medium">{profile?.full_name || profile?.email || "Carregando..."}</span>
+          {/* Current User Info */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Usuário atual:</span>
+                  <span className="font-medium">{profile?.full_name || profile?.email || "Carregando..."}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Papel:</span>
+                  <Badge variant="secondary" className="text-xs">
+                    {profile?.role || "não definido"}
+                  </Badge>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">Papel:</span>
-                <Badge variant="secondary" className="text-xs">
-                  {profile?.role || "não definido"}
-                </Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+          </>
+        )}
       </AdminPageShell>
     </AdminLayout>
   );
