@@ -1,12 +1,12 @@
-import { useEffect, lazy, Suspense } from "react";
+import { useEffect, lazy, Suspense, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { HashRouter, Route, Routes } from "react-router-dom";
+import { HashRouter, Route, Routes, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { HelmetProvider } from "react-helmet-async";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { CookieConsentProvider } from "@/contexts/CookieConsentContext";
 import { BrandProvider } from "@/components/BrandProvider";
 import { FavoritesProvider } from "@/contexts/FavoritesContext";
@@ -67,6 +67,16 @@ const PageLoader = () => (
   </div>
 );
 
+// Se logado + role admin/developer → vai para /admin. Se não, vai para home pública.
+function RootRedirect() {
+  const { user, isReady, isProfileLoading, normalizedRole } = useAuth();
+  if (!isReady || isProfileLoading) return <PageLoader />;
+  if (user && (normalizedRole === "admin" || normalizedRole === "developer")) {
+    return <Navigate to="/admin" replace />;
+  }
+  return <Index />;
+}
+
 function App() {
   // NOTE: useAISettings and useAuth removed — they use useQuery which requires QueryClient context
   // causing "No QueryClient set" error in React 19. The omnirouteKey is set to empty for now.
@@ -86,7 +96,7 @@ function App() {
                       <Suspense fallback={<PageLoader />}>
                         <Routes>
                           {/* Public routes */}
-                          <Route path="/" element={<Index />} />
+                          <Route path="/" element={<RootRedirect />} />
                           <Route path="/imoveis" element={<Properties />} />
                           <Route path="/imovel/:id" element={<PropertyDetail />} />
                           <Route path="/agentes" element={<Agents />} />

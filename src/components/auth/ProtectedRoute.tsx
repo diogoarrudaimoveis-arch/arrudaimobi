@@ -50,22 +50,22 @@ export function ProtectedRoute({ children, requireAdmin, requireAgent, requireOw
     return <Navigate to="/login" replace />;
   }
 
-  // Admin required but user is not admin/developer → redirect home
+  // Admin required but user is not admin/developer → redirect to admin (not public home)
   if (requireAdmin && !canAccessAdmin(normalizedRole)) {
-    console.log('[ProtectedRoute] NOT admin (role=', normalizedRole, '), redirect to /');
-    return <Navigate to="/" replace />;
+    console.log('[ProtectedRoute] NOT admin (role=', normalizedRole, '), redirect to /admin');
+    return <Navigate to="/admin" replace />;
   }
 
   // Agent required but user is not agent/admin
   if (requireAgent && !isAgent && !isAdmin) {
-    console.log('[ProtectedRoute] NOT agent, redirect to /');
-    return <Navigate to="/" replace />;
+    console.log('[ProtectedRoute] NOT agent, redirect to /admin');
+    return <Navigate to="/admin" replace />;
   }
 
-  // Developer required but user is not developer → redirect home
+  // Developer required but user is not developer → redirect to /admin
   if (requireDeveloper && normalizedRole !== "developer") {
-    console.log('[ProtectedRoute] NOT developer (role=', normalizedRole, '), redirect to /');
-    return <Navigate to="/" replace />;
+    console.log('[ProtectedRoute] NOT developer (role=', normalizedRole, '), redirect to /admin');
+    return <Navigate to="/admin" replace />;
   }
 
   console.log('[ProtectedRoute] ✅ rendering children for role:', normalizedRole);
