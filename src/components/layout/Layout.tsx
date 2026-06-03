@@ -30,8 +30,8 @@ export function Layout({ children }: LayoutProps) {
     enabled: !!tenant?.id,
   });
 
-  const title = siteSettings?.seo_title || "Arruda Imobi";
-  const description = siteSettings?.seo_description || "Descubra os melhores imóveis disponíveis para você com a Arruda Imobi.";
+  const title = siteSettings?.seo_title || "Arruda Imobi | Sua Plataforma de Gestão Imobiliária em MG";
+  const description = siteSettings?.seo_description || "Sua plataforma completa para encontrar o imóvel ideal. Conectamos você aos melhores agentes e propriedades do mercado.";
 
   return (
     <div className="flex min-h-screen flex-col min-w-0">
@@ -45,10 +45,23 @@ export function Layout({ children }: LayoutProps) {
         <meta name="description" content={description} />
         
         {/* Open Graph para WhatsApp e Redes Sociais */}
+        <meta property="og:type" content="website" />
         <meta property="og:title" content={title} />
         <meta property="og:description" content={description} />
-        {siteSettings?.seo_image_url && (
-          <meta property="og:image" content={`${siteSettings.seo_image_url}?v=${Date.now()}`} />
+        {siteSettings?.seo_image_url ? (
+          <meta property="og:image" content={siteSettings.seo_image_url} />
+        ) : (
+          <meta property="og:image" content="https://arrudaimobi.com.br/branding/og-image.png" />
+        )}
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={title} />
+        <meta name="twitter:description" content={description} />
+        {siteSettings?.seo_image_url ? (
+          <meta name="twitter:image" content={siteSettings.seo_image_url} />
+        ) : (
+          <meta name="twitter:image" content="https://arrudaimobi.com.br/branding/og-image.png" />
         )}
 
         <link rel="canonical" href={`https://www.arrudaimobi.com.br${location.pathname}`} />
