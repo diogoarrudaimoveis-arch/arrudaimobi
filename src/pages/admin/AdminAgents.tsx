@@ -81,28 +81,37 @@ export function AdminAgents() {
 
     setIsLoading(true)
     try {
-      const { data: profiles, error } = await supabase
+      // 1. Buscar user_roles primeiro (filtro seguro sem JOIN)
+      const { data: userRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id, role')
+        .eq('tenant_id', tenantId)
+
+      if (rolesError) throw rolesError
+      console.log('📊 user_roles:', userRoles)
+
+      if (!userRoles || userRoles.length === 0) {
+        console.log('ℹ️ Nenhum user_role encontrado para este tenant')
+        setUsers([])
+        setIsLoading(false)
+        return
+      }
+
+      const userIds = userRoles.map((ur: any) => ur.user_id)
+      const rolesMap = new Map(userRoles.map((ur: any) => [ur.user_id, ur.role]))
+      console.log('📊 userIds:', userIds.length, 'rolesMap size:', rolesMap.size)
+
+      // 2. Buscar profiles desses usuários
+      const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select(`
-          id,
-          user_id,
-          full_name,
-          email,
-          phone,
-          bio,
-          avatar_url,
-          created_at,
-          user_roles!inner (
-            id,
-            role,
-            tenant_id
-          )
-        `)
-        .eq('user_roles.tenant_id', tenantId)
+        .select('id, user_id, full_name, email, phone, bio, avatar_url, created_at, tenant_id')
+        .in('user_id', userIds)
         .order('full_name', { ascending: true })
 
-      if (error) throw error
+      if (profilesError) throw profilesError
+      console.log('📊 profiles:', profiles)
 
+      // 3. Buscar agents públicos
       const { data: agents } = await supabase
         .from('agents')
         .select('user_id, public')
@@ -112,23 +121,25 @@ export function AdminAgents() {
         agents?.filter((a: any) => a.public).map((a: any) => a.user_id) || []
       )
 
-      const usersData = profiles?.map((profile: any) => ({
+      // 4. Combinar dados
+      const usersData = (profiles || []).map((profile: any) => ({
         id: profile.id,
         user_id: profile.user_id,
         full_name: profile.full_name || 'Sem nome',
         email: profile.email || '-',
         phone: profile.phone || '-',
-        role: profile.user_roles[0]?.role || 'user',
+        role: rolesMap.get(profile.user_id) || 'user',
         bio: profile.bio || '',
         avatar_url: profile.avatar_url,
         created_at: profile.created_at,
         is_agent: agentsSet.has(profile.user_id),
-      })) || []
+      }))
 
+      console.log('✅ usuarios carregados:', usersData.length)
       setUsers(usersData)
     } catch (error: any) {
-      console.error('Erro ao carregar usuários:', error)
-      toast.error('Erro ao carregar usuários')
+      console.error('❌ Erro ao carregar usuários:', error)
+      toast.error('Erro ao carregar usuários: ' + error.message)
     } finally {
       setIsLoading(false)
     }
