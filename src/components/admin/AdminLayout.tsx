@@ -17,6 +17,7 @@ import type { LucideIcon } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
+import { PWAInstallPrompt } from "@/components/marketing/PWAInstallPrompt";
 
 // Menu items with permission flags
 const allMenuItems: AdminMenuItem[] = [
@@ -281,6 +282,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           <div className="p-5 lg:p-6">{children}</div>
         </main>
       </div>
+
+      {/* PWA Install Prompt - shown on first admin login per device */}
+      <PWAInstallPrompt />
     </div>
   );
 }
