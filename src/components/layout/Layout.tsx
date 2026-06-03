@@ -36,8 +36,10 @@ export function Layout({ children }: LayoutProps) {
   return (
     <div className="flex min-h-screen flex-col min-w-0">
       <Helmet>
-        {siteSettings?.favicon_url && (
+        {siteSettings?.favicon_url ? (
           <link rel="icon" href={`${siteSettings.favicon_url}?t=${Date.now()}`} />
+        ) : (
+          <link rel="icon" href="/favicon.svg" />
         )}
         <title>{title}</title>
         <meta name="description" content={description} />
