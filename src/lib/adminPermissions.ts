@@ -121,12 +121,29 @@ export interface AdminMenuItem {
 }
 
 /**
+ * Permissão de menu vinda do banco (tenant-level).
+ * Chave: module_id, Valor: { admin_access, agent_access, user_access }
+ */
+export type MenuPermissionMatrix = Record<string, { admin?: boolean; agent?: boolean; user?: boolean }>;
+
+/**
+ * Retorna a chave de acesso dentro da matriz de permissões baseado na role.
+ */
+export function roleAccessKey(role: AppRole): "admin" | "agent" | "user" {
+  if (role === "admin") return "admin";
+  if (role === "agent") return "agent";
+  return "user";
+}
+
+/**
  * Determine if a given role can see a specific menu item.
+ * Uses DB permissions when available; falls back to static flags.
  *
  * RULES:
  * - developer: sees EVERYTHING (all items)
  * - admin: sees all EXCEPT developerOnly items (includes IA Operacional, DevOps, etc.)
  * - agent/user: sees only items with NO flags (operational menus)
+ * - DB permissions override static flags when provided
  *
  * adminOnly = Email, Configurações, Permissões de Menu, Portais, Tracking, Performance
  * developerOnly = Planos e Limites, Mostruário
@@ -134,12 +151,22 @@ export interface AdminMenuItem {
  */
 export function canSeeMenuItem(
   role: string | null | undefined,
-  item: AdminMenuItem
+  item: AdminMenuItem,
+  dbPermissions?: MenuPermissionMatrix | null
 ): boolean {
   const normalized = normalizeRole(role);
 
   // DEVELOPER sees everything
   if (normalized === "developer") return true;
+
+  // Apply DB permissions if available
+  if (dbPermissions) {
+    const modulePerms = dbPermissions[item.key];
+    const key = roleAccessKey(normalized);
+    const dbAccess = modulePerms?.[key];
+    // DB entry found → use it (true/false), otherwise fall through to static rules
+    if (dbAccess !== undefined) return dbAccess;
+  }
 
   // ADMIN sees all EXCEPT developerOnly items (tech menus + admin menus)
   if (normalized === "admin") {

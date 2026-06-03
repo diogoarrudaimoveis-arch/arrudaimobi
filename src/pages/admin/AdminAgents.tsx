@@ -1,200 +1,321 @@
-import { useState } from "react";
-import { AdminLayout } from "@/components/admin/AdminLayout";
-import { AdminPageShell, PageCard } from "@/components/admin/shared/AdminComponents";
-import { Users, UserPlus, Loader2, Pencil, Trash2 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { getRoleLabel, getRoleBadgeVariant, normalizeRole } from "@/lib/adminPermissions";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '@/contexts/AuthContext'
+import { supabase } from '@/integrations/supabase/client'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Pencil, Trash, Plus, User, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { AdminLayout } from '@/components/admin/AdminLayout'
+import { AdminPageShell, PageCard } from '@/components/admin/shared/AdminComponents'
 
-interface CompanyUser {
-  user_id: string;
-  full_name: string | null;
-  avatar_url: string | null;
-  phone: string | null;
-  bio: string | null;
-  created_at: string;
-  role: string;
-  email?: string;
+interface UserData {
+  id?: string
+  user_id?: string
+  full_name: string
+  email: string
+  phone: string
+  role: 'admin' | 'agent' | 'user' | 'developer'
+  bio: string
+  is_agent: boolean
+  avatar_url?: string | null
+  created_at?: string
 }
 
-const AdminAgents = () => {
-const { tenantId, isReady, session, isDeveloper, profile, normalizedRole } = useAuth();
-  const queryClient = useQueryClient();
-  const isAdmin = normalizedRole === "admin";
+export function AdminAgents() {
+  const { tenantId, normalizedRole, isDeveloper } = useAuth()
+  const navigate = useNavigate()
 
-  const { data: users = [], isLoading } = useQuery({
-    queryKey: ["company-users", tenantId],
-    queryFn: async (): Promise<CompanyUser[]> => {
-      if (!tenantId) throw new Error("No tenantId");
+  const [users, setUsers] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingUser, setEditingUser] = useState<UserData | null>(null)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [userToDelete, setUserToDelete] = useState<string | null>(null)
 
-      const { data: profiles, error: profErr } = await supabase
-        .from("profiles")
-        .select("user_id, full_name, avatar_url, phone, bio, created_at")
-        .eq("tenant_id", tenantId);
-      if (profErr) throw profErr;
+  const [formData, setFormData] = useState<UserData>({
+    full_name: '',
+    email: '',
+    phone: '',
+    role: 'user',
+    bio: '',
+    is_agent: false,
+  })
 
-      const { data: roles, error: rolesErr } = await supabase
-        .from("user_roles")
-        .select("user_id, role")
-        .eq("tenant_id", tenantId);
-      if (rolesErr) throw rolesErr;
+  const [saving, setSaving] = useState(false)
 
-      const roleMap: Record<string, string> = {};
-      roles?.forEach((r) => { roleMap[r.user_id] = r.role; });
+  // Carregar usuários
+  useEffect(() => {
+    loadUsers()
+  }, [tenantId])
 
-      const userIds = (profiles || []).map((p) => p.user_id);
-      const emailMap: Record<string, string> = {};
+  const loadUsers = async () => {
+    if (!tenantId) return
 
-      if (userIds.length > 0) {
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user?.email) {
-            emailMap[user.id] = user.email;
-          }
-        } catch {
-          // proceed without emails
-        }
-      }
-
-      return (profiles || []).map((p) => ({
-        ...p,
-        role: roleMap[p.user_id] || "user",
-        email: emailMap[p.user_id] || undefined,
-      }));
-    },
-    enabled: isReady && !!tenantId,
-  });
-
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [newUserForm, setNewUserForm] = useState({
-    full_name: "",
-    email: "",
-    phone: "",
-    role: "user",
-    bio: "",
-    is_corretor: false,
-    corretor_key: "",
-  });
-  const [creatingUser, setCreatingUser] = useState(false);
-  const [editingUser, setEditingUser] = useState<CompanyUser | null>(null);
-
-  const handleCreateUser = async () => {
-    if (!newUserForm.full_name || !newUserForm.email) {
-      toast.error("Nome e email são obrigatórios");
-      return;
-    }
-    setCreatingUser(true);
+    setIsLoading(true)
     try {
-      const { data, error } = await supabase.auth.admin.createUser({
-        email: newUserForm.email,
-        email_confirm: true,
-        user_metadata: { full_name: newUserForm.full_name, phone: newUserForm.phone },
-      });
-      if (error) throw error;
-      const userId = data.user.id;
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          user_id,
+          full_name,
+          email,
+          phone,
+          bio,
+          avatar_url,
+          created_at,
+          user_roles!inner (
+            id,
+            role,
+            tenant_id
+          )
+        `)
+        .eq('user_roles.tenant_id', tenantId)
+        .order('full_name', { ascending: true })
 
-      const { error: profileErr } = await supabase.from("profiles").upsert({
-        user_id: userId,
-        tenant_id: tenantId,
-        full_name: newUserForm.full_name,
-        phone: newUserForm.phone || null,
-        bio: newUserForm.bio || null,
-        is_corretor: newUserForm.is_corretor,
-        corretor_key: newUserForm.is_corretor ? newUserForm.corretor_key : null,
-      });
-      if (profileErr) console.error("profile err:", profileErr);
+      if (error) throw error
 
-      const { error: roleErr } = await supabase.from("user_roles").upsert({
-        user_id: userId,
-        tenant_id: tenantId,
-        role: newUserForm.role,
-      });
-      if (roleErr) console.error("role err:", roleErr);
+      const { data: agents } = await supabase
+        .from('agents')
+        .select('user_id, public')
+        .eq('tenant_id', tenantId)
 
-      toast.success("Usuário criado com sucesso");
-      setShowCreateDialog(false);
-      setNewUserForm({ full_name: "", email: "", phone: "", role: "user", bio: "", is_corretor: false, corretor_key: "" });
-      queryClient.invalidateQueries({ queryKey: ["company-users"] });
-    } catch (err: any) {
-      toast.error("Erro ao criar usuário: " + err.message);
+      const agentsSet = new Set(
+        agents?.filter((a: any) => a.public).map((a: any) => a.user_id) || []
+      )
+
+      const usersData = profiles?.map((profile: any) => ({
+        id: profile.id,
+        user_id: profile.user_id,
+        full_name: profile.full_name || 'Sem nome',
+        email: profile.email || '-',
+        phone: profile.phone || '-',
+        role: profile.user_roles[0]?.role || 'user',
+        bio: profile.bio || '',
+        avatar_url: profile.avatar_url,
+        created_at: profile.created_at,
+        is_agent: agentsSet.has(profile.user_id),
+      })) || []
+
+      setUsers(usersData)
+    } catch (error: any) {
+      console.error('Erro ao carregar usuários:', error)
+      toast.error('Erro ao carregar usuários')
     } finally {
-      setCreatingUser(false);
+      setIsLoading(false)
     }
-  };
+  }
 
-  const handleEditUser = (user: CompanyUser) => {
-    setEditingUser(user);
-    setShowCreateDialog(true);
-  };
+  // Abrir modal de criação
+  const handleCreate = () => {
+    setEditingUser(null)
+    setFormData({
+      full_name: '',
+      email: '',
+      phone: '',
+      role: 'user',
+      bio: '',
+      is_agent: false,
+    })
+    setIsModalOpen(true)
+  }
 
-  const handleDeleteUser = async (userId: string) => {
-    if (!confirm("Excluir este usuário? Esta ação não pode ser desfeita.")) return;
+  // Abrir modal de edição — CARREGAR DADOS DO USUÁRIO
+  const handleEdit = (user: UserData) => {
+    setEditingUser(user)
+    setFormData({
+      full_name: user.full_name || '',
+      email: user.email || '',
+      phone: user.phone || '',
+      role: user.role || 'user',
+      bio: user.bio || '',
+      is_agent: user.is_agent || false,
+    })
+    setIsModalOpen(true)
+  }
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!tenantId) {
+      toast.error('Tenant não encontrado')
+      return
+    }
+    setSaving(true)
     try {
-      // Get current user ID for reassigning properties
-      const currentUserId = profile?.user_id;
-      
-      // Reassign properties owned by this user to current admin
-      await supabase.from("properties")
-        .update({ owner_id: currentUserId })
-        .eq("owner_id", userId);
-      
-      // Reassign properties assigned to this agent to current admin
-      await supabase.from("properties")
-        .update({ agent_id: currentUserId })
-        .eq("agent_id", userId);
-      
-      // Delete role
-      await supabase.from("user_roles").delete().eq("user_id", userId);
-      // Delete profile
-      await supabase.from("profiles").delete().eq("user_id", userId);
-      
-      // Invalidate both company-users and properties queries
-      await queryClient.invalidateQueries({ queryKey: ["company-users"] });
-      await queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
-      await queryClient.invalidateQueries({ queryKey: ["properties"] });
-      
-      toast.success("Usuário removido - imóveis realocados para você");
-    } catch (err: any) {
-      toast.error("Erro ao excluir: " + err.message);
+      if (editingUser && editingUser.user_id) {
+        await updateUser(editingUser.user_id)
+      } else {
+        await createUser()
+      }
+      setIsModalOpen(false)
+      await loadUsers()
+    } catch (error: any) {
+      console.error('Erro ao salvar usuário:', error)
+      toast.error(error.message || 'Erro ao salvar usuário')
+    } finally {
+      setSaving(false)
     }
-  };
+  }
 
-  const roleBadgeVariant = (role: string) => {
-    const variant = getRoleBadgeVariant(role);
-    if (variant === "default") return "default";
-    if (variant === "developer") return "secondary";
-    if (variant === "secondary") return "success";
-    return "outline";
-  };
+  const createUser = async () => {
+    const tempPassword = Math.random().toString(36).slice(-8) + 'A1!'
 
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return "—";
-    return new Date(dateStr).toLocaleDateString("pt-BR");
-  };
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: formData.email,
+      password: tempPassword,
+      options: { data: { full_name: formData.full_name } },
+    })
+    if (authError) throw authError
+    if (!authData.user) throw new Error('Usuário não criado')
 
-  // Developer can do everything. Admin can only edit/delete agent/user (not admin or developer)
-  const canEditUser = (u: CompanyUser) => {
-    if (isDeveloper) return true;
-    if (isAdmin && u.role !== "admin" && u.role !== "developer") return true;
-    return false;
-  };
+    const { error: profileError } = await supabase.from('profiles').insert({
+      user_id: authData.user.id,
+      tenant_id: tenantId,
+      full_name: formData.full_name,
+      phone: formData.phone,
+      bio: formData.bio,
+    })
+    if (profileError) throw profileError
+
+    const { error: roleError } = await supabase.from('user_roles').insert({
+      user_id: authData.user.id,
+      tenant_id: tenantId,
+      role: formData.role,
+    })
+    if (roleError) throw roleError
+
+    if (formData.is_agent) {
+      await supabase.from('agents').insert({
+        tenant_id: tenantId,
+        user_id: authData.user.id,
+        name: formData.full_name,
+        email: formData.email,
+        phone: formData.phone,
+        bio: formData.bio,
+        public: true,
+      })
+    }
+
+    // permissões padrão por módulo
+    const defaultPerms = [
+      { module_id: 'dashboard', admin_access: true, agent_access: true, user_access: false },
+      { module_id: 'imoveis', admin_access: true, agent_access: true, user_access: false },
+      { module_id: 'proprietarios', admin_access: true, agent_access: false, user_access: false },
+      { module_id: 'agenda', admin_access: true, agent_access: true, user_access: false },
+      { module_id: 'contatos', admin_access: true, agent_access: true, user_access: false },
+      { module_id: 'mensagens', admin_access: true, agent_access: true, user_access: false },
+    ]
+    for (const perm of defaultPerms) {
+      await supabase.from('menu_permissions').upsert({
+        tenant_id: tenantId,
+        module_id: perm.module_id,
+        admin_access: perm.admin_access,
+        agent_access: perm.agent_access,
+        user_access: perm.user_access,
+      }, { onConflict: 'tenant_id,module_id' })
+    }
+
+    toast.success('Usuário criado! Senha temporária: ' + tempPassword)
+  }
+
+  const updateUser = async (userId: string) => {
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({
+        full_name: formData.full_name,
+        phone: formData.phone,
+        bio: formData.bio,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId)
+    if (profileError) throw profileError
+
+    const { error: roleError } = await supabase
+      .from('user_roles')
+      .update({ role: formData.role })
+      .eq('user_id', userId)
+    if (roleError) throw roleError
+
+    if (formData.is_agent) {
+      await supabase.from('agents').upsert({
+        tenant_id: tenantId,
+        user_id: userId,
+        name: formData.full_name,
+        email: formData.email,
+        phone: formData.phone,
+        bio: formData.bio,
+        public: true,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' })
+    } else {
+      await supabase.from('agents').delete().eq('user_id', userId)
+    }
+
+    toast.success('Usuário atualizado!')
+  }
+
+  const handleDelete = async () => {
+    if (!userToDelete) return
+    try {
+      await supabase.from('agents').delete().eq('user_id', userToDelete)
+      await supabase.from('user_roles').delete().eq('user_id', userToDelete)
+      await supabase.from('profiles').delete().eq('user_id', userToDelete)
+      toast.success('Usuário removido!')
+      setIsDeleteDialogOpen(false)
+      setUserToDelete(null)
+      await loadUsers()
+    } catch (error: any) {
+      console.error('Erro ao deletar usuário:', error)
+      toast.error('Erro ao remover usuário')
+    }
+  }
+
+  const confirmDelete = (userId: string) => {
+    setUserToDelete(userId)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const canManageUsers = normalizedRole === 'admin' || normalizedRole === 'developer'
+
+  const roleLabel = (role: string) => {
+    if (role === 'developer') return 'Desenvolvedor'
+    if (role === 'admin') return 'Admin'
+    if (role === 'agent') return 'Agente'
+    return 'Usuário'
+  }
 
   return (
     <AdminLayout>
       <AdminPageShell>
-        <PageCard title="Agentes & Usuários" icon={Users}>
+        <PageCard title="Agentes & Usuários" icon={User}>
           <div className="space-y-6">
             {/* Header */}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -203,217 +324,202 @@ const { tenantId, isReady, session, isDeveloper, profile, normalizedRole } = use
                   Agentes & Usuários
                 </h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {isLoading ? "Carregando membros..." : `${users.length} membros na imobiliária`}
+                  {isLoading ? 'Carregando...' : `${users.length} membros na imobiliária`}
                 </p>
               </div>
-              {isDeveloper && (
-                <Button
-                  onClick={() => setShowCreateDialog(true)}
-                  className="gap-2 bg-[#003366] hover:bg-[#002244] text-white"
-                >
-                  <UserPlus className="h-4 w-4" />
+              {canManageUsers && (
+                <Button onClick={handleCreate} className="gap-2 bg-[#003366] hover:bg-[#002244] text-white">
+                  <Plus className="h-4 w-4" />
                   Criar Usuário
                 </Button>
               )}
             </div>
 
-            {/* Table */}
+            {/* Lista de Usuários */}
             {isLoading ? (
-              <div className="space-y-3">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="flex items-center gap-4 rounded-lg border border-border p-4">
-                    <Skeleton variant="circle" className="h-10 w-10" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton variant="text" className="w-48" />
-                      <Skeleton variant="text" className="w-32" />
-                    </div>
-                    <Skeleton variant="default" className="h-6 w-20" />
-                  </div>
-                ))}
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             ) : !users.length ? (
-              <Card className="flex flex-col items-center py-12 text-center">
-                <Users className="h-10 w-10 text-muted-foreground/40" />
-                <p className="mt-3 font-display font-semibold">Nenhum membro encontrado</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Nenhum perfil encontrado para este tenant.
-                </p>
-              </Card>
-            ) : (
-              <div className="overflow-x-auto rounded-lg border border-border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Telefone</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Data Criação</TableHead>
-                      {isDeveloper && <TableHead className="w-[100px]">Ações</TableHead>}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users.map((u) => (
-                      <TableRow key={u.user_id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8">
-                              <AvatarImage src={u.avatar_url ?? undefined} />
-                              <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                                {(u.full_name || "U").charAt(0).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="font-medium">{u.full_name || "Sem nome"}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm text-muted-foreground">{u.email || "—"}</span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm">{u.phone || "—"}</span>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={roleBadgeVariant(u.role)}>{getRoleLabel(u.role)}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm text-muted-foreground">{formatDate(u.created_at)}</span>
-                        </TableCell>
-                        {isDeveloper && (
-                          <TableCell>
-                            {canEditUser(u) ? (
-                              <div className="flex gap-1">
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditUser(u)}>
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-red-500 hover:text-red-600"
-                                  onClick={() => handleDeleteUser(u.user_id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">—</span>
-                            )}
-                          </TableCell>
-                        )}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+              <div className="text-center py-12 text-muted-foreground">
+                <User className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                <p className="font-medium">Nenhum membro encontrado</p>
               </div>
-            )}
+            ) : (
+              <div className="space-y-3">
+                {users.map((user) => (
+                  <div
+                    key={user.id}
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
+                        {user.avatar_url ? (
+                          <img src={user.avatar_url} alt={user.full_name} className="h-12 w-12 rounded-full object-cover" />
+                        ) : (
+                          <User className="h-6 w-6 text-primary" />
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold">{user.full_name}</h3>
+                        <p className="text-sm text-muted-foreground">{user.email}</p>
+                        <div className="flex gap-2 mt-1">
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-secondary">
+                            {roleLabel(user.role)}
+                          </span>
+                          {user.is_agent && (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
+                              Corretor
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
 
-            {isAdmin && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 p-4">
-                <p className="text-sm text-amber-800 dark:text-amber-300">
-                  <strong>Admin:</strong> Você pode visualizar todos os membros. Apenas o{" "}
-                  <strong>Desenvolvedor</strong> pode criar e gerenciar usuários.
-                </p>
+                    {/* Botões de Ação — APENAS Admin/Developer */}
+                    {canManageUsers && (
+                      <div className="flex gap-2 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleEdit(user)}
+                          title="Editar"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-red-500 hover:text-red-700"
+                          onClick={() => confirmDelete(user.user_id!)}
+                          title="Excluir"
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>
         </PageCard>
       </AdminPageShell>
 
-      {/* Create User Dialog */}
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+      {/* Modal de Criar/Editar */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Criar Novo Usuário</DialogTitle>
+            <DialogTitle>{editingUser ? 'Editar Usuário' : 'Criar Novo Usuário'}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+          <form onSubmit={handleSave} className="space-y-4">
             <div>
-              <Label>Nome completo *</Label>
+              <Label htmlFor="full_name">Nome completo *</Label>
               <Input
-                value={newUserForm.full_name}
-                onChange={(e) => setNewUserForm((p) => ({ ...p, full_name: e.target.value }))}
+                id="full_name"
+                value={formData.full_name}
+                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                 placeholder="Nome da pessoa"
+                required
               />
             </div>
             <div>
-              <Label>Email *</Label>
+              <Label htmlFor="email">Email *</Label>
               <Input
+                id="email"
                 type="email"
-                value={newUserForm.email}
-                onChange={(e) => setNewUserForm((p) => ({ ...p, email: e.target.value }))}
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="email@exemplo.com"
+                required
+                disabled={!!editingUser}
               />
             </div>
             <div>
-              <Label>Telefone</Label>
+              <Label htmlFor="phone">Telefone</Label>
               <Input
-                value={newUserForm.phone}
-                onChange={(e) => setNewUserForm((p) => ({ ...p, phone: e.target.value }))}
+                id="phone"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 placeholder="(31) 99999-9999"
               />
             </div>
             <div>
-              <Label>Tipo de usuário *</Label>
-              <select
-                value={newUserForm.role}
-                onChange={(e) => setNewUserForm((p) => ({ ...p, role: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-lg bg-background"
+              <Label htmlFor="role">Tipo de usuário *</Label>
+              <Select
+                value={formData.role}
+                onValueChange={(value: any) => setFormData({ ...formData, role: value })}
               >
-                <option value="user">Usuário</option>
-                <option value="agent">Agente</option>
-                <option value="financeiro">Financeiro</option>
-                <option value="admin">Admin</option>
-              </select>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">Usuário</SelectItem>
+                  <SelectItem value="agent">Agente</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  {isDeveloper && (
+                    <SelectItem value="developer">Desenvolvedor</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
             <div>
-              <Label>Biografia / Observações</Label>
+              <Label htmlFor="bio">Biografia / Observações</Label>
               <Textarea
-                value={newUserForm.bio}
-                onChange={(e) => setNewUserForm((p) => ({ ...p, bio: e.target.value }))}
+                id="bio"
+                value={formData.bio}
+                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                 placeholder="Informações adicionais..."
                 rows={3}
               />
             </div>
-            {/* Corretor section */}
-            <div className="space-y-2 rounded-lg border p-4">
-              <Label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={newUserForm.is_corretor}
-                  onChange={(e) => setNewUserForm((p) => ({ ...p, is_corretor: e.target.checked }))}
-                  className="rounded"
+            {!editingUser && (
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="is_agent"
+                  checked={formData.is_agent}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, is_agent: checked as boolean })
+                  }
                 />
-                Este usuário é um <strong>CORRETOR</strong> (exibir no portal público)
-              </Label>
-              {newUserForm.is_corretor && (
-                <div>
-                  <Label>Chave do Corretor (para portal público) *</Label>
-                  <Input
-                    value={newUserForm.corretor_key}
-                    onChange={(e) => setNewUserForm((p) => ({ ...p, corretor_key: e.target.value }))}
-                    placeholder="Creci ou código único"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Esta chave identifica o corretor no portal público de agentes.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleCreateUser}
-              disabled={!newUserForm.full_name || !newUserForm.email || creatingUser}
-            >
-              {creatingUser ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Criar Usuário
-            </Button>
-          </DialogFooter>
+                <Label htmlFor="is_agent" className="text-sm font-medium leading-none cursor-pointer">
+                  Este usuário é um <strong>CORRETOR</strong> (exibir no portal público)
+                </Label>
+              </div>
+            )}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={saving}>
+                {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                {editingUser ? 'Salvar Alterações' : 'Criar Usuário'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
-    </AdminLayout>
-  );
-};
 
-export default AdminAgents;
+      {/* Dialog de Confirmação de Exclusão */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </AdminLayout>
+  )
+}
+
+export default AdminAgents

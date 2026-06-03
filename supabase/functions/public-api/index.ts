@@ -351,6 +351,9 @@ Deno.serve(async (req) => {
             ...p,
             role: roles?.find(r => r.user_id === p.user_id)?.role || "user",
             properties_count: counts[p.user_id] || 0,
+            // Fallback avatar for profiles that may not have one
+            avatar_url: p.avatar_url || null,
+            full_name: p.full_name || p.user_id,
           })) || [],
           total: visibleCount,
           page,

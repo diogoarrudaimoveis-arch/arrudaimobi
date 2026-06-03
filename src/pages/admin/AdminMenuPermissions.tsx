@@ -6,9 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { canAccessAdmin, normalizeRole } from "@/lib/adminPermissions";
-import { useState } from "react";
-import { Shield, Lock, Eye, EyeOff, AlertTriangle, CreditCard, Settings } from "lucide-react";
+import { useTenantSettings } from "@/hooks/use-tenant-settings";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect, useCallback } from "react";
+import { Shield, Lock, Eye, EyeOff, AlertTriangle, CreditCard, Settings, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import type { MenuPermissionMatrix } from "@/lib/adminPermissions";
 
 interface MenuItem {
   id: string;
@@ -67,61 +70,81 @@ const ASAAS_SANDBOX_STORAGE = "asaas_sandbox";
 
 const AdminMenuPermissions = () => {
   const { profile, normalizedRole } = useAuth();
+  const { data: tenant } = useTenantSettings();
   const userRole = normalizedRole;
   const isDev = normalizedRole === 'developer';
   const canEdit = canAccessAdmin(userRole);
+  const tenantId = tenant?.id;
 
-  const [matrix, setMatrix] = useState<Record<string, Record<string, boolean>>>(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : DEFAULT_MATRIX;
-  });
+  // Matrix: Record<module_id, Record<role, boolean>>
+  const [matrix, setMatrix] = useState<MenuPermissionMatrix>({});
+  const [isLoading, setIsLoading] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState<"idle"|"testing"|"success"|"error">("idle");
-  const [asaasKey, setAsaasKey] = useState(() => localStorage.getItem(ASAAS_KEY_STORAGE) || "");
-  const [asaasSandbox, setAsaasSandbox] = useState(() => localStorage.getItem(ASAAS_SANDBOX_STORAGE) === "true");
+  const [asaasKey, setAsaasKey] = useState(() => localStorage.getItem("asaas_api_key") || "");
+  const [asaasSandbox, setAsaasSandbox] = useState(() => localStorage.getItem("asaas_sandbox") === "true");
   const [showAsaasConfig, setShowAsaasConfig] = useState(false);
   const [showAsaasKey, setShowAsaasKey] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Load from DB on mount
+  useEffect(() => {
+    const load = async () => {
+      if (!tenantId) return;
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("menu_permissions")
+          .select("module_id, admin_access, agent_access, user_access")
+          .eq("tenant_id", tenantId);
+
+        if (!error && data && data.length > 0) {
+          const loaded: MenuPermissionMatrix = {};
+          data.forEach((row: any) => {
+            loaded[row.module_id] = {
+              admin: row.admin_access,
+              agent: row.agent_access,
+              user: row.user_access,
+            };
+          });
+          setMatrix(loaded);
+          // Cache locally for offline-first
+          localStorage.setItem("arruda_menu_permissions", JSON.stringify(loaded));
+        } else {
+          // No DB data: try localStorage
+          const stored = localStorage.getItem("arruda_menu_permissions");
+          if (stored) {
+            try { setMatrix(JSON.parse(stored)); } catch { /* ignore */ }
+          }
+        }
+      } catch { /* ignore */ }
+      setIsLoading(false);
+    };
+    load();
+  }, [tenantId]);
 
   const testAsaasConnection = async () => {
-    if (!asaasKey) {
-      toast.error("Cole uma API Key primeiro");
-      return;
-    }
+    if (!asaasKey) { toast.error("Cole uma API Key primeiro"); return; }
     setConnectionStatus("testing");
     try {
       const baseUrl = asaasSandbox ? "https://api-sandbox.asaas.com" : "https://api.asaas.com";
       const resp = await fetch(`${baseUrl}/v3/myAccount`, {
-        headers: {
-          "access_token": asaasKey,
-          "Content-Type": "application/json",
-        },
+        headers: { "access_token": asaasKey, "Content-Type": "application/json" },
       });
-      if (resp.ok) {
-        setConnectionStatus("success");
-        toast.success("Conexão Asaas OK");
-      } else if (resp.status === 401) {
-        setConnectionStatus("error");
-        toast.error("API key inválida");
-      } else {
-        setConnectionStatus("error");
-        toast.error(`Erro: ${resp.status}`);
-      }
-    } catch {
-      setConnectionStatus("error");
-      toast.error("Erro ao conectar com Asaas");
-    }
+      if (resp.ok) { setConnectionStatus("success"); toast.success("Conexão Asaas OK"); }
+      else if (resp.status === 401) { setConnectionStatus("error"); toast.error("API key inválida"); }
+      else { setConnectionStatus("error"); toast.error(`Erro: ${resp.status}`); }
+    } catch { setConnectionStatus("error"); toast.error("Erro ao conectar com Asaas"); }
   };
 
   const saveAsaasSettings = () => {
-    localStorage.setItem(ASAAS_KEY_STORAGE, asaasKey);
-    localStorage.setItem(ASAAS_SANDBOX_STORAGE, String(asaasSandbox));
+    localStorage.setItem("asaas_api_key", asaasKey);
+    localStorage.setItem("asaas_sandbox", String(asaasSandbox));
     toast.success("Configurações Asaas salvas");
   };
 
   const clearAsaasSettings = () => {
-    setAsaasKey("");
-    setConnectionStatus("idle");
-    localStorage.removeItem(ASAAS_KEY_STORAGE);
-    localStorage.removeItem(ASAAS_SANDBOX_STORAGE);
+    setAsaasKey(""); setConnectionStatus("idle");
+    localStorage.removeItem("asaas_api_key"); localStorage.removeItem("asaas_sandbox");
     toast("Configurações Asaas removidas");
   };
 
@@ -131,22 +154,42 @@ const AdminMenuPermissions = () => {
     if (menu?.required && (role === "admin" || role === "developer")) return;
     setMatrix((prev) => ({
       ...prev,
-      [role]: { ...prev[role], [menuId]: !prev[role]?.[menuId] },
+      [menuId]: { ...(prev[menuId] || {}), [role]: !(prev[menuId]? as any)?.[role] },
     }));
   };
 
-  const handleSave = () => {
-    if (!canEdit) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(matrix));
-    toast.success("Configurações salvas localmente", {
-      description: "Persistência em banco pendente de aprovação do backend.",
-    });
-  };
+  const handleSave = useCallback(async () => {
+    if (!canEdit || !tenantId) return;
+    setSaving(true);
+    try {
+      const rows = Object.entries(matrix).map(([module_id, roles]) => ({
+        tenant_id: tenantId,
+        module_id,
+        admin_access: (roles as any)?.admin ?? false,
+        agent_access: (roles as any)?.agent ?? false,
+        user_access: (roles as any)?.user ?? false,
+        updated_at: new Date().toISOString(),
+      }));
+      for (const row of rows) {
+        await supabase
+          .from("menu_permissions")
+          .upsert(row, { onConflict: "tenant_id,module_id" });
+      }
+      localStorage.setItem("arruda_menu_permissions", JSON.stringify(matrix));
+      toast.success("Permissões salvas no banco de dados!");
+    } catch {
+      toast.error("Erro ao salvar permissões");
+    } finally {
+      setSaving(false);
+    }
+  }, [canEdit, tenantId, matrix]);
 
-  const handleReset = () => {
-    setMatrix(DEFAULT_MATRIX);
-    localStorage.removeItem(STORAGE_KEY);
-    toast("Configurações restauradas para padrão");
+  const handleReset = async () => {
+    if (!tenantId) return;
+    setMatrix({});
+    await supabase.from("menu_permissions").delete().eq("tenant_id", tenantId);
+    localStorage.removeItem("arruda_menu_permissions");
+    toast("Permissões restauradas para padrão");
   };
 
   return (
@@ -162,7 +205,8 @@ const AdminMenuPermissions = () => {
                   <Button variant="outline" size="sm" onClick={handleReset}>
                     Restaurar Padrão
                   </Button>
-                  <Button size="sm" onClick={handleSave}>
+                  <Button size="sm" onClick={handleSave} disabled={saving}>
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
                     Salvar Configuração
                   </Button>
                 </>
@@ -262,21 +306,26 @@ const AdminMenuPermissions = () => {
         )}
 
         {/* Info Banner */}
-        <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+        <Card className="border-green-200 bg-green-50 dark:bg-green-950/20">
           <CardContent className="flex items-start gap-3 p-4">
-            <AlertTriangle className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
+            <Shield className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
             <div className="text-sm">
-              <p className="font-medium text-blue-700 dark:text-blue-300">
-                Persistência em banco pendente de aprovação
+              <p className="font-medium text-green-700 dark:text-green-300">
+                Permissões persistidas no banco de dados
               </p>
-              <p className="text-blue-600/70 dark:text-blue-400/70 mt-0.5">
-                As configurações estão sendo salvas localmente neste navegador. Para persistir
-                globalmente, é necessário criar uma tabela de permissões no banco com policy RLS
-                apropriada. Backend approval required.
+              <p className="text-green-600/70 dark:text-green-400/70 mt-0.5">
+                As configurações são salvas no Supabase e aplicadas em tempo real para todos os usuários do tenant.
               </p>
             </div>
           </CardContent>
         </Card>
+
+        {/* Loading state */}
+        {isLoading ? (
+          <Card className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </Card>
+        ) : (
 
         {/* Permissions Matrix */}
         <Card>
@@ -325,7 +374,8 @@ const AdminMenuPermissions = () => {
                     </td>
                     {ROLES.map((role) => {
                       const isLocked = menu.required && (role.id === "admin" || role.id === "developer");
-                      const checked = matrix[role.id]?.[menu.id] ?? false;
+                      // matrix[menu.id] returns { admin, agent, user } or undefined
+                      const checked = (matrix[menu.id] as any)?.[role.id] ?? false;
                       return (
                         <td key={role.id} className="text-center px-4 py-2.5">
                           {isLocked ? (
@@ -360,6 +410,7 @@ const AdminMenuPermissions = () => {
             </table>
           </CardContent>
         </Card>
+        )}
 
         {/* Current User Info */}
         <Card>

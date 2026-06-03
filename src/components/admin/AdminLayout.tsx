@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { normalizeRole, canSeeMenuItem, getRoleLabel, type AdminMenuItem } from "@/lib/adminPermissions";
+import { useMenuPermissions } from "@/hooks/use-menu-permissions";
 import {
   Building2, LayoutDashboard, Home, Users, Tag, Sparkles, Mail, User, Settings, Shield,
   MessageSquare, LogOut, X, Menu, Sun, Moon, Image, Send,
@@ -67,6 +68,7 @@ interface AdminLayoutProps {
 export function AdminLayout({ children }: AdminLayoutProps) {
   const { profile, userRole, signOut, isDeveloper, isAdmin } = useAuth();
   const { data: tenant } = useTenantSettings();
+  const { permissions: menuPermissions } = useMenuPermissions(tenant?.id);
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => {
@@ -75,8 +77,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const { theme, setTheme } = useTheme();
   const { isInstallable, isInstalled, installApp } = usePWAInstall();
 
-  // Get visible menu items based on role
-  const visibleItems = allMenuItems.filter(item => canSeeMenuItem(userRole, item));
+  // Get visible menu items based on role + DB permissions
+  const visibleItems = allMenuItems.filter(item => canSeeMenuItem(userRole, item, menuPermissions));
 
   useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
 
