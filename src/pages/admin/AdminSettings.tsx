@@ -10,6 +10,7 @@ import { StatsCountersCard } from "@/components/admin/settings/StatsCountersCard
 import { BrandCustomization } from "@/components/admin/BrandCustomization";
 import { PWASettingsCard } from "@/components/admin/PWASettingsCard";
 import { AdvancedSiteSettings } from "@/components/admin/settings/AdvancedSiteSettings";
+import { PortalThemeConfig } from "@/components/admin/settings/PortalThemeConfig";
 import type { TenantSettings } from "@/hooks/use-tenant-settings";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeRole } from "@/lib/adminPermissions";
@@ -78,6 +79,9 @@ const AdminSettings = () => {
 
         {/* Configurações Avançadas do Site (Favicon, SEO, Docs, Cookies) */}
         {tenantId && <AdvancedSiteSettings tenantId={tenantId} />}
+
+        {/* Configurador do Portal Público (Templates + Tema + Conteúdo) */}
+        {tenantId && <PortalThemeConfig tenantId={tenantId} />}
         </PageCard>
       </AdminPageShell>
     </AdminLayout>
