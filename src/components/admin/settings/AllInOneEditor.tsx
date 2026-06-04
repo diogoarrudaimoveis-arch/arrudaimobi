@@ -440,11 +440,11 @@ function PortalPanel({ form, set }: any) {
     <div className="space-y-4">
       <div className="space-y-2">
         <Label className="text-xs font-medium text-muted-foreground">Título do Hero</Label>
-        <Input value={form.hero_title} onChange={e => set("hero_title", e.target.value)} className="text-sm" placeholder="Encontre o imóvel ideal" />
+        <Input value={form.hero_headline} onChange={e => set("hero_headline", e.target.value)} className="text-sm" placeholder="Encontre o imóvel ideal" />
       </div>
       <div className="space-y-2">
         <Label className="text-xs font-medium text-muted-foreground">Subtítulo</Label>
-        <Textarea value={form.hero_subtitle} onChange={e => set("hero_subtitle", e.target.value)} rows={2} className="text-sm" placeholder="Os melhores imóveis do Brasil..." />
+        <Textarea value={form.hero_subheadline} onChange={e => set("hero_subheadline", e.target.value)} rows={2} className="text-sm" placeholder="Os melhores imóveis do Brasil..." />
       </div>
       <div className="flex items-center gap-3">
         <div className="flex-1 space-y-1">
@@ -656,11 +656,11 @@ export function AllInOneEditor({ tenantId }: AllInOneEditorProps) {
     setForm(prev => ({ ...prev, [key]: value }));
   }, []);
 
-  // Load from site_settings
-  const { data: settings, isLoading } = useQuery({
-    queryKey: ["site-settings", tenantId],
+  // Load from TENANTS table (settings JSONB) — site_settings is for SEO/docs only
+  const { data: tenant, isLoading } = useQuery({
+    queryKey: ["tenant-settings", tenantId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("site_settings").select("*").eq("tenant_id", tenantId).maybeSingle();
+      const { data, error } = await supabase.from("tenants").select("settings").eq("id", tenantId).maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -668,62 +668,141 @@ export function AllInOneEditor({ tenantId }: AllInOneEditorProps) {
   });
 
   useEffect(() => {
-    if (settings) {
-      setForm({
-        nome: settings.nome || "",
-        slogan: settings.slogan || "",
-        cnpj: settings.cnpj || "",
-        creci: settings.creci || "",
-        razao_social: settings.razao_social || "",
-        primary_color: settings.theme_primary_color || "#003366",
-        accent_color: settings.theme_accent_color || "#0066CC",
-        font_family: settings.theme_font_family || "Plus Jakarta Sans",
-        header_style: settings.theme_header_style || "solid-dark",
-        footer_style: settings.theme_footer_style || "dark",
-        hero_title: settings.theme_hero_title || "Encontre o imóvel ideal",
-        hero_subtitle: settings.theme_hero_subtitle || "Os melhores imóveis do Brasil",
-        logo_url: settings.logo_url || "",
-        footer_logo_url: settings.footer_logo_url || "",
-        favicon_url: settings.favicon_url || "",
-        telefone: settings.telefone || "",
-        whatsapp: settings.whatsapp || "",
-        email: settings.email || "",
-        horarios: settings.horarios || "",
-        instagram: settings.instagram || "",
-        facebook: settings.facebook || "",
-        linkedin: settings.linkedin || "",
-        youtube: settings.youtube || "",
-        tiktok: settings.tiktok || "",
-        endereco: settings.endereco || "",
-        numero: settings.numero || "",
-        complemento: settings.complemento || "",
-        bairro: settings.bairro || "",
-        cidade: settings.cidade || "Betim",
-        estado: settings.estado || "MG",
-        cep: settings.cep || "",
-        seo_title: settings.seo_title || "",
-        seo_description: settings.seo_description || "",
-        seo_image_url: settings.seo_image_url || "",
-        whatsapp_numero: settings.whatsapp_numero || "",
-        whatsapp_mensagem: settings.whatsapp_mensagem || "",
-        show_whatsapp: settings.show_whatsapp ?? true,
-        termos: settings.termos || "",
-        politica: settings.politica || "",
-        cookies_mensagem: settings.cookies_mensagem || "",
-        pwa_nome: settings.pwa_nome || "",
-        pwa_icon_192: settings.pwa_icon_192 || "",
-        pwa_icon_512: settings.pwa_icon_512 || "",
-        allow_registration: settings.allow_registration ?? false,
-        stats_imoveis: settings.stats_imoveis || "150+",
-        stats_clientes: settings.stats_clientes || "2.3K+",
-        stats_agentes: settings.stats_agentes || "12",
-      });
-    }
-  }, [settings]);
+    const s = tenant?.settings || {};
+    setForm({
+      // Identity
+      nome: s.name || "",
+      slogan: s.slogan || "",
+      cnpj: s.cnpj || "",
+      creci: s.creci || "",
+      razao_social: s.razao_social || "",
+      // Theme
+      primary_color: s.primary_color || "#003366",
+      accent_color: s.accent_color || "#0066CC",
+      font_family: s.font_family || "Plus Jakarta Sans",
+      header_style: s.header_style || "solid-dark",
+      footer_style: s.footer_style || "dark",
+      gradient_from: s.gradient_from || "#003366",
+      gradient_to: s.gradient_to || "#0066CC",
+      logo_url: s.logo_url || "",
+      logo_mode: s.logo_mode || "text",
+      // Hero
+      hero_headline: s.hero_headline || "Encontre o imóvel ideal",
+      hero_subheadline: s.hero_subheadline || "Os melhores imóveis do Brasil",
+      hero_headline_visible: s.hero_headline_visible ?? true,
+      hero_subheadline_visible: s.hero_subheadline_visible ?? true,
+      hero_search_visible: s.hero_search_visible ?? true,
+      hero_bg_image_url: s.hero_bg_image_url || "",
+      hero_bg_overlay_opacity: s.hero_bg_overlay_opacity ?? 45,
+      hero_bg_position: s.hero_bg_position || "center",
+      hero_bg_mode: s.hero_bg_mode || "gradient",
+      // Stats
+      stats_imoveis: s.stats_counters?.properties_count || "150+",
+      stats_clientes: s.stats_counters?.clients_served || "2.3K+",
+      stats_agentes: s.stats_counters?.active_agents || "12",
+      stats_cidades: s.stats_counters?.cities_served || "5",
+      // Branding
+      favicon_url: s.favicon_url || "",
+      footer_logo_url: s.footer_logo_url || "",
+      pwa_nome: s.pwa_nome || "",
+      pwa_icon_192: s.pwa_icon_192 || "",
+      pwa_icon_512: s.pwa_icon_512 || "",
+      // Contact
+      telefone: s.contact_phone || "",
+      whatsapp: s.contact_whatsapp || "",
+      email: s.contact_email || "",
+      horarios: s.business_hours || "",
+      // Address
+      endereco: s.contact_address || "",
+      instagram: s.social_instagram || "",
+      facebook: s.social_facebook || "",
+      linkedin: s.social_linkedin || "",
+      youtube: s.social_youtube || "",
+      tiktok: s.social_tiktok || "",
+      // SEO
+      seo_title: s.seo_title || "",
+      seo_description: s.seo_description || "",
+      seo_image_url: s.seo_image_url || "",
+      // WhatsApp
+      whatsapp_numero: s.contact_whatsapp || "",
+      whatsapp_mensagem: s.whatsapp_template || "",
+      show_whatsapp: s.whatsapp_float_visible ?? true,
+      // Legals
+      termos: s.terms_content || "",
+      politica: s.privacy_policy_content || "",
+      cookies_mensagem: s.cookie_banner_message || "",
+      // Advanced
+      allow_registration: s.allow_registration ?? false,
+      footer_description: s.footer_description || "",
+      footer_quick_links_visible: s.footer_quick_links_visible ?? false,
+      footer_property_types_visible: s.footer_property_types_visible ?? true,
+    });
+  }, [tenant]);
 
+  // Save to TENANTS settings JSONB (merge, not replace)
   const saveMutation = useMutation({
-    mutationFn: async (data: Record<string, any>) => {
-      const { error } = await supabase.from("site_settings").upsert({ ...data, tenant_id: tenantId }, { onConflict: "tenant_id" });
+    mutationFn: async (formData: Record<string, any>) => {
+      // Build settings object from form data, matching real schema keys
+      const newSettings: Record<string, any> = {
+        name: formData.nome,
+        slogan: formData.slogan,
+        cnpj: formData.cnpj,
+        creci: formData.creci,
+        razao_social: formData.razao_social,
+        primary_color: formData.primary_color,
+        accent_color: formData.accent_color,
+        font_family: formData.font_family,
+        header_style: formData.header_style,
+        footer_style: formData.footer_style,
+        gradient_from: formData.gradient_from,
+        gradient_to: formData.gradient_to,
+        logo_url: formData.logo_url,
+        logo_mode: formData.logo_mode || "text",
+        hero_headline: formData.hero_headline,
+        hero_subheadline: formData.hero_subheadline,
+        hero_headline_visible: formData.hero_headline_visible,
+        hero_subheadline_visible: formData.hero_subheadline_visible,
+        hero_search_visible: formData.hero_search_visible,
+        hero_bg_image_url: formData.hero_bg_image_url,
+        hero_bg_overlay_opacity: formData.hero_bg_overlay_opacity,
+        hero_bg_position: formData.hero_bg_position,
+        hero_bg_mode: formData.hero_bg_mode,
+        stats_counters: {
+          properties_count: formData.stats_imoveis,
+          clients_served: formData.stats_clientes,
+          active_agents: formData.stats_agentes,
+          cities_served: formData.stats_cidades,
+        },
+        favicon_url: formData.favicon_url,
+        footer_logo_url: formData.footer_logo_url,
+        pwa_nome: formData.pwa_nome,
+        pwa_icon_192: formData.pwa_icon_192,
+        pwa_icon_512: formData.pwa_icon_512,
+        contact_phone: formData.telefone,
+        contact_whatsapp: formData.whatsapp,
+        contact_email: formData.email,
+        business_hours: formData.horarios,
+        contact_address: formData.endereco,
+        social_instagram: formData.instagram,
+        social_facebook: formData.facebook,
+        social_linkedin: formData.linkedin,
+        social_youtube: formData.youtube,
+        social_tiktok: formData.tiktok,
+        seo_title: formData.seo_title,
+        seo_description: formData.seo_description,
+        seo_image_url: formData.seo_image_url,
+        whatsapp_template: formData.whatsapp_mensagem,
+        whatsapp_float_visible: formData.show_whatsapp,
+        terms_content: formData.termos,
+        privacy_policy_content: formData.politica,
+        cookie_banner_message: formData.cookies_mensagem,
+        allow_registration: formData.allow_registration,
+        footer_description: formData.footer_description || "",
+        footer_quick_links_visible: formData.footer_quick_links_visible ?? false,
+        footer_property_types_visible: formData.footer_property_types_visible ?? true,
+      };
+
+      const { error } = await supabase.from("tenants").update({ settings: newSettings }).eq("id", tenantId);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -876,8 +955,8 @@ export function AllInOneEditor({ tenantId }: AllInOneEditorProps) {
               fontFamily={form.font_family || "Plus Jakarta Sans"}
               headerStyle={form.header_style || "solid-dark"}
               footerStyle={form.footer_style || "dark"}
-              heroTitle={form.hero_title || "Encontre o imóvel ideal"}
-              heroSubtitle={form.hero_subtitle || "Os melhores imóveis do Brasil"}
+              heroTitle={form.hero_headline || "Encontre o imóvel ideal"}
+              heroSubtitle={form.hero_subheadline || "Os melhores imóveis do Brasil"}
               showWhatsapp={form.show_whatsapp !== false}
               viewport={viewport}
             />
