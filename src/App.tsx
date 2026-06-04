@@ -54,6 +54,7 @@ const AdminPropertyPerformance = lazy(() => import("./pages/admin/PropertyPerfor
 const AdminMetaAds = lazy(() => import("./pages/admin/ai/AdminMetaAds"));
 const AdminMostruario = lazy(() => import("./pages/admin/AdminMostruario"));
 const AdminPlanosLimites = lazy(() => import("./pages/admin/AdminPlanosLimites"));
+const AdminPortalConfig = lazy(() => import("./pages/admin/AdminPortalConfig"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -141,6 +142,7 @@ function App() {
                           <Route path="/admin/perfil" element={<ProtectedRoute><AdminProfile /></ProtectedRoute>} />
                           <Route path="/admin/email" element={<ProtectedRoute requireAdmin><AdminEmailSettings /></ProtectedRoute>} />
                           <Route path="/admin/permissoes-menu" element={<ProtectedRoute requireAdmin><AdminMenuPermissions /></ProtectedRoute>} />
+                          <Route path="/admin/portal" element={<ProtectedRoute requireAdmin><AdminPortalConfig /></ProtectedRoute>} />
                           <Route path="/admin/configuracoes" element={<ProtectedRoute requireAdmin><AdminSettings /></ProtectedRoute>} />
                           <Route path="/admin/planos-limites" element={<ProtectedRoute requireDeveloper><AdminPlanosLimites /></ProtectedRoute>} />
                           <Route path="/admin/content-generator" element={<ProtectedRoute requireAdmin><AdminContentGenerator /></ProtectedRoute>} />

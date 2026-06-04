@@ -39,6 +39,7 @@ const allMenuItems: AdminMenuItem[] = [
   { key: "ai-config", label: "Configurações de IA", href: "/admin/configuracoes-ia", icon: Sparkles, section: "Marketing Digital", techOnly: true },
   { key: "portals", label: "Portais Imobiliários", href: "/admin/portais", icon: Globe, section: "Marketing Digital", adminOnly: true },
   { key: "tracking", label: "Rastreamento do Portal", href: "/admin/marketing-portal", icon: Target, section: "Marketing Digital", adminOnly: true },
+  { key: "portal", label: "Editor do Portal", href: "/admin/portal", icon: LayoutGrid, section: "Marketing Digital", adminOnly: true },
   { key: "performance", label: "Performance de Imóveis", href: "/admin/performance", icon: BarChart3, section: "Marketing Digital", adminOnly: true },
   { key: "content-generator", label: "Gerador de Conteúdo", href: "/admin/content-generator", icon: Sparkles, section: "Marketing Digital" },
   // Meta Ads — único item da seção Tech/Marketing
@@ -57,7 +58,7 @@ const menuSections = [
   { label: "Principal", keys: ["dashboard", "owners", "properties", "agenda"] },
   { label: "Gestão Básica", keys: ["agents", "property-types", "amenities", "media", "blog"] },
   { label: "CRM & Atendimento", keys: ["contacts", "messages"] },
-  { label: "Marketing Digital", keys: ["ai-config", "portals", "tracking", "performance", "content-generator", "meta-ads"] },
+  { label: "Marketing Digital", keys: ["ai-config", "portals", "tracking", "portal", "performance", "content-generator", "meta-ads"] },
   { label: "Sistema", keys: ["profile", "email-config", "settings", "menu-permissions"] },
   { label: "Desenvolvedor", keys: ["mostruario", "planos-limites"] },
 ];

@@ -35,6 +35,7 @@ const MENU_ITEMS: MenuItem[] = [
   { id: "configuracoes-ia", label: "Configurações de IA", icon: "🤖", techOnly: true, required: true },
   { id: "portais", label: "Portais", icon: "🌐", techOnly: true, required: true },
   { id: "marketing-portal", label: "Marketing Portal", icon: "📢", techOnly: true, required: true },
+  { id: "portal", label: "Editor do Portal", icon: "🎨", techOnly: true, required: true },
   { id: "performance", label: "Performance", icon: "📈", techOnly: true, required: true },
   { id: "central-ai", label: "Central IA", icon: "⚙️", techOnly: true, required: true },
   { id: "ia-agentes", label: "Agentes IA", icon: "🤖", techOnly: true, required: true },
