@@ -118,6 +118,8 @@ export interface AdminMenuItem {
   adminOnly?: boolean;
   /** If true, only developer can see this menu */
   developerOnly?: boolean;
+  /** If true, hidden from sidebar but still accessible via URL for Admin/Agent/User */
+  sidebarHidden?: boolean;
 }
 
 /**

@@ -20,6 +20,7 @@ import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { PWAInstallPrompt } from "@/components/marketing/PWAInstallPrompt";
 
 // Menu items with permission flags
+// sidebarHidden = items hidden from sidebar but still accessible via URL for Admin/Agent/User
 const allMenuItems: AdminMenuItem[] = [
   // Principal
   { key: "dashboard", label: "Dashboard", href: "/admin", icon: LayoutDashboard, section: "Principal" },
@@ -34,21 +35,21 @@ const allMenuItems: AdminMenuItem[] = [
   { key: "blog", label: "Blog", href: "/admin/blog", icon: FileText, section: "Gestão Básica" },
   // CRM & Atendimento
   { key: "contacts", label: "Contatos", href: "/admin/contatos", icon: MessageSquare, section: "CRM & Atendimento" },
-  { key: "messages", label: "Mensagens", href: "/admin/mensagens", icon: Send, section: "CRM & Atendimento" },
-  // Marketing Digital
-  { key: "ai-config", label: "Configurações de IA", href: "/admin/configuracoes-ia", icon: Sparkles, section: "Marketing Digital", techOnly: true },
-  { key: "portals", label: "Portais Imobiliários", href: "/admin/portais", icon: Globe, section: "Marketing Digital", adminOnly: true },
-  { key: "tracking", label: "Rastreamento do Portal", href: "/admin/marketing-portal", icon: Target, section: "Marketing Digital", adminOnly: true },
-  { key: "portal", label: "Editor do Portal", href: "/admin/portal", icon: LayoutGrid, section: "Marketing Digital", adminOnly: true },
-  { key: "performance", label: "Performance de Imóveis", href: "/admin/performance", icon: BarChart3, section: "Marketing Digital", adminOnly: true },
-  { key: "content-generator", label: "Gerador de Conteúdo", href: "/admin/content-generator", icon: Sparkles, section: "Marketing Digital" },
-  // Meta Ads — único item da seção Tech/Marketing
-  { key: "meta-ads", label: "Meta Ads", href: "/admin/meta-ads", icon: Target, section: "Marketing Digital", techOnly: true },
-  // Sistema
+  { key: "messages", label: "Mensagens", href: "/admin/mensagens", icon: Send, section: "CRM & Atendimento", sidebarHidden: true },
+  // Marketing Digital — hidden from sidebar for Admin/Agent/User
+  { key: "ai-config", label: "Configurações de IA", href: "/admin/configuracoes-ia", icon: Sparkles, section: "Marketing Digital", techOnly: true, sidebarHidden: true },
+  { key: "portals", label: "Portais Imobiliários", href: "/admin/portais", icon: Globe, section: "Marketing Digital", adminOnly: true, sidebarHidden: true },
+  { key: "tracking", label: "Rastreamento do Portal", href: "/admin/marketing-portal", icon: Target, section: "Marketing Digital", adminOnly: true, sidebarHidden: true },
+  { key: "portal", label: "Editor do Portal", href: "/admin/portal", icon: LayoutGrid, section: "Marketing Digital", adminOnly: true, sidebarHidden: true },
+  { key: "performance", label: "Performance de Imóveis", href: "/admin/performance", icon: BarChart3, section: "Marketing Digital", adminOnly: true, sidebarHidden: true },
+  { key: "content-generator", label: "Gerador de Conteúdo", href: "/admin/content-generator", icon: Sparkles, section: "Marketing Digital", sidebarHidden: true },
+  // Meta Ads — hidden from sidebar for Admin/Agent/User
+  { key: "meta-ads", label: "Meta Ads", href: "/admin/meta-ads", icon: Target, section: "Marketing Digital", techOnly: true, sidebarHidden: true },
+  // Sistema — hidden from sidebar for Admin/Agent/User
   { key: "profile", label: "Meu Perfil", href: "/admin/perfil", icon: User, section: "Sistema" },
-  { key: "email-config", label: "Config. E-mail", href: "/admin/email", icon: Mail, section: "Sistema", adminOnly: true },
-  { key: "settings", label: "Configurações", href: "/admin/configuracoes", icon: Settings, section: "Sistema", adminOnly: true },
-  { key: "menu-permissions", label: "Permissões de Menu", href: "/admin/permissoes-menu", icon: Shield, section: "Sistema", adminOnly: true },
+  { key: "email-config", label: "Config. E-mail", href: "/admin/email", icon: Mail, section: "Sistema", adminOnly: true, sidebarHidden: true },
+  { key: "settings", label: "Configurações", href: "/admin/configuracoes", icon: Settings, section: "Sistema", adminOnly: true, sidebarHidden: true },
+  { key: "menu-permissions", label: "Permissões de Menu", href: "/admin/permissoes-menu", icon: Shield, section: "Sistema", adminOnly: true, sidebarHidden: true },
   { key: "mostruario", label: "Mostruário", href: "/admin/mostruario", icon: LayoutGrid, section: "Desenvolvedor", developerOnly: true },
   { key: "planos-limites", label: "Planos e Limites", href: "/admin/planos-limites", icon: CreditCard, section: "Desenvolvedor", developerOnly: true },
 ];
@@ -79,8 +80,17 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const { theme, setTheme } = useTheme();
   const { isInstallable, isInstalled, installApp } = usePWAInstall();
 
-  // Get visible menu items based on role + DB permissions
-  const visibleItems = allMenuItems.filter(item => canSeeMenuItem(userRole, item, menuPermissions));
+  // Get visible menu items based on role + DB permissions + sidebarHidden flag
+  const normalizedRole = normalizeRole(userRole);
+  const visibleItems = allMenuItems.filter(item => {
+    // Developer sees everything (including sidebarHidden items)
+    if (normalizedRole === "developer") {
+      return canSeeMenuItem(userRole, item, menuPermissions);
+    }
+    // Non-developer: hide sidebarHidden items from sidebar (but still accessible via URL)
+    if (item.sidebarHidden) return false;
+    return canSeeMenuItem(userRole, item, menuPermissions);
+  });
 
   useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
 
