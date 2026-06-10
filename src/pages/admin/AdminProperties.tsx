@@ -313,6 +313,10 @@ const AdminProperties = () => {
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!isReady || !user) {
+      sonnerToast({ title: "Aguarde", description: "Sistema ainda carregando...", variant: "destructive" });
+      return;
+    }
     if (!validateForm()) return;
     if (isImageProcessing) return;
     saveMutation.mutate();
