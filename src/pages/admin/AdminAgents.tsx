@@ -210,25 +210,48 @@ export function AdminAgents() {
     const userId = authData.user.id
 
     // Aguarda o usuário existir no auth.users (Supabase pode ter delay de propagação)
+    // O trigger handle_new_user já cria profile e user_roles automaticamente
     await new Promise(r => setTimeout(r, 2000))
 
-    // Insere profile
-    const { error: profileError } = await supabase.from('profiles').insert({
-      user_id: userId,
-      tenant_id: tenantId,
-      full_name: formData.full_name,
-      phone: formData.phone || '',
-      bio: formData.bio || '',
-      show_on_public_page: formData.is_agent,
-    })
+    // Atualiza o profile que foi criado pelo trigger (não insere novamente)
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({
+        full_name: formData.full_name,
+        phone: formData.phone || '',
+        bio: formData.bio || '',
+        show_on_public_page: formData.is_agent,
+        tenant_id: tenantId, // Garante que está no tenant correto
+      })
+      .eq('user_id', userId)
     if (profileError) throw profileError
 
-    const { error: roleError } = await supabase.from('user_roles').insert({
-      user_id: userId,
-      tenant_id: tenantId,
-      role: formData.role,
-    })
-    if (roleError) throw roleError
+    // Verifica se já existe um role para este usuário neste tenant
+    const { data: existingRoles, error: checkError } = await supabase
+      .from('user_roles')
+      .select('id, role')
+      .eq('user_id', userId)
+      .eq('tenant_id', tenantId)
+
+    if (checkError) throw checkError
+
+    if (existingRoles && existingRoles.length > 0) {
+      // Atualiza o role existente
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .update({ role: formData.role })
+        .eq('user_id', userId)
+        .eq('tenant_id', tenantId)
+      if (roleError) throw roleError
+    } else {
+      // Insere novo role (sÓ acontece se o trigger não criou)
+      const { error: roleError } = await supabase.from('user_roles').insert({
+        user_id: userId,
+        tenant_id: tenantId,
+        role: formData.role,
+      })
+      if (roleError) throw roleError
+    }
 
     toast.success('Usuario criado! Senha temporaria: ' + tempPassword)
   }
