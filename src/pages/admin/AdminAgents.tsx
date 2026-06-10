@@ -101,10 +101,10 @@ export function AdminAgents() {
       const rolesMap = new Map(userRoles.map((ur: any) => [ur.user_id, ur.role]))
       console.log('📊 userIds:', userIds.length, 'rolesMap size:', rolesMap.size)
 
-      // 2. Buscar profiles desses usuários
+      // 2. Buscar profiles desses usuários (inclui email agora)
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, user_id, full_name, phone, bio, avatar_url, created_at, tenant_id')
+        .select('id, user_id, email, full_name, phone, bio, avatar_url, created_at, tenant_id')
         .in('user_id', userIds)
         .order('full_name', { ascending: true })
 
@@ -218,6 +218,7 @@ export function AdminAgents() {
       .from('profiles')
       .update({
         full_name: formData.full_name,
+        email: formData.email, // Salva o email na tabela profiles
         phone: formData.phone || '',
         bio: formData.bio || '',
         show_on_public_page: formData.is_agent,
@@ -261,6 +262,7 @@ export function AdminAgents() {
       .from('profiles')
       .update({
         full_name: formData.full_name,
+        email: formData.email, // Atualiza o email na tabela profiles
         phone: formData.phone || '',
         bio: formData.bio || '',
         show_on_public_page: formData.is_agent,
