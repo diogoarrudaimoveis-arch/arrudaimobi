@@ -42,62 +42,21 @@ const Agents = () => {
     setIsLoading(true)
 
     try {
-      // Estratégia 1: buscar da tabela agents (se existir e tiver dados)
-      const { data: agentsData } = await supabase
-        .from('agents')
-        .select('*')
-        .eq('tenant_id', tenantId)
-        .eq('public', true)
-        .order('name', { ascending: true })
-        .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1)
-
-      if (agentsData && agentsData.length > 0) {
-        const agentsWithCounts = agentsData.map((a: any) => ({
-          id: a.id || a.user_id,
-          user_id: a.user_id,
-          full_name: a.name || a.full_name || 'Agente',
-          email: a.email || '',
-          phone: a.phone || '',
-          bio: a.bio || '',
-          avatar_url: a.avatar_url || null,
-          properties_count: a.properties_count || 0,
-          propertiesCount: a.properties_count || 0,
-        }))
-        setAgents(agentsWithCounts)
-        setTotal(agentsData.length)
-        setTotalPages(1)
-        setIsLoading(false)
-        return
-      }
-
-      // Estratégia 2: fallback — profiles com role=agent E show_on_public_page=true
-      const { data: roles } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .eq('tenant_id', tenantId)
-        .in('role', ['agent', 'admin'])
-
-      const userIds = [...new Set(roles?.map((r: any) => r.user_id) || [])]
-      if (userIds.length === 0) {
-        setAgents([])
-        setTotal(0)
-        setTotalPages(0)
-        setIsLoading(false)
-        return
-      }
+      // Estratégia: profiles com show_on_public_page=true (todos os roles)
+      // Esta é a source of truth — o admin marca via checkbox no modal de edição
 
       // Count
       const { count } = await supabase
         .from('profiles')
         .select('id', { count: 'exact', head: true })
-        .in('user_id', userIds)
+        .eq('tenant_id', tenantId)
         .eq('show_on_public_page', true)
 
       // Data
       const { data: profiles } = await supabase
         .from('profiles')
         .select('*')
-        .in('user_id', userIds)
+        .eq('tenant_id', tenantId)
         .eq('show_on_public_page', true)
         .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1)
         .order('full_name', { ascending: true })

@@ -101,27 +101,17 @@ export function AdminAgents() {
       const rolesMap = new Map(userRoles.map((ur: any) => [ur.user_id, ur.role]))
       console.log('📊 userIds:', userIds.length, 'rolesMap size:', rolesMap.size)
 
-      // 2. Buscar profiles desses usuários (inclui email agora)
+      // 2. Buscar profiles desses usuários (inclui email + show_on_public_page)
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, user_id, email, full_name, phone, bio, avatar_url, created_at, tenant_id')
+        .select('id, user_id, email, full_name, phone, bio, avatar_url, created_at, tenant_id, show_on_public_page')
         .in('user_id', userIds)
         .order('full_name', { ascending: true })
 
       if (profilesError) throw profilesError
       console.log('📊 profiles:', profiles)
 
-      // 3. Buscar agents públicos
-      const { data: agents } = await supabase
-        .from('agents')
-        .select('user_id, public')
-        .eq('tenant_id', tenantId)
-
-      const agentsSet = new Set(
-        agents?.filter((a: any) => a.public).map((a: any) => a.user_id) || []
-      )
-
-      // 4. Combinar dados
+      // 3. Combinar dados — usa profiles.show_on_public_page (source of truth)
       const usersData = (profiles || []).map((profile: any) => ({
         id: profile.id,
         user_id: profile.user_id,
@@ -132,7 +122,7 @@ export function AdminAgents() {
         bio: profile.bio || '',
         avatar_url: profile.avatar_url,
         created_at: profile.created_at,
-        is_agent: agentsSet.has(profile.user_id),
+        is_agent: profile.show_on_public_page === true,
       }))
 
       console.log('✅ usuarios carregados:', usersData.length)
@@ -270,6 +260,33 @@ export function AdminAgents() {
       })
       .eq('user_id', userId)
     if (profileError) throw profileError
+
+    // Sincronizar tabela agents (compatibilidade com usos legados)
+    if (formData.is_agent) {
+      // Garante registro em agents para aparecer no portal
+      const { error: agentError } = await supabase
+        .from('agents')
+        .upsert({
+          user_id: userId,
+          tenant_id: tenantId,
+          name: formData.full_name,
+          email: formData.email,
+          phone: formData.phone || null,
+          bio: formData.bio || null,
+          public: true,
+          active: true,
+        }, { onConflict: 'user_id,tenant_id' })
+      if (agentError) {
+        console.warn('Aviso: falha ao sincronizar tabela agents:', agentError.message)
+      }
+    } else {
+      // Remove visibilidade pública
+      await supabase
+        .from('agents')
+        .update({ public: false })
+        .eq('user_id', userId)
+        .eq('tenant_id', tenantId)
+    }
 
     const { error: roleError } = await supabase
       .from('user_roles')
