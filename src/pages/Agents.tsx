@@ -38,7 +38,23 @@ const Agents = () => {
   }, [tenantId, page])
 
   const loadAgents = async () => {
-    if (!tenantId) return
+    // Para visitantes anônimos, sem tenantId: pega o tenant default via slug
+    let effectiveTenantId = tenantId
+    if (!effectiveTenantId) {
+      const { data: tenant } = await supabase
+        .from('tenants')
+        .select('id')
+        .eq('slug', 'default')
+        .maybeSingle()
+      if (tenant) effectiveTenantId = tenant.id
+    }
+    if (!effectiveTenantId) {
+      setAgents([])
+      setTotal(0)
+      setIsLoading(false)
+      return
+    }
+
     setIsLoading(true)
 
     try {
@@ -49,14 +65,14 @@ const Agents = () => {
       const { count } = await supabase
         .from('profiles')
         .select('id', { count: 'exact', head: true })
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', effectiveTenantId)
         .eq('show_on_public_page', true)
 
       // Data
       const { data: profiles } = await supabase
         .from('profiles')
         .select('*')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', effectiveTenantId)
         .eq('show_on_public_page', true)
         .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1)
         .order('full_name', { ascending: true })
