@@ -432,7 +432,7 @@ export function AdminAgents() {
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="email@exemplo.com"
                 required
-                disabled={!!editingUser}
+                disabled={false}
               />
             </div>
             <div>
