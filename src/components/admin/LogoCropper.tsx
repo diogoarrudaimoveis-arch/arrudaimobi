@@ -74,8 +74,8 @@ export function LogoCropper({ open, onClose, onCropped, aspect }: LogoCropperPro
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <CropIcon className="h-5 w-5 text-primary" /> Upload e Corte da Logo
+          <DialogTitle>
+            Upload e Corte da Logo
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">

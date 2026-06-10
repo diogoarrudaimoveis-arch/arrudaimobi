@@ -126,8 +126,7 @@ export function CookieConsent() {
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 font-display">
-              <Shield className="h-5 w-5 text-primary" />
+            <DialogTitle className="font-display">
               Preferências de Cookies
             </DialogTitle>
             <DialogDescription className="text-sm">

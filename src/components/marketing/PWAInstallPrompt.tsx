@@ -129,8 +129,7 @@ export function PWAInstallPrompt({ onDismiss, forceShow }: PWAInstallPromptProps
       <DialogContent className="sm:max-w-md max-w-[95vw]">
         <DialogHeader>
           <div className="flex items-center justify-between">
-            <DialogTitle className="flex items-center gap-2 text-lg">
-              <Download className="w-5 h-5 text-primary" />
+            <DialogTitle className="text-lg">
               Instalar Arruda Imobi
             </DialogTitle>
             <button

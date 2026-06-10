@@ -672,8 +672,7 @@ const AdminProperties = () => {
             </DialogTrigger>
             <DialogContent className="max-w-4xl w-[calc(100vw-32px)] sm:w-full max-h-[90vh] sm:max-h-[85vh] overflow-hidden flex flex-col p-0">
               <DialogHeader className="p-6 pb-0">
-                <DialogTitle className="flex items-center gap-2">
-                  <Home className="h-5 w-5 text-[#003366]" />
+                <DialogTitle>
                   {editingId ? `Editar Imóvel: ${form.property_code}` : "Novo Cadastro de Imóvel"}
                 </DialogTitle>
                 <DialogDescription className="sr-only">

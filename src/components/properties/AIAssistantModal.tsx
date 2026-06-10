@@ -183,8 +183,7 @@ export function AIAssistantModal({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[700px] gap-0 p-0 border-[#2A2D3C] bg-[#1A1D27] text-gray-200">
         <DialogHeader className="p-6 border-b border-[#2A2D3C] bg-gradient-to-r from-[#1A1D27] to-[#1E2230]">
-          <DialogTitle className="flex items-center gap-2 text-xl">
-            <Sparkles className="h-5 w-5 text-blue-400" />
+          <DialogTitle className="text-xl">
             Assistente de IA — Descrição de Imóvel
           </DialogTitle>
           <DialogDescription className="text-gray-400">

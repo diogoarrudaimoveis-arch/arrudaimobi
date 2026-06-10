@@ -1653,8 +1653,8 @@ export default function AdminContentGenerator() {
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Eye className="h-5 w-5 text-primary" /> Preview do Conteúdo
+            <DialogTitle>
+              Preview do Conteúdo
             </DialogTitle>
           </DialogHeader>
           {previewItem && (

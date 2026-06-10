@@ -329,8 +329,7 @@ const AdminOwners = () => {
         <Dialog open={dialogOpen} onOpenChange={(v) => { setDialogOpen(v); if (!v) resetForm(); }}>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col p-0 text-foreground">
             <DialogHeader className="p-6 pb-0">
-              <DialogTitle className="flex items-center gap-2">
-                <User className="h-5 w-5 text-[#003366]" />
+              <DialogTitle>
                 {editingOwner ? "Editar Proprietário" : "Novo Cadastro"}
               </DialogTitle>
               <DialogDescription className="sr-only">Gerenciamento de dados do proprietário</DialogDescription>

@@ -179,8 +179,7 @@ export function AppointmentModal({ open, onOpenChange, editingAppointment }: App
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-slate-950 text-white border-slate-800">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <CalendarIcon className="h-5 w-5 text-[#003366]" />
+          <DialogTitle>
             {editingAppointment ? "Editar Agendamento" : "Novo Agendamento"}
           </DialogTitle>
           <DialogDescription className="sr-only">

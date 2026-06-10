@@ -330,8 +330,7 @@ const AdminMediaLibrary = () => {
       <Dialog open={youtubeDialogOpen} onOpenChange={setYoutubeDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Youtube className="h-5 w-5 text-destructive" />
+            <DialogTitle>
               Adicionar Vídeo do YouTube
             </DialogTitle>
             <DialogDescription className="sr-only">Insira a URL e o título do vídeo do YouTube para adicionar à sua biblioteca.</DialogDescription>

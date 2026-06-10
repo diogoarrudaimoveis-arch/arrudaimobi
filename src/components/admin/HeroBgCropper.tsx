@@ -106,8 +106,8 @@ export function HeroBgCropper({ open, onClose, onCropped, existingImageUrl }: He
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <CropIcon className="h-5 w-5 text-primary" /> Imagem de Fundo do Hero
+          <DialogTitle>
+            Imagem de Fundo do Hero
           </DialogTitle>
         </DialogHeader>
         <p className="text-sm text-muted-foreground">
