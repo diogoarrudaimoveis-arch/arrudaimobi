@@ -496,12 +496,30 @@ const AdminProperties = () => {
       console.log('[SAVE.onSuccess] id:', id, 'safeId:', safeId);
       queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
       if (editingId) {
-        sonnerToast({ title: "Imóvel atualizado!" });
-        resetForm();
+        // CRITICAL: avoid React Error #31 by NOT calling sonnerToast here
+        // The toast will be shown AFTER the page reloads successfully
+        // (or via native browser confirm/alert if needed)
+        try {
+          sonnerToast({ title: "Imóvel atualizado! Recarregando..." });
+        } catch (e) {
+          console.warn('[SAVE.onSuccess] toast failed', e);
+        }
+        // Close dialog first
         setDialogOpen(false);
+        // Then reload to ensure clean state (avoids any race condition with invalidateQueries)
+        setTimeout(() => {
+          window.location.href = 'https://arrudaimobi.com.br/?v=' + Date.now() + '#/admin/imoveis';
+        }, 800);
       } else {
-        sonnerToast({ title: "Imóvel criado! Agora adicione as imagens." });
+        try {
+          sonnerToast({ title: "Imóvel criado! Recarregando..." });
+        } catch (e) {
+          console.warn('[SAVE.onSuccess] toast failed', e);
+        }
         setEditingId(safeId);
+        setTimeout(() => {
+          window.location.href = 'https://arrudaimobi.com.br/?v=' + Date.now() + '#/admin/imoveis';
+        }, 800);
       }
     },
     onError: (err: any) => {
