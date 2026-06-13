@@ -739,7 +739,7 @@ export function AllInOneEditor({ tenantId }: AllInOneEditorProps) {
     });
   }, [tenant]);
 
-  // Save to TENANTS settings JSONB (merge, not replace)
+  // Save to TENANTS settings JSONB (MERGE, not replace)
   const saveMutation = useMutation({
     mutationFn: async (formData: Record<string, any>) => {
       // Build settings object from form data, matching real schema keys
@@ -802,14 +802,40 @@ export function AllInOneEditor({ tenantId }: AllInOneEditorProps) {
         footer_property_types_visible: formData.footer_property_types_visible ?? true,
       };
 
-      const { error } = await supabase.from("tenants").update({ settings: newSettings }).eq("id", tenantId);
-      if (error) throw error;
+      // CRITICAL FIX: PostgREST .update({ settings: {...} }) REPLACES the entire JSONB.
+      // The direct call also gets BLOCKED by RLS for developer role.
+      // Solution: Use the save-tenant-settings Edge Function which uses service_role
+      // and MERGES settings (newSettings overrides existing).
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      if (!token) throw new Error("Não autenticado — faça login novamente");
+
+      const res = await fetch(
+        "https://udutxbyzrdwucabxqvgg.supabase.co/functions/v1/save-tenant-settings",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+          body: JSON.stringify({ tenantId, settings: newSettings }),
+        }
+      );
+      if (!res.ok) {
+        const errBody = await res.text();
+        throw new Error(`HTTP ${res.status}: ${errBody}`);
+      }
+      const result = await res.json();
+      if (!result?.ok) throw new Error(result?.error || "Falha ao salvar");
     },
     onSuccess: () => {
-      sonnerToast({ title: "Salvo!", description: "Configurações atualizadas.", icon: <Check className="w-4 h-4 text-green-500" /> });
+      queryClient.invalidateQueries({ queryKey: ["tenant", tenantId] });
+      queryClient.invalidateQueries({ queryKey: ["tenant-settings"] });
+      sonnerToast({ title: "Salvo!", description: "Configurações atualizadas." });
     },
     onError: (err: any) => {
-      sonnerToast({ title: "Erro", description: err.message, variant: "destructive" });
+      const msg = (err?.message) || String(err || "Erro desconhecido");
+      sonnerToast({ title: "Erro ao salvar", description: msg, variant: "destructive" });
     }
   });
 
