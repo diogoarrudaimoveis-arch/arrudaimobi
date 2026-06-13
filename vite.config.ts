@@ -101,7 +101,7 @@ export default defineConfig(({ mode }) => ({
     },
     chunkSizeWarningLimit: 1000, // Aumenta limite para 1MB (já que estamos dividindo)
   },
-  resolve: {
+  // Force cache busting - 2026-06-13 deploy fix for tenant settings  resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
