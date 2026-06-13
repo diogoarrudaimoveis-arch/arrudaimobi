@@ -662,6 +662,7 @@ export function AllInOneEditor({ tenantId }: AllInOneEditorProps) {
   }, []);
 
   // Load from TENANTS table (settings JSONB) — site_settings is for SEO/docs only
+  const queryClient = useQueryClient();
   const { data: tenant, isLoading } = useQuery({
     queryKey: ["tenant-settings", tenantId],
     queryFn: async () => {
