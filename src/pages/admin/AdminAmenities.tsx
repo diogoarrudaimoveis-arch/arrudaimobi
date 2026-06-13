@@ -47,7 +47,7 @@ const AdminAmenities = () => {
       sonnerToast({ title: editingId ? "Comodidade atualizada!" : "Comodidade criada!" });
       setForm({ name: "", icon: "Check" }); setEditingId(null); setDialogOpen(false);
     },
-    onError: (err: any) => sonnerToast({ title: "Erro", description: err.message, variant: "destructive" }),
+    onError: (err: any) => sonnerToast({ title: "Erro", description: err?.message || String(err || "Erro desconhecido"), variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({

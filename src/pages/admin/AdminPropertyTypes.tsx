@@ -54,7 +54,7 @@ const AdminPropertyTypes = () => {
       resetForm();
       setDialogOpen(false);
     },
-    onError: (err: any) => sonnerToast({ title: "Erro", description: err.message, variant: "destructive" }),
+    onError: (err: any) => sonnerToast({ title: "Erro", description: err?.message || String(err || "Erro desconhecido"), variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({

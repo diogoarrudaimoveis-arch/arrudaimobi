@@ -503,25 +503,13 @@ const AdminProperties = () => {
       }
     },
     onError: (err: any) => {
-      sonnerToast({ title: "Erro", description: err.message, variant: "destructive" });
+      const errorMessage = err?.message || String(err || "Erro desconhecido");
+      sonnerToast({ title: "Erro ao salvar imóvel", description: errorMessage, variant: "destructive" });
     },
     onSettled: () => {
       setIsImageProcessing(false);
     },
   });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("properties").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
-      sonnerToast({ title: "Imóvel removido" });
-    },
-  });
-
-  const generatePropertyCode = () => `IMO${Math.floor(1000 + Math.random() * 9000)}`;
 
   const resetForm = () => {
     setForm({
@@ -566,6 +554,8 @@ const AdminProperties = () => {
     setEditingId(null);
     setSelectedProfileUserId("");
   };
+
+  const generatePropertyCode = () => `IMO${Math.floor(1000 + Math.random() * 9000)}`;
 
   const openEdit = async (p: any) => {
     console.log("[DEBUG] Abrindo edição para ID:", p.id);
@@ -626,6 +616,21 @@ const AdminProperties = () => {
 
     setDialogOpen(true);
   };
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("properties").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
+      sonnerToast({ title: "Imóvel removido" });
+    },
+    onError: (err: any) => {
+      const errorMessage = err?.message || String(err || "Erro desconhecido");
+      sonnerToast({ title: "Erro ao remover", description: errorMessage, variant: "destructive" });
+    },
+  });
 
   const checklistItems = useMemo(() => {
     const currentProperty = properties.find(p => p.id === editingId);

@@ -134,7 +134,7 @@ const AdminMessages = () => {
       queryClient.invalidateQueries({ queryKey: ["tenant-settings"] });
       sonnerToast({ title: "Template salvo!" });
     },
-    onError: (err: any) => sonnerToast({ title: "Erro", description: err.message, variant: "destructive" }),
+    onError: (err: any) => sonnerToast({ title: "Erro", description: err?.message || String(err || "Erro desconhecido"), variant: "destructive" }),
   });
 
   // Save config
@@ -166,7 +166,7 @@ const AdminMessages = () => {
       setConfigDialogOpen(false);
     },
     onError: (err: any) => {
-      sonnerToast({ title: "Erro", description: err.message, variant: "destructive" });
+      sonnerToast({ title: "Erro", description: err?.message || String(err || "Erro desconhecido"), variant: "destructive" });
     },
   });
 
