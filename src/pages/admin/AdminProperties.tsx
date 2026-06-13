@@ -230,7 +230,14 @@ const AdminProperties = () => {
 
       const { data, error, count } = await q;
       if (error) throw error;
-      return { data: data || [], total: count || 0 };
+      const result = { data: data || [], total: count || 0 };
+      // DEBUG: verify no title is an object
+      (result.data || []).forEach((p: any, i: number) => {
+        if (p && typeof p.title === 'object') {
+          console.error('[DEBUG-FETCH] property[' + i + '].title is OBJECT!', JSON.stringify(p.title), 'property id:', p.id);
+        }
+      });
+      return result;
     },
     enabled: isReady && !!tenantId,
   });
@@ -492,12 +499,15 @@ const AdminProperties = () => {
       return propertyId;
     },
     onSuccess: (id: string) => {
+      console.log('[DEBUG-SAVE] onSuccess called, id:', id, 'typeof id:', typeof id, 'Object.keys:', typeof id === 'object' && id !== null ? Object.keys(id) : 'N/A');
       queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
       if (editingId) {
+        console.log('[DEBUG-SAVE] editing mode, showing "updated" toast');
         sonnerToast({ title: "Imóvel atualizado!" });
         resetForm();
         setDialogOpen(false);
       } else {
+        console.log('[DEBUG-SAVE] create mode, showing "created" toast, id:', id);
         sonnerToast({ title: "Imóvel criado! Agora adicione as imagens." });
         setEditingId(id);
       }
@@ -1415,7 +1425,15 @@ const AdminProperties = () => {
                   {properties.map((p: any) => (
                     <TableRow key={p.id}>
                       <TableCell className="font-mono text-xs text-muted-foreground">{p.property_code || "—"}</TableCell>
-                      <TableCell className="font-medium">{p.title}</TableCell>
+                      <TableCell className="font-medium">
+                        {(() => {
+                          if (typeof p.title === 'object') {
+                            console.error('[DEBUG-TABLE] p.title is OBJECT!', p.title, 'property id:', p.id);
+                            return String(p.title);
+                          }
+                          return p.title;
+                        })()}
+                      </TableCell>
                       <TableCell>{p.property_types?.name || "—"}</TableCell>
                       <TableCell>
                         <Badge variant="secondary">{p.purpose === "sale" ? "Venda" : "Aluguel"}</Badge>
