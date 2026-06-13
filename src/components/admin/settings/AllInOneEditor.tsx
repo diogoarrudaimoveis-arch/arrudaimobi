@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Building2, Palette as PaletteIcon, Image, Phone, Globe, MapPin,
   Rss, BarChart3, Target, MessageCircle, Sparkles, FileText, Cookie,
@@ -652,8 +652,13 @@ export function AllInOneEditor({ tenantId }: AllInOneEditorProps) {
   // All form fields in one state
   const [form, setForm] = useState<Record<string, any>>({});
   const [hasLoadedSettings, setHasLoadedSettings] = useState(false);
+  const formRef = useRef<Record<string, any>>({});
   const set = useCallback((key: string, value: any) => {
-    setForm(prev => ({ ...prev, [key]: value }));
+    setForm(prev => {
+      const next = { ...prev, [key]: value };
+      formRef.current = next;
+      return next;
+    });
   }, []);
 
   // Load from TENANTS table (settings JSONB) — site_settings is for SEO/docs only
@@ -669,7 +674,7 @@ export function AllInOneEditor({ tenantId }: AllInOneEditorProps) {
 
   useEffect(() => {
     const s = tenant?.settings || {};
-    setForm({
+    const initial = {
       // Identity
       nome: s.name || "",
       slogan: s.slogan || "",
@@ -737,6 +742,7 @@ export function AllInOneEditor({ tenantId }: AllInOneEditorProps) {
       footer_quick_links_visible: s.footer_quick_links_visible ?? false,
       footer_property_types_visible: s.footer_property_types_visible ?? true,
     });
+    formRef.current = initial;
     setHasLoadedSettings(true);
   }, [tenant?.settings]);
 
@@ -847,12 +853,8 @@ export function AllInOneEditor({ tenantId }: AllInOneEditorProps) {
     }
     setSaving(true);
     try {
-      // Use the latest form state via functional setState to avoid stale closures
-      let currentForm = form;
-      setForm(prev => {
-        currentForm = prev;
-        return prev;
-      });
+      // Use formRef to get the LATEST form state (avoid stale closure)
+      const currentForm = { ...formRef.current, ...form };
       await saveMutation.mutateAsync(currentForm);
     } finally {
       setSaving(false);
