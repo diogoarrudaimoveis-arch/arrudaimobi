@@ -651,7 +651,7 @@ export function AllInOneEditor({ tenantId }: AllInOneEditorProps) {
 
   // All form fields in one state
   const [form, setForm] = useState<Record<string, any>>({});
-
+  const [hasLoadedSettings, setHasLoadedSettings] = useState(false);
   const set = useCallback((key: string, value: any) => {
     setForm(prev => ({ ...prev, [key]: value }));
   }, []);
@@ -737,7 +737,8 @@ export function AllInOneEditor({ tenantId }: AllInOneEditorProps) {
       footer_quick_links_visible: s.footer_quick_links_visible ?? false,
       footer_property_types_visible: s.footer_property_types_visible ?? true,
     });
-  }, [tenant]);
+    setHasLoadedSettings(true);
+  }, [tenant?.settings]);
 
   // Save to TENANTS settings JSONB (MERGE, not replace)
   const saveMutation = useMutation({
@@ -840,13 +841,23 @@ export function AllInOneEditor({ tenantId }: AllInOneEditorProps) {
   });
 
   const handleSave = useCallback(async () => {
+    if (!hasLoadedSettings) {
+      console.warn("[AllInOneEditor] handleSave called before settings loaded");
+      return;
+    }
     setSaving(true);
     try {
-      await saveMutation.mutateAsync(form);
+      // Use the latest form state via functional setState to avoid stale closures
+      let currentForm = form;
+      setForm(prev => {
+        currentForm = prev;
+        return prev;
+      });
+      await saveMutation.mutateAsync(currentForm);
     } finally {
       setSaving(false);
     }
-  }, [form, saveMutation]);
+  }, [form, saveMutation, hasLoadedSettings]);
 
   if (isLoading) {
     return (
