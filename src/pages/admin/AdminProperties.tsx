@@ -492,6 +492,8 @@ const AdminProperties = () => {
       return propertyId;
     },
     onSuccess: (id: string) => {
+      const safeId = typeof id === 'string' ? id : (id?.id || String(id || ''));
+      console.log('[SAVE.onSuccess] id:', id, 'safeId:', safeId);
       queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
       if (editingId) {
         sonnerToast({ title: "Imóvel atualizado!" });
@@ -499,7 +501,7 @@ const AdminProperties = () => {
         setDialogOpen(false);
       } else {
         sonnerToast({ title: "Imóvel criado! Agora adicione as imagens." });
-        setEditingId(id);
+        setEditingId(safeId);
       }
     },
     onError: (err: any) => {

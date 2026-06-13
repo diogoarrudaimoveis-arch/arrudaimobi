@@ -35,21 +35,18 @@ class ErrorBoundary extends React.Component {
   }
   componentDidCatch(error, info) {
     console.error('Render error:', error, info);
+    console.error('Component stack:', info?.componentStack);
     this.setState({ info });
+    // AUTO-RECOVERY: redirect to admin/imoveis after a short delay
+    setTimeout(() => {
+      window.location.href = 'https://arrudaimobi.com.br/?v=' + Date.now() + '#/admin/imoveis';
+    }, 1500);
   }
   render() {
     if (this.state.hasError) {
-      const errorMsg = (this.state.error as Error)?.message || String(this.state.error);
-      const stack = (this.state.error as Error)?.stack || '';
       return React.createElement('div', { style: { padding: '2rem', textAlign: 'center', fontFamily: 'monospace' } },
         React.createElement('h1', { style: { color: 'red' } }, 'Erro ao carregar aplicacao'),
-        React.createElement('pre', { style: { textAlign: 'left', background: '#fee', padding: '1rem', borderRadius: '4px', overflow: 'auto' } },
-          'ERROR: ' + errorMsg + '\n\nSTACK:\n' + stack
-        ),
-        React.createElement('button', {
-          onClick: () => window.location.reload(),
-          style: { padding: '0.5rem 1rem', cursor: 'pointer', marginTop: '1rem' }
-        }, 'Recarregar pagina')
+        React.createElement('p', null, 'Redirecionando...')
       );
     }
     return this.props.children;
