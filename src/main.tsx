@@ -6,6 +6,7 @@ import "./index.css";
 // VitePWA auto-injects SW registration via injectRegister:"auto" in vite.config.ts
 // Keep minimal manual registration as fallback for when SW auto-inject fails
 // Only runs if virtual:pwa-register module is available (production build)
+// build-timestamp: 2026-06-13T22:35:00Z
 try {
   // Dynamic import to avoid errors in dev mode
   import("virtual:pwa-register").then(({ registerSW }) => {
