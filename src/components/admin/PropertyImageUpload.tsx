@@ -99,7 +99,8 @@ export function PropertyImageUpload({ propertyId, onProcessingChange }: Props) {
       setProcessingState(false);
     },
     onError: (err: any) => {
-      sonnerToast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+      const errorMessage = (err?.message) || String(err || "Erro desconhecido");
+      sonnerToast({ title: "Erro no upload", description: errorMessage, variant: "destructive" });
       setUploading(false);
       setProcessingState(false);
     },
@@ -120,7 +121,8 @@ export function PropertyImageUpload({ propertyId, onProcessingChange }: Props) {
       sonnerToast({ title: "Imagem removida" });
     },
     onError: (err: any) => {
-      sonnerToast({ title: "Erro", description: err.message, variant: "destructive" });
+      const errorMessage = (err?.message) || String(err || "Erro desconhecido");
+      sonnerToast({ title: "Erro ao remover imagem", description: errorMessage, variant: "destructive" });
     },
   });
 
@@ -139,7 +141,8 @@ export function PropertyImageUpload({ propertyId, onProcessingChange }: Props) {
       queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
     },
     onError: (err: any) => {
-      sonnerToast({ title: "Erro ao reordenar", description: err.message, variant: "destructive" });
+      const errorMessage = (err?.message) || String(err || "Erro desconhecido");
+      sonnerToast({ title: "Erro ao reordenar imagens", description: errorMessage, variant: "destructive" });
     },
   });
 
@@ -187,9 +190,10 @@ export function PropertyImageUpload({ propertyId, onProcessingChange }: Props) {
     });
 
     if (error) {
-      sonnerToast({ title: "Erro ao adicionar vídeo", description: error.message, variant: "destructive" });
-      return;
-    }
+        const errorMessage = (error?.message) || String(error || "Erro desconhecido");
+        sonnerToast({ title: "Erro ao adicionar vídeo", description: errorMessage, variant: "destructive" });
+        return;
+      }
 
     setYoutubeUrl("");
     setYoutubeTitle("");
@@ -213,7 +217,8 @@ export function PropertyImageUpload({ propertyId, onProcessingChange }: Props) {
                 display_order: currentCount + i,
               });
               if (error) {
-                sonnerToast({ title: "Erro", description: error.message, variant: "destructive" });
+                const errorMessage = (error?.message) || String(error || "Erro desconhecido");
+                sonnerToast({ title: "Erro ao importar imagem", description: errorMessage, variant: "destructive" });
                 return;
               }
             }
