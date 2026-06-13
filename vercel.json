@@ -42,6 +42,6 @@
     { "src": "/llms.txt", "dest": "/llms.txt", "status": 200 },
     { "src": "/placeholder.svg", "dest": "/placeholder.svg", "status": 200 },
     { "src": "/branding/(.*)", "dest": "/branding/$1", "status": 200 },
-    { "src": "/[^.]+", "dest": "/index.html", "status": 200 }
+    { "src": "/[^.]+", "dest": "/index.html", "status": 200, "headers": { "Cache-Control": "no-store" } }
   ]
 }
