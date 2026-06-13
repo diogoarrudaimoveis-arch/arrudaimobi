@@ -58,26 +58,19 @@ const Agents = () => {
     setIsLoading(true)
 
     try {
-      // Estratégia: profiles com show_on_public_page=true (todos os roles)
-      // Esta é a source of truth — o admin marca via checkbox no modal de edição
+      // Use the public-api Edge Function (bypasses RLS for public agents listing)
+      // This avoids the RLS policy that blocks anon users from reading profiles
+      // The Edge Function returns only profiles with show_on_public_page=true
+      const res = await fetch(
+        `https://udutxbyzrdwucabxqvgg.supabase.co/functions/v1/public-api?action=list-agents${effectiveTenantId ? `&tenant_id=${effectiveTenantId}` : ''}`
+      )
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const json = await res.json()
+      const profiles = json?.data || []
 
-      // Count
-      const { count } = await supabase
-        .from('profiles')
-        .select('id', { count: 'exact', head: true })
-        .eq('tenant_id', effectiveTenantId)
-        .eq('show_on_public_page', true)
+      const count = profiles.length
 
-      // Data
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('tenant_id', effectiveTenantId)
-        .eq('show_on_public_page', true)
-        .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1)
-        .order('full_name', { ascending: true })
-
-      const agentsFromProfiles: PublicAgent[] = (profiles || []).map((p: any) => ({
+      const agentsFromProfiles: PublicAgent[] = profiles.map((p: any) => ({
         id: p.id || p.user_id,
         user_id: p.user_id,
         full_name: p.full_name || 'Agente',
@@ -85,13 +78,13 @@ const Agents = () => {
         phone: p.phone || '',
         bio: p.bio || '',
         avatar_url: p.avatar_url || null,
-        properties_count: 0,
-        propertiesCount: 0,
+        properties_count: p.properties_count || 0,
+        propertiesCount: p.properties_count || 0,
       }))
 
       setAgents(agentsFromProfiles)
-      setTotal(count || 0)
-      setTotalPages(Math.ceil((count || 0) / PAGE_SIZE))
+      setTotal(count)
+      setTotalPages(Math.ceil(count / PAGE_SIZE))
     } catch (error) {
       console.error('Erro ao carregar agentes:', error)
     } finally {
