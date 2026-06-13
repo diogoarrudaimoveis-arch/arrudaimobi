@@ -813,8 +813,12 @@ export function AllInOneEditor({ tenantId }: AllInOneEditorProps) {
       // The direct call also gets BLOCKED by RLS for developer role.
       // Solution: Use the save-tenant-settings Edge Function which uses service_role
       // and MERGES settings (newSettings overrides existing).
+      console.log("[AllInOneEditor.saveMutation] === START ===");
+      console.log("[AllInOneEditor.saveMutation] tenantId:", tenantId);
+      console.log("[AllInOneEditor.saveMutation] newSettings keys:", Object.keys(newSettings));
       const session = await supabase.auth.getSession();
       const token = session.data.session?.access_token;
+      console.log("[AllInOneEditor.saveMutation] hasToken:", !!token);
       if (!token) throw new Error("Não autenticado — faça login novamente");
 
       const res = await fetch(
@@ -828,14 +832,18 @@ export function AllInOneEditor({ tenantId }: AllInOneEditorProps) {
           body: JSON.stringify({ tenantId, settings: newSettings }),
         }
       );
+      console.log("[AllInOneEditor.saveMutation] HTTP status:", res.status);
+      const resText = await res.text();
+      console.log("[AllInOneEditor.saveMutation] Response body:", resText.substring(0, 500));
       if (!res.ok) {
-        const errBody = await res.text();
-        throw new Error(`HTTP ${res.status}: ${errBody}`);
+        throw new Error(`HTTP ${res.status}: ${resText}`);
       }
-      const result = await res.json();
+      const result = JSON.parse(resText);
+      console.log("[AllInOneEditor.saveMutation] Parsed result:", { ok: result?.ok, settingsKeys: result?.settings_keys, hasSettings: !!result?.settings });
       if (!result?.ok) throw new Error(result?.error || "Falha ao salvar");
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("[AllInOneEditor.saveMutation.onSuccess] Save successful! Data:", data);
       queryClient.invalidateQueries({ queryKey: ["tenant", tenantId] });
       queryClient.invalidateQueries({ queryKey: ["tenant-settings"] });
       sonnerToast({ title: "Salvo!", description: "Configurações atualizadas." });
@@ -851,10 +859,14 @@ export function AllInOneEditor({ tenantId }: AllInOneEditorProps) {
       console.warn("[AllInOneEditor] handleSave called before settings loaded");
       return;
     }
+    console.log("[AllInOneEditor.handleSave] === START ===");
+    console.log("[AllInOneEditor.handleSave] formRef.current:", formRef.current);
+    console.log("[AllInOneEditor.handleSave] form state:", form);
     setSaving(true);
     try {
       // Use formRef to get the LATEST form state (avoid stale closure)
       const currentForm = { ...formRef.current, ...form };
+      console.log("[AllInOneEditor.handleSave] currentForm to send:", currentForm);
       await saveMutation.mutateAsync(currentForm);
     } finally {
       setSaving(false);
