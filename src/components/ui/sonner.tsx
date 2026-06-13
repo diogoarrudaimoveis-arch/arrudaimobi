@@ -28,6 +28,9 @@ export { Toaster, toast };
 export const sonnerToast = (opts: { title: string; description?: string; variant?: string }) => {
   const { title, description, variant, ...rest } = opts;
   // DEFENSIVE: ensure title is always a string to prevent React Error #31
+  if (typeof title !== 'string') {
+    console.error('[sonnerToast] NON-STRING TITLE DETECTED', { title, description, variant, rest });
+  }
   const safeTitle = typeof title === 'string' ? title : String(title ?? 'Notificação');
   const safeDesc = typeof description === 'string' ? description
     : description != null ? String(description) : undefined;
