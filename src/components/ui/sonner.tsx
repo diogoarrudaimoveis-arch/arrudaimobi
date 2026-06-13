@@ -27,9 +27,13 @@ const Toaster = ({ ...props }: ToasterProps) => {
 export { Toaster, toast };
 export const sonnerToast = (opts: { title: string; description?: string; variant?: string }) => {
   const { title, description, variant, ...rest } = opts;
+  // DEFENSIVE: ensure title is always a string to prevent React Error #31
+  const safeTitle = typeof title === 'string' ? title : String(title ?? 'Notificação');
+  const safeDesc = typeof description === 'string' ? description
+    : description != null ? String(description) : undefined;
   if (variant === "destructive") {
-    toast.error(title, { description, ...rest });
+    toast.error(safeTitle, { description: safeDesc, ...rest });
   } else {
-    toast.success(title, { description, ...rest });
+    toast.success(safeTitle, { description: safeDesc, ...rest });
   }
 };
