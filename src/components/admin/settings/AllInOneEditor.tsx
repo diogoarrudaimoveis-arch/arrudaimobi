@@ -744,6 +744,7 @@ export function AllInOneEditor({ tenantId }: AllInOneEditorProps) {
       footer_property_types_visible: s.footer_property_types_visible ?? true,
     };
     formRef.current = initial;
+    setForm(initial);
     setHasLoadedSettings(true);
   }, [tenant?.settings]);
 
