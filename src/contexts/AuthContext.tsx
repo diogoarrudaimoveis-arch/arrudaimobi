@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Derived role values
   const normalizedRole = useMemo(() => normalizeRole(userRole), [userRole]);
-  const isAdmin = normalizedRole === "admin";
+  const isAdmin = normalizedRole === "admin" || normalizedRole === "developer";
   const isDeveloper = normalizedRole === "developer";
   const isAgent = normalizedRole === "agent";
   const isUser = normalizedRole === "user";
