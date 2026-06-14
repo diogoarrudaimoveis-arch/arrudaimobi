@@ -742,7 +742,7 @@ export function AllInOneEditor({ tenantId }: AllInOneEditorProps) {
       footer_description: s.footer_description || "",
       footer_quick_links_visible: s.footer_quick_links_visible ?? false,
       footer_property_types_visible: s.footer_property_types_visible ?? true,
-    });
+    };
     formRef.current = initial;
     setHasLoadedSettings(true);
   }, [tenant?.settings]);
