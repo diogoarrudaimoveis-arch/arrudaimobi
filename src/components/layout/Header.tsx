@@ -30,22 +30,31 @@ export function Header() {
       <div className="container flex h-14 min-[400px]:h-16 min-w-0 items-center justify-between gap-3 px-3 min-[400px]:px-4">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 group shrink-0">
-          {tenant?.settings?.logo_mode === "image" && tenant?.settings?.logo_url ? (
-            <img
-              src={tenant.settings.logo_url}
-              alt={tenant?.name || "Logo"}
-              className="h-8 min-[400px]:h-9 max-w-full object-contain transition-transform group-hover:scale-105"
-            />
-          ) : (
-            <>
-              <div className="flex h-8 min-[400px]:h-9 w-8 min-[400px]:w-9 items-center justify-center rounded-xl bg-primary shadow-md shadow-primary/25 transition-transform group-hover:scale-105">
-                <Building2 className="h-4 w-4 min-[400px]:h-5 min-[400px]:w-5 text-primary-foreground" />
-              </div>
-              <span className="font-display text-base min-[400px]:text-lg font-bold text-foreground truncate max-w-[120px] min-[400px]:max-w-none">
-                {tenant?.name || "Sua Imobiliária"}
-              </span>
-            </>
-          )}
+          {(() => {
+            const mode = (tenant?.settings as any)?.logo_mode ?? "text";
+            const logoUrl = (tenant?.settings as any)?.logo_url;
+            // image mode: show ONLY the image
+            if ((mode === "image" || mode === "both") && logoUrl) {
+              return (
+                <img
+                  src={logoUrl}
+                  alt={tenant?.name || "Logo"}
+                  className="h-8 min-[400px]:h-9 max-w-[180px] object-contain transition-transform group-hover:scale-105"
+                />
+              );
+            }
+            // text mode or no image: show icon + text
+            return (
+              <>
+                <div className="flex h-8 min-[400px]:h-9 w-8 min-[400px]:w-9 items-center justify-center rounded-xl bg-primary shadow-md shadow-primary/25 transition-transform group-hover:scale-105">
+                  <Building2 className="h-4 w-4 min-[400px]:h-5 min-[400px]:w-5 text-primary-foreground" />
+                </div>
+                <span className="font-display text-base min-[400px]:text-lg font-bold text-foreground truncate max-w-[120px] min-[400px]:max-w-none">
+                  {tenant?.name || "Sua Imobiliária"}
+                </span>
+              </>
+            );
+          })()}
         </Link>
 
         {/* Desktop nav */}

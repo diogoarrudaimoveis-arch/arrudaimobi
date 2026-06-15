@@ -323,6 +323,32 @@ function LogosPanel({ form, set, tenantId }: any) {
   };
   return (
     <div className="space-y-6">
+      {/* Logo mode selector */}
+      <div className="space-y-2 pb-4 border-b border-border/40">
+        <Label className="text-xs font-medium text-muted-foreground">Modo de exibição do logo no Header</Label>
+        <div className="flex gap-2">
+          {([
+            { value: "text", label: "Texto + Ícone", desc: "Mostra o nome da imobiliária com ícone" },
+            { value: "image", label: "Apenas Imagem", desc: "Mostra só a logo (sem texto)" },
+            { value: "both", label: "Imagem + Texto", desc: "Mostra logo e nome juntos" },
+          ] as const).map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => set("logo_mode", opt.value)}
+              className={cn(
+                "flex-1 px-3 py-2 rounded-lg border-2 text-left transition-all",
+                (form.logo_mode ?? "text") === opt.value
+                  ? "border-primary bg-primary/5"
+                  : "border-border hover:border-primary/40"
+              )}
+            >
+              <div className="text-sm font-medium">{opt.label}</div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">{opt.desc}</div>
+            </button>
+          ))}
+        </div>
+      </div>
       {["logo_url", "footer_logo_url", "favicon_url"].map(key => (
         <div key={key} className="space-y-2">
           <Label className="text-xs font-medium text-muted-foreground">
